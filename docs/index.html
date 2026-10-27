@@ -783,9 +783,10 @@ const contours=(()=>{const out=[];for(const lv of[10,30,50,70,90]){const P=[];fo
   const e=[[x+L(a,b)*CELL,y],[x+CELL,y+L(b,c)*CELL],[x+L(d,c)*CELL,y+CELL],[x,y+L(a,d)*CELL]],ed=[];
   if((idx&1)!==(idx>>1&1))ed.push(e[0]);if((idx>>1&1)!==(idx>>2&1))ed.push(e[1]);if((idx>>2&1)!==(idx>>3&1))ed.push(e[2]);if((idx>>3&1)!==(idx&1))ed.push(e[3]);
   for(let k=0;k+1<ed.length;k+=2)P.push(ed[k],ed[k+1]);}out.push(P);}return out;})();
+const FZ={z:1,px:0,py:0};function fzAt(k,qx,qy){if(!far._map||!far._base)return;const w=far.width,h=far.height,z=Math.max(1,Math.min(14,FZ.z*k)),[ox,oy,sc]=far._map,[ox0,oy0,sc0]=far._base,ux=(qx-ox)/sc,uy=(qy-oy)/sc,s2=sc0*z;FZ.px=qx-ux*s2-w/2-(ox0-w/2)*z;FZ.py=qy-uy*s2-h/2-(oy0-h/2)*z;FZ.z=z;if(z===1){FZ.px=FZ.py=0;}far._map=[w/2+FZ.px+(ox0-w/2)*z,h/2+FZ.py+(oy0-h/2)*z,s2];}
 function drawFar(boats=[],X_=null,W=null){const w=far.width,h=far.height,dpr=far._dpr;fx.setTransform(1,0,0,1,0,0);fx.fillStyle='#f6f5f0';fx.fillRect(0,0,w,h);
-  const m=40*dpr,sc=Math.min((w-2*m)/(maxX-minX),(h-2*m)/(maxY-minY)),ox=(w-(maxX-minX)*sc)/2-minX*sc,oy=(h-(maxY-minY)*sc)/2-minY*sc;
-  const X=x=>ox+x*sc,Y=y=>oy+y*sc;far._map=[ox,oy,sc];fx.lineJoin='round';
+  const m=40*dpr,sc0=Math.min((w-2*m)/(maxX-minX),(h-2*m)/(maxY-minY)),ox0=(w-(maxX-minX)*sc0)/2-minX*sc0,oy0=(h-(maxY-minY)*sc0)/2-minY*sc0;const Z=FZ.z,sc=sc0*Z,ox=w/2+FZ.px+(ox0-w/2)*Z,oy=h/2+FZ.py+(oy0-h/2)*Z;
+  const X=x=>ox+x*sc,Y=y=>oy+y*sc;far._map=[ox,oy,sc];far._base=[ox0,oy0,sc0];fx.lineJoin='round';
   fx.strokeStyle='rgba(27,27,27,.18)';fx.lineWidth=.8*dpr;fx.beginPath();for(const P of contours)for(let k=0;k<P.length;k+=2){fx.moveTo(X(P[k][0]),Y(P[k][1]));fx.lineTo(X(P[k+1][0]),Y(P[k+1][1]));}fx.stroke();
   fx.strokeStyle='rgba(27,27,27,.13)';fx.lineWidth=.7*dpr;fx.beginPath();for(const P of landContours)for(let k=0;k<P.length;k+=2){fx.moveTo(X(P[k][0]),Y(P[k][1]));fx.lineTo(X(P[k+1][0]),Y(P[k+1][1]));}fx.stroke();
   fx.fillStyle='rgba(27,27,27,.55)';for(const[px,py,h]of PK.slice(0,4)){const k=4*dpr;fx.beginPath();fx.moveTo(X(px),Y(py)-k);fx.lineTo(X(px)-k*.8,Y(py)+k*.5);fx.lineTo(X(px)+k*.8,Y(py)+k*.5);fx.closePath();fx.fill();}
@@ -815,7 +816,7 @@ function drawFar(boats=[],X_=null,W=null){const w=far.width,h=far.height,dpr=far
 let distT=60,yawT=.6,yaw=.6,pitch=.32,dist=60,isFar=false;const ptrs=new Map();let pinch0=0;
 const setFar=v=>{isFar=v;document.body.classList.toggle('far',v);};
 document.getElementById('view').onclick=()=>{setFar(!isFar);if(!isFar)dist=Math.min(dist,120);};
-addEventListener('wheel',e=>{if(STATE!=='lake')return;if(e.shiftKey){pitch=Math.max(-.7,Math.min(1.45,pitch+e.deltaY*.002));return;}if(isFar){if(e.deltaY<0){setFar(false);dist=280;}return;}distT=Math.max(60,Math.min(320,distT*Math.exp(e.deltaY*.0012)));if(distT>=320)setFar(true);},{passive:true});
+addEventListener('wheel',e=>{if(STATE!=='lake')return;if(e.shiftKey){pitch=Math.max(-.7,Math.min(1.45,pitch+e.deltaY*.002));return;}if(isFar)return;distT=Math.max(60,Math.min(320,distT*Math.exp(e.deltaY*.0012)));if(distT>=320)setFar(true);},{passive:true});
 const joy=document.getElementById('joy'),knob=joy.firstElementChild;let joyId=null;
 joy.addEventListener('pointerdown',e=>{joy.style.opacity=1;joyId=e.pointerId;joy.setPointerCapture(joyId);e.stopPropagation();});
 joy.addEventListener('pointermove',e=>{if(e.pointerId!==joyId)return;const r=joy.getBoundingClientRect(),dx0=(e.clientX-r.left-r.width/2)/(r.width*.42),dy0=(e.clientY-r.top-r.height/2)/(r.width*.42),m0=Math.hypot(dx0,dy0),mm=m0<.12?0:Math.pow(Math.min(1,(m0-.12)/.88),1.4),dx=m0?dx0/m0*mm:0,dy=m0?dy0/m0*mm:0,l=Math.min(1,Math.hypot(dx,dy))/(Math.hypot(dx,dy)||1);steer.x=dx*l;steer.y=dy*l;knob.style.transform=`translate(${steer.x*22}px,${steer.y*22}px)`;});
@@ -825,7 +826,15 @@ gl.addEventListener('pointerdown',e=>{ptrs.set(e.pointerId,[e.clientX,e.clientY]
 gl.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return;window.__lastDrag=performance.now();if(ptrs.size===1&&STATE==='lake'){yawT=(typeof yawT==='number'?yawT:yaw)-(e.clientX-p[0])*(3.6/Math.max(400,innerWidth));pitch=Math.max(-.7,Math.min(1.45,pitch+(e.clientY-p[1])*.005));}else if(ptrs.size===2){ptrs.set(e.pointerId,[e.clientX,e.clientY]);const[a,b]=[...ptrs.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(window.__pm!==undefined)pitch=Math.max(-.7,Math.min(1.45,pitch+((a[1]+b[1])/2-window.__pm)*.004));window.__pm=(a[1]+b[1])/2;distT=Math.max(60,distT*pinch0/d);dist=distT;pinch0=d;if(dist>320)setFar(true);dist=Math.min(320,dist);return;}ptrs.set(e.pointerId,[e.clientX,e.clientY]);});
 let lastTap=0;gl.addEventListener('dblclick',e=>{if(STATE!=='lake')return;const r=new THREE.Raycaster(),v=new THREE.Vector2(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1);r.setFromCamera(v,camera);const p=new THREE.Vector3();if(r.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),0),p)){B.goal=[p.x/S,p.z/S];}});
 const up=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)window.__pm=undefined;};gl.addEventListener('pointerup',up);gl.addEventListener('pointercancel',up);
-far.addEventListener('pointerdown',()=>{});far.addEventListener('dblclick',()=>{setFar(false);dist=200;});far.addEventListener('click',e=>{if(!far._map)return;const[ox,oy,sc]=far._map,d=far._dpr;B.goal=[(e.clientX*d-ox)/sc,(e.clientY*d-oy)/sc];});
+{const fp=new Map();let moved=0,pd0=0;
+far.addEventListener('pointerdown',e=>{fp.set(e.pointerId,[e.clientX,e.clientY]);far.setPointerCapture(e.pointerId);if(fp.size===1)moved=0;if(fp.size===2){const[a,b]=[...fp.values()];pd0=Math.hypot(a[0]-b[0],a[1]-b[1]);}});
+far.addEventListener('pointermove',e=>{if(!fp.has(e.pointerId))return;const o=fp.get(e.pointerId),d=far._dpr;const dx=e.clientX-o[0],dy=e.clientY-o[1];fp.set(e.pointerId,[e.clientX,e.clientY]);
+ if(fp.size===1){moved+=Math.abs(dx)+Math.abs(dy);if(FZ.z>1){FZ.px+=dx*d;FZ.py+=dy*d;}}
+ else if(fp.size===2){const[a,b]=[...fp.values()],pd=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pd0>0)fzAt(pd/pd0,(a[0]+b[0])/2*d,(a[1]+b[1])/2*d);pd0=pd;moved=99;}});
+const fup=e=>{fp.delete(e.pointerId);if(fp.size<2)pd0=0;};far.addEventListener('pointerup',fup);far.addEventListener('pointercancel',fup);
+far.addEventListener('wheel',e=>{e.preventDefault();const d=far._dpr;fzAt(Math.exp(-e.deltaY*.0015),e.clientX*d,e.clientY*d);},{passive:false});
+far.addEventListener('dblclick',()=>{setFar(false);dist=200;});
+far.addEventListener('click',e=>{if(!far._map||moved>8)return;const[ox,oy,sc]=far._map,d=far._dpr;B.goal=[(e.clientX*d-ox)/sc,(e.clientY*d-oy)/sc];});}
 const keys={};addEventListener('keydown',e=>{keys[e.key.length===1?e.key.toLowerCase():e.key]=1;if(e.key.startsWith('Arrow')&&STATE==='lake')e.preventDefault();});addEventListener('keyup',e=>keys[e.key.length===1?e.key.toLowerCase():e.key]=0);
 addEventListener('keydown',e=>{if(STATE!=='lake')return;if(e.key==='q')yawT+=.35;if(e.key==='e')yawT-=.35;if(e.key==='r'||e.key==='R'){yawT=B.yaw+Math.PI/2;pitch=.32;distT=60;}if(e.key==='+'||e.key==='=')distT=Math.max(60,distT*.8);if(e.key==='-')distT=Math.min(320,distT*1.25);});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=0;});   // 3 タブを離れたら舵を戻す
