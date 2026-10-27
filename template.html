@@ -939,7 +939,7 @@ const hex=c=>'#'+c.toString(16).padStart(6,'0');
 function dots(el,cols,key){el.innerHTML='';cols.forEach((c,i)=>{const d=document.createElement('div');d.className='dot'+(CUST[key]===i?' on':'');d.style.background=hex(c);d.onclick=()=>{CUST[key]=i;buildHouse();dots(el,cols,key);};el.appendChild(d);});}
 const MAT_ICONS=['<path d="M5 19c4-6 10-8 14-14M8 19c3-4 7-6 11-9M5 14c3-3 6-5 9-9"/>','<rect x="6" y="6" width="12" height="12"/>','<circle cx="12" cy="12" r="7" stroke-dasharray="2 2"/>'];
 function mats(){const el=$('cMat');el.innerHTML='';MAT_ICONS.forEach((p,i)=>{const d=document.createElement('div');d.className='mbtn'+(CUST.mat===i?' on':'');d.innerHTML='<svg viewBox="0 0 24 24">'+p+'</svg>';d.onclick=()=>{CUST.mat=i;buildHouse();mats();};el.appendChild(d);});}
-function showName(){const b=BUILDINGS[CUST.b];$('nm').innerHTML=b.name+'<span class="ln">'+b.line+'</span>';}
+function showName(){const b=BUILDINGS[CUST.b];$('nm').textContent=b.name;}
 function pick(d){CUST.b=(CUST.b+d+BUILDINGS.length)%BUILDINGS.length;buildHouse();showName();}
 $('prev').onclick=()=>pick(-1);$('next').onclick=()=>pick(1);
 $('bright').oninput=e=>{CUST.bright=+e.target.value;};
