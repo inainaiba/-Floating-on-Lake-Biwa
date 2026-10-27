@@ -28,6 +28,7 @@ body:not(.lake) #snd{display:none}
 #joy{left:18px;bottom:calc(20px + env(safe-area-inset-bottom));width:76px;height:76px;display:none;touch-action:none;opacity:.75}
 #joy i{position:absolute;left:50%;top:50%;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:rgba(255,255,255,.35)}
 @media (pointer:coarse){#joy{display:block}}
+#ld{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;color:rgba(255,255,255,.8);font:300 15px "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;letter-spacing:.3em;animation:ldp 2.4s ease-in-out infinite}#ld span{display:block;margin-top:8px;font-size:10px;letter-spacing:.2em;opacity:.7}@keyframes ldp{50%{opacity:.35}}
 #veil{position:fixed;inset:0;background:#000;pointer-events:none;transition:opacity 2s ease}
 
 #ui{position:fixed;inset:0;pointer-events:none;color:#fff;font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif}
@@ -75,7 +76,7 @@ body.far #rest{display:none}
 <div id="rest" aria-label="drift"><svg viewBox="0 0 24 24"><path d="M3 16c3-3 6 3 9 0s6 3 9 0"/><path d="M8 9h9M14 6l3 3-3 3"/></svg></div>
 <div id="hint">ドラッグで見回す・ピンチで寄る<br><span style="font-size:11px;opacity:.8">Drag to look, pinch to zoom</span></div>
 </div>
-<div id="veil"></div>
+<div id="veil"><div id="ld">湖を描いています<span>Drawing the lake</span></div></div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 <script type="module">
 import * as THREE from 'three';
@@ -411,13 +412,14 @@ function hullShape(L,W,H,m,bow=.25){const s=new THREE.Shape();s.moveTo(-L/2,0);s
  const g=new THREE.ExtrudeGeometry(s,{depth:W,bevelEnabled:false}).translate(0,-H*.35,-W/2);return new THREE.Mesh(g,m);}
 // 漂い方のパラメータ：draft喫水(流れに乗る) wind受風 align縦横比(向きを揃える速さ) rock揺れやすさ rudder舵 mass重さ reeds=ヨシ帯に入れる
 const rod=(a,b,r,m)=>{const A=new THREE.Vector3(...a),Bv=new THREE.Vector3(...b),L=A.distanceTo(Bv),o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,L,6),m);o.position.copy(A).add(Bv).multiplyScalar(.5);o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),Bv.clone().sub(A).normalize());return o;};
+const s0=k=>k%2?-4.2:4.2;
 const BUILDINGS=[
  {name:'浮かぶ学校',line:'マココの浮かぶ学校',p:{draft:.5,wind:1.1,align:.4,rock:.55,rudder:.6,mass:.7},make(m){const g=new THREE.Group(),blue=new THREE.MeshStandardMaterial({color:0x2f5fa8,roughness:.6});
    for(let i=-4;i<=4;i++){const c=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,10,12),blue);c.rotation.z=Math.PI/2;c.position.set(0,.2,i*1.15);g.add(c);}g.add(box(11,.3,11,m.wood,0,.75));
    for(const s of[-1,1]){for(let k=0;k<5;k++){const y=1+k*1.8,w=10*(1-(y-.9)/10.5);g.add(box(10.4,.12,.14,m.wood,0,y,s*w/2));}g.add(rod([-5,.9,s*5],[-5,11.4,0],.12,m.wood));g.add(rod([5,.9,s*5],[5,11.4,0],.12,m.wood));g.add(rod([0,.9,s*5],[0,11.4,0],.1,m.wood));}
-   const wall=gable(9.6,9.4,4.6,m.body);wall.position.y=3.6;wall.scale.set(1,1,1);g.add(wall);g.add(box(9.6,.25,8.6,m.wood,0,3.6));g.add(box(9.6,.25,4.9,m.wood,0,7));
+   for(let k=0;k<9;k++){const y=3.7+k*.5,w=9.4*(1-(y-3.6)/4.6);if(w<.4)break;for(const s of[-1,1])g.add(box(9.6,.32,.08,m.body,0,y,s*w/2));}for(let k=0;k<12;k++){const y=1+k*.38;g.add(box(.08,.3,8.9,m.body,s0(k),y,0));}for(const x of[-4.8,4.8]){const tri=gable(.12,9.4,4.6,m.body);tri.position.set(x,3.6,0);g.add(tri);}g.add(box(9.6,.25,8.6,m.wood,0,3.6));g.add(box(9.6,.25,4.9,m.wood,0,7));
    const roof=gable(10.6,4.6,2.3,blue);roof.position.y=8.9;g.add(roof);const roof2=gable(10.8,5.2,2.6,blue);roof2.position.set(0,8.6,0);roof2.scale.set(1,1,1.0);g.add(roof2);
-   for(let i=-2;i<=2;i++)g.add(box(.6,.9,.08,m.glass,i*1.8,5,3.2));return g;},L:12},
+   return g;},L:12},
  {name:'漏斗の舞台',line:'川に浮かぶ白い漏斗の舞台',p:{draft:.4,wind:1.2,align:.3,rock:.7,rudder:.7,mass:.4},make(m){const g=new THREE.Group(),blue=new THREE.MeshStandardMaterial({color:0x2f5fa8,roughness:.6}),fab=m.body.clone();fab.transparent=true;fab.opacity=.82;fab.side=THREE.DoubleSide;
    for(let i=-3;i<=3;i++){const c=new THREE.Mesh(new THREE.CylinderGeometry(.35,.35,8.4,10),blue);c.rotation.z=Math.PI/2;c.position.set(0,.15,i*.95);g.add(c);}g.add(box(9,.25,7,m.wood,0,.6));
    for(const x of[-4.2,4.2])for(const z of[-3.2,3.2])g.add(box(.18,8,.18,m.wood,x,4.6,z));
@@ -447,7 +449,7 @@ const BUILDINGS=[
    const cage=new THREE.Mesh(new THREE.BoxGeometry(4,7.3,4),gl);cage.position.y=12.6;g.add(cage);g.add(box(3.9,.2,3.9,m.wood,0,12.4));g.add(box(3.9,.2,3.9,m.body,0,8.9));return g;},L:10},
  {name:'網の三角',line:'白い格子と網の三角の浮き床',p:{draft:.3,wind:.9,align:.3,rock:.9,rudder:.8,mass:.3},make(m){const g=new THREE.Group(),wh=new THREE.MeshStandardMaterial({color:0xf4f3ee,roughness:.5});
    const R=6.2,P=[0,1,2].map(i=>{const a=i/3*Math.PI*2+Math.PI/2;return[Math.cos(a)*R,Math.sin(a)*R];});const fl=new THREE.Mesh(new THREE.CylinderGeometry(R,R,.5,3),wh);fl.rotation.y=Math.PI/2;fl.position.y=.45;g.add(fl);
-   const H=5.2,net=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.18,side:THREE.DoubleSide,depthWrite:false,map:window.__netTx||(window.__netTx=cvTex(128,128,(c,w,h)=>{c.fillStyle='#000';c.fillRect(0,0,w,h);c.strokeStyle='#fff';c.lineWidth=2;for(let i=0;i<8;i++){c.beginPath();c.arc(64,64,8*i,0,7);c.stroke();}for(let a=0;a<12;a++){c.beginPath();c.moveTo(64,64);c.lineTo(64+Math.cos(a/12*6.28)*90,64+Math.sin(a/12*6.28)*90);c.stroke();}}))});net.alphaMap=net.map;
+   const H=5.2,net=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.6,side:THREE.DoubleSide,depthWrite:false,map:window.__netTx||(window.__netTx=cvTex(128,128,(c,w,h)=>{c.fillStyle='#000';c.fillRect(0,0,w,h);c.strokeStyle='#fff';c.lineWidth=3;for(let i=0;i<8;i++){c.beginPath();c.arc(64,64,8*i,0,7);c.stroke();}for(let a=0;a<12;a++){c.beginPath();c.moveTo(64,64);c.lineTo(64+Math.cos(a/12*6.28)*90,64+Math.sin(a/12*6.28)*90);c.stroke();}}))});net.alphaMap=net.map;
    for(let i=0;i<3;i++){const[a,b]=[P[i],P[(i+1)%3]];g.add(rod([a[0],.7,a[1]],[b[0],.7,b[1]],.09,m.body));g.add(rod([a[0],H,a[1]],[b[0],H,b[1]],.09,m.body));g.add(rod([a[0],.7,a[1]],[a[0],H,a[1]],.09,m.body));
     for(let k=1;k<4;k++){const u=k/4,x=a[0]+(b[0]-a[0])*u,z=a[1]+(b[1]-a[1])*u;g.add(rod([x,.7,z],[x,H,z],.05,m.body));g.add(rod([x,H,z],[0,H,0],.05,m.body));}
     g.add(rod([a[0],.7,a[1]],[b[0],H,b[1]],.05,m.body));g.add(rod([a[0],H,a[1]],[0,H,0],.06,m.body));
@@ -1071,7 +1073,7 @@ gl.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY,performance.now(
 gl.addEventListener('pointerup',e=>{if(!down||STATE!=='lake'||isFar)return;const moved=Math.hypot(e.clientX-down[0],e.clientY-down[1]),dtm=performance.now()-down[2];down=null;if(moved>8||dtm>600)return;const it=pick(e);if(!it)return;const dB=Math.hypot(it.g.position.x-B.x*S,it.g.position.z-B.y*S);if(dB>NEAR){const hn=document.getElementById('hint');hn.innerHTML='ブイに近づいてからタップ<br><span style="font-size:11px;opacity:.8">Drift closer to the buoy</span>';hn.style.opacity=1;clearTimeout(hn._t);hn._t=setTimeout(()=>hn.style.opacity=0,2200);return;}
  const a=document.createElement('a');a.href=it.url;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();});
 gl.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||ptrs.size)return;gl.style.cursor=STATE==='lake'&&!isFar&&pick(e)?'pointer':'';});
-function update(t,night){for(const it of items){const x=it.g.position.x,z=it.g.position.z,h=waveH(x,z,t),hx=waveH(x+1,z,t)-h,hz=waveH(x,z+1,t)-h;it.g.position.y=h*.9+Math.sin(t*1.3+it.ph)*.03;it.g.rotation.set(hz*.6,0,-hx*.6);it.glow.visible=night;it.glow.material.opacity=.42+.06*Math.sin(t*.7+it.ph);}red.emissive.set(night?0x7a1e0a:0x3a0c00);}
+function update(t,night){const qx=B.x*S,qz=B.y*S;for(const it of items){const near=Math.hypot(it.g.position.x-qx,it.g.position.z-qz)<NEAR;it.nk=(it.nk||0)+((near?1:0)-(it.nk||0))*.04;if(!it.rip){const rm=new THREE.Mesh(new THREE.RingGeometry(.9,1.05,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffe2c8,transparent:true,opacity:0,depthWrite:false}));rm.position.y=.06;it.g.add(rm);it.rip=rm;}{const ph=(t*.45+it.ph)%1;it.rip.scale.setScalar(1+ph*5);it.rip.material.opacity=it.nk*(1-ph)*.55;it.rip.visible=it.nk>.02;}const x=it.g.position.x,z=it.g.position.z,h=waveH(x,z,t),hx=waveH(x+1,z,t)-h,hz=waveH(x,z+1,t)-h;it.g.position.y=h*.9+Math.sin(t*1.3+it.ph)*.03;it.g.rotation.set(hz*.6,0,-hx*.6);it.glow.visible=night||it.nk>.02;it.glow.material.opacity=(night?.42:0)+it.nk*(.35+.15*Math.sin(t*2.2+it.ph))+.06*Math.sin(t*.7+it.ph);it.glow.scale.setScalar(8+it.nk*4);}red.emissive.set(night?0x7a1e0a:0x3a0c00);}
 return {items,update,sp:i=>{const v=items[i].ball.getWorldPosition(new THREE.Vector3()).project(camera),r=gl.getBoundingClientRect();return [r.left+(v.x+1)/2*r.width,r.top+(1-v.y)/2*r.height];}};})();
 function frame(now){const dt=Math.min(.1,(now-last)/1000);last=now;fpsN++;fpsT+=dt;if(fpsT>3){const f=fpsN/fpsT;const old=resScale;if(f<38)resScale=Math.max(.5,resScale-.1);else if(f>57)resScale=Math.min(HQ?1:.9,resScale+.05);if(old!==resScale)resize();fpsN=0;fpsT=0;}const c=clock(),W=wind(c),t=now/1000;
   // 舵（キーボード・スティック）を、カメラの向きに合わせて地図上の向きに直す
