@@ -12,3 +12,8 @@
 組み立て：`python3 build.py`
 
 URLの調整値：`?q=hq|mid|low`（画質）、`?scale=5`（縮尺）、`?month=0-11&phase=0-1&wx=0-6`（月・時刻・天気の固定）
+
+## 公開（GitHub Pages）
+Settings → Pages → Source を「Deploy from a branch」、Branch を `main` / `/docs` にして保存。
+公開URL：https://inainaiba.github.io/-Floating-on-Lake-Biwa/
+共有カードの画像は `docs/og.jpg`（`tools/og_image.js` で撮り直せる）。
