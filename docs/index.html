@@ -1024,7 +1024,7 @@ var FW;FW=(()=>{const NP=HQ?9000:LQ?3500:6000,K=3,P0=.80,DUR=200,R_=rnd(8081);
   mat.uniforms.uPx.value=renderer.domElement.height/(2*Math.tan(camera.fov*Math.PI/360));
   self.flash*=Math.exp(-dt*3.5);flashL.intensity=self.flash*2.5;glows.forEach((g,k)=>{const u=waterU.uFW.value[k];if(!g.visible){u.w=0;return;}u.set(g.position.x,g.position.y,g.position.z,g.userData.a*1.4);waterU.uFWc.value[k].set(g.material.color.r,g.material.color.g,g.material.color.b);});for(const g of glows){if(!g.visible)continue;g.userData.a*=Math.exp(-dt*1.6);g.material.opacity=g.userData.a*.6;if(g.userData.a<.01)g.visible=false;}}
  return {update,BAR,pts,geo,pending,glows,ev,self};})();window.__FW=FW;
-window.__buoys=(()=>{const LIST=[{lat:35.447166913886065,lon:136.0544545375072,url:'https://youtu.be/jjFq9K2AmFY?si=ufqVeeX_aVCmUB1L'}];
+window.__buoys=(()=>{const LIST=[{"no": 1, "name": "（集落名を入力）", "form": "湖岸集落", "lat": 35.4471669138861, "lon": 136.054454537507, "url": "https://youtu.be/jjFq9K2AmFY?si=ufqVeeX_aVCmUB1L"}];
 const red=new THREE.MeshStandardMaterial({color:0xe2361c,roughness:.35,metalness:0}),rope=new THREE.MeshLambertMaterial({color:0xe8e2cf}),hitM=new THREE.MeshBasicMaterial({visible:false});
 const items=LIST.map(b=>{const[x0,y0]=ll(b.lon,b.lat);let x=x0,y=y0;for(let k=0;k<60&&depth(x,y)<1.5;k++){const a=k*2.4,r=10+k*8;x=x0+Math.cos(a)*r;y=y0+Math.sin(a)*r;}
  const g=new THREE.Group(),ball=new THREE.Mesh(new THREE.SphereGeometry(.8,24,16),red);ball.position.y=.45;g.add(ball);
