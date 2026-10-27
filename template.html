@@ -799,7 +799,7 @@ function drawFar(boats=[],X_=null,W=null){const w=far.width,h=far.height,dpr=far
   fx.lineWidth=2.2*dpr;for(const b of LAKE.bridges){fx.beginPath();b.pts.forEach(([x,y],i)=>i?fx.lineTo(X(x),Y(y)):fx.moveTo(X(x),Y(y)));fx.stroke();}
   fx.fillStyle='rgba(27,27,27,.28)';for(const hh of houses){fx.fillRect(X(hh.x)-.5*dpr,Y(hh.y)-.5*dpr,1.1*dpr,1.1*dpr);}
   fx.fillStyle='rgba(27,27,27,.5)';for(const[x,y]of(window.__eri||[]))fx.fillRect(X(x),Y(y),.8*dpr,.8*dpr);
-  fx.fillStyle='#1b1b1b';for(const[x,y]of LAKE.ports){fx.beginPath();fx.arc(X(x),Y(y),1.8*dpr,0,7);fx.fill();}
+  fx.fillStyle='#1b1b1b';for(const[x,y]of LAKE.ports){fx.beginPath();fx.arc(X(x),Y(y),1.8*dpr,0,7);fx.fill();}if(window.__buoys){fx.save();for(const it of __buoys.items){const bx=X(it.g.position.x/S),by=Y(it.g.position.z/S);fx.beginPath();fx.beginPath();fx.arc(bx,by,7*dpr,0,7);fx.lineWidth=1*dpr;fx.strokeStyle='rgba(226,54,28,.55)';fx.stroke();fx.beginPath();fx.arc(bx,by,3.4*dpr,0,7);fx.fillStyle='#e2361c';fx.fill();}fx.restore();}
   for(const b of boats){fx.save();fx.translate(X(b.x),Y(b.y));fx.rotate(b.h);fx.beginPath();const k=(b.kind==='fish'?2.5:4.5)*dpr;fx.moveTo(k,0);fx.lineTo(-k,-k*.6);fx.lineTo(-k,k*.6);fx.closePath();fx.fill();fx.restore();}
   fx.strokeStyle='#d9542b';fx.lineWidth=(X_&&X_.storm>.5?2.2:1.8)*dpr;const jt=X_?X_.storm*2*dpr:0;fx.beginPath();B.trail.forEach(([x,y],i)=>i?fx.lineTo(X(x)+(Math.random()-.5)*jt,Y(y)+(Math.random()-.5)*jt):fx.moveTo(X(x),Y(y)));fx.lineTo(X(B.x),Y(B.y));fx.stroke();
   if(X_){const R=rnd(Math.floor(performance.now()/120));fx.strokeStyle='rgba(27,27,27,.35)';fx.fillStyle='rgba(27,27,27,.35)';fx.lineWidth=.6*dpr;
@@ -1033,10 +1033,10 @@ const items=LIST.map(b=>{const[x0,y0]=ll(b.lon,b.lat);let x=x0,y=y0;for(let k=0;
  const hit=new THREE.Mesh(new THREE.SphereGeometry(7,8,6),hitM);hit.position.y=1;g.add(hit);
  const glow=new THREE.PointLight(0xff6040,0,14,1.8);glow.position.y=1.8;g.add(glow);
  g.position.set(x*S,0,y*S);g.traverse(o=>{if(o.isMesh&&o!==hit)o.castShadow=true;});scene.add(g);return {g,ball,hit,glow,url:b.url,ph:Math.random()*6};});
-const ray=new THREE.Raycaster(),v2=new THREE.Vector2();let down=null;
+const ray=new THREE.Raycaster(),v2=new THREE.Vector2(),NEAR=120;let down=null;
 const pick=e=>{const r=gl.getBoundingClientRect();v2.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(v2,camera);const hs=ray.intersectObjects(items.map(i=>i.hit),false);return hs.length?items.find(i=>i.hit===hs[0].object):null;};
 gl.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY,performance.now()];});
-gl.addEventListener('pointerup',e=>{if(!down||STATE!=='lake'||isFar)return;const moved=Math.hypot(e.clientX-down[0],e.clientY-down[1]),dtm=performance.now()-down[2];down=null;if(moved>8||dtm>600)return;const it=pick(e);if(!it)return;
+gl.addEventListener('pointerup',e=>{if(!down||STATE!=='lake'||isFar)return;const moved=Math.hypot(e.clientX-down[0],e.clientY-down[1]),dtm=performance.now()-down[2];down=null;if(moved>8||dtm>600)return;const it=pick(e);if(!it)return;const dB=Math.hypot(it.g.position.x-B.x*S,it.g.position.z-B.y*S);if(dB>NEAR){const hn=document.getElementById('hint');hn.innerHTML='ブイに近づいてからタップ<br><span style="font-size:11px;opacity:.8">Drift closer to the buoy</span>';hn.style.opacity=1;clearTimeout(hn._t);hn._t=setTimeout(()=>hn.style.opacity=0,2200);return;}
  const a=document.createElement('a');a.href=it.url;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();});
 gl.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||ptrs.size)return;gl.style.cursor=STATE==='lake'&&!isFar&&pick(e)?'pointer':'';});
 function update(t,night){for(const it of items){const x=it.g.position.x,z=it.g.position.z,h=waveH(x,z,t),hx=waveH(x+1,z,t)-h,hz=waveH(x,z+1,t)-h;it.g.position.y=h*.9+Math.sin(t*1.3+it.ph)*.03;it.g.rotation.set(hz*.6,0,-hx*.6);it.glow.intensity=night?3:0;}}
