@@ -1043,7 +1043,7 @@ const placed=[],BUOY_HALO=(()=>{const c=document.createElement('canvas');c.width
  const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:BUOY_HALO,color:0xff7a50,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0,fog:false}));glow.position.y=.6;glow.scale.set(8,8,1);glow.visible=false;g.add(glow);
  for(const p of placed){if(Math.hypot(p[0]-x*S,p[1]-y*S)<8){x+=40;}}placed.push([x*S,y*S]);
  g.position.set(x*S,0,y*S);g.traverse(o=>{if(o.isMesh&&o!==hit)o.castShadow=true;});scene.add(g);return {g,ball,hit,glow,url:b.url,name:b.name||'',ph:Math.random()*6};});
-const ray=new THREE.Raycaster(),v2=new THREE.Vector2(),NEAR=120;let down=null;
+const ray=new THREE.Raycaster(),v2=new THREE.Vector2(),NEAR=50;let down=null;
 const pick=e=>{const r=gl.getBoundingClientRect();v2.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(v2,camera);const hs=ray.intersectObjects(items.map(i=>i.hit),false);return hs.length?items.find(i=>i.hit===hs[0].object):null;};
 gl.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY,performance.now()];});
 gl.addEventListener('pointerup',e=>{if(!down||STATE!=='lake'||isFar)return;const moved=Math.hypot(e.clientX-down[0],e.clientY-down[1]),dtm=performance.now()-down[2];down=null;if(moved>8||dtm>600)return;const it=pick(e);if(!it)return;const dB=Math.hypot(it.g.position.x-B.x*S,it.g.position.z-B.y*S);if(dB>NEAR){const hn=document.getElementById('hint');hn.innerHTML='ブイに近づいてからタップ<br><span style="font-size:11px;opacity:.8">Drift closer to the buoy</span>';hn.style.opacity=1;clearTimeout(hn._t);hn._t=setTimeout(()=>hn.style.opacity=0,2200);return;}
