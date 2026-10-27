@@ -1024,6 +1024,23 @@ var FW;FW=(()=>{const NP=HQ?9000:LQ?3500:6000,K=3,P0=.80,DUR=200,R_=rnd(8081);
   mat.uniforms.uPx.value=renderer.domElement.height/(2*Math.tan(camera.fov*Math.PI/360));
   self.flash*=Math.exp(-dt*3.5);flashL.intensity=self.flash*2.5;glows.forEach((g,k)=>{const u=waterU.uFW.value[k];if(!g.visible){u.w=0;return;}u.set(g.position.x,g.position.y,g.position.z,g.userData.a*1.4);waterU.uFWc.value[k].set(g.material.color.r,g.material.color.g,g.material.color.b);});for(const g of glows){if(!g.visible)continue;g.userData.a*=Math.exp(-dt*1.6);g.material.opacity=g.userData.a*.6;if(g.userData.a<.01)g.visible=false;}}
  return {update,BAR,pts,geo,pending,glows,ev,self};})();window.__FW=FW;
+window.__buoys=(()=>{const LIST=[{lat:35.447166913886065,lon:136.0544545375072,url:'https://youtu.be/jjFq9K2AmFY?si=ufqVeeX_aVCmUB1L'}];
+const red=new THREE.MeshStandardMaterial({color:0xe2361c,roughness:.35,metalness:0}),rope=new THREE.MeshLambertMaterial({color:0xe8e2cf}),hitM=new THREE.MeshBasicMaterial({visible:false});
+const items=LIST.map(b=>{const[x0,y0]=ll(b.lon,b.lat);let x=x0,y=y0;for(let k=0;k<60&&depth(x,y)<1.5;k++){const a=k*2.4,r=10+k*8;x=x0+Math.cos(a)*r;y=y0+Math.sin(a)*r;}
+ const g=new THREE.Group(),ball=new THREE.Mesh(new THREE.SphereGeometry(.8,24,16),red);ball.position.y=.45;g.add(ball);
+ const loop=new THREE.Mesh(new THREE.TorusGeometry(.82,.045,6,32,Math.PI*1.25),rope);loop.rotation.set(0,Math.PI/2,-Math.PI*.12);loop.position.y=.45;g.add(loop);
+ const knot=new THREE.Mesh(new THREE.SphereGeometry(.09,8,6),rope);knot.position.set(0,1.27,0);g.add(knot);
+ const hit=new THREE.Mesh(new THREE.SphereGeometry(7,8,6),hitM);hit.position.y=1;g.add(hit);
+ const glow=new THREE.PointLight(0xff6040,0,14,1.8);glow.position.y=1.8;g.add(glow);
+ g.position.set(x*S,0,y*S);g.traverse(o=>{if(o.isMesh&&o!==hit)o.castShadow=true;});scene.add(g);return {g,ball,hit,glow,url:b.url,ph:Math.random()*6};});
+const ray=new THREE.Raycaster(),v2=new THREE.Vector2();let down=null;
+const pick=e=>{const r=gl.getBoundingClientRect();v2.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(v2,camera);const hs=ray.intersectObjects(items.map(i=>i.hit),false);return hs.length?items.find(i=>i.hit===hs[0].object):null;};
+gl.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY,performance.now()];});
+gl.addEventListener('pointerup',e=>{if(!down||STATE!=='lake'||isFar)return;const moved=Math.hypot(e.clientX-down[0],e.clientY-down[1]),dtm=performance.now()-down[2];down=null;if(moved>8||dtm>600)return;const it=pick(e);if(!it)return;
+ const a=document.createElement('a');a.href=it.url;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();});
+gl.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||ptrs.size)return;gl.style.cursor=STATE==='lake'&&!isFar&&pick(e)?'pointer':'';});
+function update(t,night){for(const it of items){const x=it.g.position.x,z=it.g.position.z,h=waveH(x,z,t),hx=waveH(x+1,z,t)-h,hz=waveH(x,z+1,t)-h;it.g.position.y=h*.9+Math.sin(t*1.3+it.ph)*.03;it.g.rotation.set(hz*.6,0,-hx*.6);it.glow.intensity=night?3:0;}}
+return {items,update,sp:i=>{const v=items[i].ball.getWorldPosition(new THREE.Vector3()).project(camera),r=gl.getBoundingClientRect();return [r.left+(v.x+1)/2*r.width,r.top+(1-v.y)/2*r.height];}};})();
 function frame(now){const dt=Math.min(.1,(now-last)/1000);last=now;fpsN++;fpsT+=dt;if(fpsT>3){const f=fpsN/fpsT;const old=resScale;if(f<38)resScale=Math.max(.5,resScale-.1);else if(f>57)resScale=Math.min(HQ?1:.9,resScale+.05);if(old!==resScale)resize();fpsN=0;fpsT=0;}const c=clock(),W=wind(c),t=now/1000;
   // 舵（キーボード・スティック）を、カメラの向きに合わせて地図上の向きに直す
   {const tx=((keys.ArrowRight||keys.d)?1:0)-((keys.ArrowLeft||keys.a)?1:0),ty=((keys.ArrowDown||keys.s)?1:0)-((keys.ArrowUp||keys.w)?1:0),kk=1-Math.exp(-dt*6);kIn.x+=(tx-kIn.x)*kk;kIn.y+=(ty-kIn.y)*kk;}
@@ -1082,7 +1099,7 @@ function frame(now){const dt=Math.min(.1,(now-last)/1000);last=now;fpsN++;fpsT+=
   
   {const tr=waterU.uTr.value,spd=Math.hypot(B.vx||0,B.vy||0)*SPEED;for(const v of tr)v.z+=dt;window.__trT=(window.__trT||0)+dt;
    if(spd>.3&&window.__trT>.3){window.__trT=0;let k=0;for(let i=1;i<tr.length;i++)if(tr[i].z>tr[k].z)k=i;const a=B.yaw,L=house.size*.45;tr[k].set(B.x*S-Math.cos(a)*L,B.y*S-Math.sin(a)*L,0,Math.min(1,spd/3)*Math.min(1.4,house.size/12));}}
-  updateBoats(boats,dt,t,night);if(FW)FW.update(dt,c,day);
+  updateBoats(boats,dt,t,night);if(FW)FW.update(dt,c,day);if(window.__buoys)__buoys.update(t,day<.08);
   // カメラ：水平を保って建物を追う
   if(STATE==='lake'&&performance.now()-(window.__lastDrag||0)>4000&&Math.hypot(B.vx||0,B.vy||0)>.03){const behind=Math.atan2(-(B.vx||0),-(B.vy||0))+Math.PI;let dd=behind-yawT;dd=Math.atan2(Math.sin(dd),Math.cos(dd));yawT+=dd*Math.min(1,dt*.25);}
   if(STATE==='lake'){let dy=yawT-yaw;yaw+=dy*(1-Math.exp(-dt*8));if(!ptrs.size)dist+=(distT-dist)*(1-Math.exp(-dt*6));else distT=dist;}
