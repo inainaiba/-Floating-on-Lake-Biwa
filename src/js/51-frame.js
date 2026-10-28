@@ -47,6 +47,7 @@ function frame(now) {
   if (G.EV) G.EV.update(dt, c, day, t, W);
   if (G.ambience) G.ambience.update(dt, t, c, day);
   if (G.moments) G.moments.update(dt, t, c, W);
+  if (G.life) G.life.update(dt, t, c, day, wxNow);
   updateCamera(dt, t, hx, hz);
   renderFrame(c, W, wxNow, day, sunAngle);
   requestAnimationFrame(frame);

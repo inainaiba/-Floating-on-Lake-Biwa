@@ -58,6 +58,20 @@ function paintTree(kind, seed) {
       }
     }
     clusters.push([x, y - 6, 26, 0.45]);
+  } else if (kind === "bamboo") {
+    // 竹：細くまっすぐな稈が何本も立ち、上の方に細かい葉がしだれる
+    g.strokeStyle = "#7c8a52";
+    for (let k = 0; k < 9; k++) {
+      const x0 = W / 2 + (R() - 0.5) * 120,
+        lean = (R() - 0.5) * 30;
+      g.lineWidth = 2 + R() * 2;
+      g.beginPath();
+      g.moveTo(x0, H);
+      g.quadraticCurveTo(x0 + lean * 0.3, H * 0.5, x0 + lean, 10 + R() * 30);
+      g.stroke();
+      for (let y = 30; y < H * 0.55; y += 14) clusters.push([x0 + lean * (1 - y / H) + (R() - 0.5) * 30, y + R() * 10, 10 + R() * 8, 0.6]);
+    }
+    g.strokeStyle = "#3e3226";
   } else if (kind === "cedar") {
     g.lineWidth = 5;
     g.beginPath();
@@ -92,7 +106,7 @@ function paintTree(kind, seed) {
     for (let i = 0; i < 8; i++) clusters.push([tx + (R() - 0.5) * 150, 40 + R() * 110, 22 + R() * 20, 1]);
   }
   const top = Math.min(...clusters.map((c) => c[1] - c[2]));
-  const base = kind === "pine" ? [54, 78, 52] : kind === "cedar" ? [44, 66, 48] : [78, 108, 60];
+  const base = kind === "pine" ? [54, 78, 52] : kind === "cedar" ? [44, 66, 48] : kind === "bamboo" ? [96, 124, 64] : [78, 108, 60];
   for (const [cx, cy, r, f] of clusters) {
     const n = Math.floor(r * 1.4);
     for (let i = 0; i < n; i++) {

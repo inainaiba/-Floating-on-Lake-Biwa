@@ -18,6 +18,8 @@ const skyU = {
   uShaft: { value: 0 },
   uSnowCap: { value: 0 },
   uMet: { value: new THREE.Vector4(0, 0, 0, 0) },
+  uCon: { value: new THREE.Vector4(0, 0, 0, 0) },
+  uVenus: { value: 0 },
   uHzS: { value: 0 },
 };
 const skyDome = new THREE.Mesh(
@@ -29,7 +31,7 @@ const skyDome = new THREE.Mesh(
     fog: false,
     vertexShader: `varying vec3 vD;void main(){vD=normalize(position);vec4 p=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*p;gl_Position.z=gl_Position.w*.9999;}`,
     fragmentShader: `uniform vec3 uTop,uHor,uSunD,uSunC2;
-uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;
+uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;
 uniform vec3 uLd;
 varying vec3 vD;
  float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);
@@ -101,6 +103,8 @@ c=mix(c,ly*mix(1.,.8,smoothstep(.0,.3,y)),lw*.45*smoothstep(.45,.0,y));
  c+=vec3(.1,.1,.09)*exp(-y*16.)*smoothstep(-.1,.2,uSunD.y)*(1.-uDark);
  if(uSnowCap>.01){float west=smoothstep(-.15,-.75,vD.x);float sc=smoothstep(.45,.7,fbm(vec2(atan(vD.z,vD.x)*5.+uT*.003,vD.y*14.)))*smoothstep(.03,.07,vD.y)*smoothstep(.26,.1,vD.y);c=mix(c,vec3(.58,.61,.66)*(1.-uDark*.7),clamp(sc*west*1.8,0.,.95)*uSnowCap);c=mix(c,vec3(.68,.7,.74)*(1.-uDark*.7),uSnowCap*.35*smoothstep(.5,.0,y));}
  if(uShaft>.01){float az=atan(vD.z,vD.x);float sh_=smoothstep(.55,.85,fbm(vec2(az*2.2,uT*.002)))*smoothstep(.62,.9,fbm(vec2(az*9.,vD.y*3.+uT*.01)))*smoothstep(.0,.03,vD.y)*smoothstep(.2,.05,vD.y);c=mix(c,vec3(.48,.52,.58)*(1.-uDark*.5),sh_*uShaft*.7);}
+ if(uCon.w>.01){float az=uCon.x,el=uCon.y;vec3 a=normalize(vec3(cos(az)*cos(el),sin(el),sin(az)*cos(el)));vec3 b=normalize(vec3(cos(az+1.1)*cos(el+.08),sin(el+.08),sin(az+1.1)*cos(el+.08)));vec3 hd=normalize(mix(a,b,uCon.z));vec3 n2=normalize(cross(a,b));float dl=abs(dot(vD,n2));float on_=dot(cross(a,vD),n2)>0.&&dot(cross(vD,hd),n2)>0.?1.:0.;float age=1.-clamp(acos(clamp(dot(vD,hd),-1.,1.))/(1.2*uCon.z+.001),0.,1.);float wid=mix(.0012,.006,1.-age);c=mix(c,vec3(1.),smoothstep(wid,0.,dl)*on_*(.25+.55*age)*uCon.w*(1.-uDark));}
+ if(uVenus>.01){vec3 vd=normalize(vec3(.85,.16,.2));c+=vec3(1.,.97,.9)*(smoothstep(.99997,1.,dot(vD,vd))*2.5+pow(max(dot(vD,vd),0.),4000.)*.6)*uVenus;}
  float nt=smoothstep(.05,-.15,uSunD.y);
  if(uMet.w>.01){float az=uMet.x,el=uMet.y;vec3 a=normalize(vec3(cos(az)*cos(el),sin(el),sin(az)*cos(el)));vec3 b=normalize(vec3(cos(az+.18)*cos(el-.09),sin(el-.09),sin(az+.18)*cos(el-.09)));vec3 hd=normalize(mix(a,b,uMet.z));vec3 nrm2=normalize(cross(a,b));float dl=abs(dot(vD,nrm2));float along=dot(cross(a,vD),nrm2)>0.&&dot(cross(vD,hd),nrm2)>0.?1.:0.;float tail=1.-clamp(acos(clamp(dot(vD,hd),-1.,1.))/(.2*uMet.z+.001),0.,1.);c+=vec3(.9,.95,1.)*smoothstep(.0012,.0,dl)*along*pow(tail,1.5)*uMet.w*nt*1.6;}
  vec2 sp_=vD.xz/(vD.y+.25);

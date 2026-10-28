@@ -48,6 +48,14 @@ function updateSkyLight(dt, t, c, W) {
     skyU.uCloud.value = 0.5 + wxNow.gray * 0.5 + SEASON.snowCloud[c.month] * 0.25;
     skyU.uSnowCap.value = SEASON.snowCloud[c.month] * (wxNow.rain > 0.3 ? 0.5 : 1);
     {
+      // 飛行機雲：晴れた昼、高い空にまっすぐ伸びて、ゆっくり広がり消える
+      const cn = skyU.uCon.value;
+      if (cn.w > 0) {
+        cn.z = Math.min(1, cn.z + dt / 70);
+        if (cn.z >= 1) cn.w = Math.max(0, cn.w - dt / 40);
+      } else if (day > 0.3 && wxNow.gray < 0.3 && Math.random() < dt / 120) cn.set(Math.random() * 6.28, 0.5 + Math.random() * 0.4, 0, 1);
+      // 明けの明星：夜明け前の東の低い空に
+      skyU.uVenus.value = c.phase < 0.5 ? Math.max(0, 1 - Math.abs(sunDirSky.y + 0.12) / 0.1) * (1 - wxNow.gray) : 0;
       // 流れ星：晴れた夜、ときどき空を走る
       const m = skyU.uMet.value;
       if (m.w > 0) {
@@ -170,7 +178,7 @@ function updateSkyLight(dt, t, c, W) {
   sun.color.setRGB(1, 1 - 0.3 * warm - 0.04, 1 - 0.55 * warm - 0.1);
   sun.intensity = (0.3 + 1.35 * day) * (1 - wxNow.gray * 0.6) + fl * 2;
   hemi.intensity = (0.38 + 0.42 * day) * (1 - wxNow.dark * 0.4) + fl;
-  hemi.color.set(day < 0.1 ? 0x8a9ac8 : 0xcfe3f0);
+  hemi.color.set(day < 0.1 ? 0x8a9ac8 : 0xb9d3f2); // 晴れた日の影は空の青を映す
   if (day < 0.05) sun.color.setRGB(0.7, 0.78, 1);
   waterU.uSunC.value.copy(sun.color).multiplyScalar((day > 0 ? 0.9 : 0.35) * (1 - wxNow.gray));
   if (terrMat.userData.haze)
