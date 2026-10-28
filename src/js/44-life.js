@@ -684,7 +684,7 @@ G.life = (() => {
     // 水辺の林の季節：冬は葉を落として枝の灰色、春は芽吹きの淡い緑、秋は黄色
     wet.cm.color.setHex([0x8a8478, 0x8a8478, 0xc8d8a0, 0xe0f0c0, 0xffffff, 0xffffff, 0xffffff, 0xffffff, 0xf4f0c0, 0xf0d890, 0xd8b880, 0x9a9080][c.month]);
     // サギはときどき首をかしげる
-    for (const h of herons) h.visible = day > 0.05 && !(c.month === 0 && wxNow.snow > 0.5);
+    for (const h of herons) h.visible = false; // 水辺のサギは出さない
   }
   G.camera = camera;
   return { update, herons, bam, tabune, susuki, ship };

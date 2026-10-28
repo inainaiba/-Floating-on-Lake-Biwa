@@ -7586,7 +7586,7 @@ G.EV = (() => {
         0.42 *
         Math.max(0, 1 - Math.hypot(s.position.x - cx, s.position.z - cz) / 1400);
     }
-    const win = (mo >= 10 || mo <= 1) && ph > 0.22 && ph < 0.8;
+    const win = false; // 飛ぶ鳥の群れは出さない
     birds.visible = win;
     if (win) {
       let n = 0;
@@ -7768,7 +7768,7 @@ G.EV = (() => {
   function update2(dt, c, day, t, W) {
     up0(dt, c, day, t, W);
     sakI.visible = trI.visible = c.month === 3;
-    const dk = (c.month >= 10 || c.month <= 1) && day > 0.05;
+    const dk = false; // 水面の鴨は出さない
     duck.visible = vw.visible = dk;
     if (dk) {
       const cx = camera.position.x,
@@ -9006,7 +9006,7 @@ G.life = (() => {
     // 水辺の林の季節：冬は葉を落として枝の灰色、春は芽吹きの淡い緑、秋は黄色
     wet.cm.color.setHex([0x8a8478, 0x8a8478, 0xc8d8a0, 0xe0f0c0, 0xffffff, 0xffffff, 0xffffff, 0xffffff, 0xf4f0c0, 0xf0d890, 0xd8b880, 0x9a9080][c.month]);
     // サギはときどき首をかしげる
-    for (const h of herons) h.visible = day > 0.05 && !(c.month === 0 && wxNow.snow > 0.5);
+    for (const h of herons) h.visible = false; // 水辺のサギは出さない
   }
   G.camera = camera;
   return { update, herons, bam, tabune, susuki, ship };

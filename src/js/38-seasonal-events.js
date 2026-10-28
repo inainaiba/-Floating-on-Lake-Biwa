@@ -174,7 +174,7 @@ G.EV = (() => {
         0.42 *
         Math.max(0, 1 - Math.hypot(s.position.x - cx, s.position.z - cz) / 1400);
     }
-    const win = (mo >= 10 || mo <= 1) && ph > 0.22 && ph < 0.8;
+    const win = false; // 飛ぶ鳥の群れは出さない
     birds.visible = win;
     if (win) {
       let n = 0;
@@ -356,7 +356,7 @@ G.EV = (() => {
   function update2(dt, c, day, t, W) {
     up0(dt, c, day, t, W);
     sakI.visible = trI.visible = c.month === 3;
-    const dk = (c.month >= 10 || c.month <= 1) && day > 0.05;
+    const dk = false; // 水面の鴨は出さない
     duck.visible = vw.visible = dk;
     if (dk) {
       const cx = camera.position.x,
