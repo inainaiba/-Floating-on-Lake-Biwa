@@ -22,7 +22,18 @@
 
 組み立て：`python3 build.py`　（`src/` と `data/` から `docs/index.html` を作る）
 
-確認：URLに `?debug` を付けると、`tools/` の撮影スクリプトから視点を動かせる。
+## 更新の流れ
+
+1. `src/` や `data/` を直す（季節の値は `src/js/03-season.js`、ブイは `data/buoys.xlsx`）
+2. `python3 tools/release.py "変更の説明"`
+   - 組み立て（`build.py`）→ 代表4場面の撮影と比較（`tools/check.py --quick`）→ GitHubへ記録
+   - ページのエラーが出たら記録せずに止まる。比較画像は `check/sheet.png`
+   - 数分で GitHub Pages に反映される
+3. 見た目を意図して変えたときは、`python3 tools/check.py` で全12場面を撮り、問題なければ `python3 tools/check.py --accept` で基準を更新して記録する
+
+準備（初回だけ）：`npm install`（確認用に three.js を手元に置く）、Python の `playwright`・`Pillow`・`openpyxl`
+
+確認用の視点操作は、URLに `?debug` を付けたときだけ有効。試作中に使った撮影スクリプトは `tools/old/` に残してある。
 
 URLの調整値：`?q=hq|mid|low`（画質）、`?scale=5`（縮尺）、`?month=0-11&phase=0-1&wx=0-6`（月・時刻・天気の固定）
 
