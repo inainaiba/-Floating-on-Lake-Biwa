@@ -4,7 +4,8 @@ const DAY = 1416,
 let PH = Q.get("phase"),
   MO = Q.get("month");
 function clock() {
-  const t = (Date.now() - EPOCH) / 1000,
+  // 確認用に時刻を止められる（G.tFix：?debug のときだけ __scene から設定）
+  const t = G.tFix != null ? G.tFix : (Date.now() - EPOCH) / 1000,
     d = Math.floor(t / DAY);
   return { t, month: MO !== null ? +MO : ((d % 12) + 12) % 12, phase: PH !== null ? +PH : (t % DAY) / DAY };
 }

@@ -11,7 +11,7 @@
   check/sheet.png         基準（左）と今回（右）を並べた比較画像
   ページのエラーが出たら、一覧を表示して終了コード1で止まる。
 
-波・雪・粒子は毎回少し違うので、差の数値は目安。大きく変わった場面に「!」が付く。
+共有時計（風・天気）は止めて撮るが、波・雪・粒子は毎回少し違うので、差の数値は目安。大きく変わった場面に「!」が付く。
 """
 import sys, shutil, pathlib, http.server, threading, functools
 from playwright.sync_api import sync_playwright
@@ -74,7 +74,7 @@ def shoot(idx):
                 loaded = True
             sc = dict(kv.split('=') for kv in q.split('&'))
             try:
-                pg.evaluate('a=>{__scene(a[0]);__set(...a[1])}', [{'month': int(sc['month']), 'phase': float(sc['phase']), 'wx': int(sc['wx']), 'b': bnum}, v])
+                pg.evaluate('a=>{__scene(a[0]);__set(...a[1])}', [{'month': int(sc['month']), 'phase': float(sc['phase']), 'wx': int(sc['wx']), 'b': bnum, 't': 1000000}, v])
             except Exception:
                 errs.append('視点を動かせませんでした（読み込み時のエラーの可能性）')
                 break

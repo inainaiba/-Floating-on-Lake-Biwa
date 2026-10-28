@@ -184,6 +184,8 @@ const PALETTE = {
   lakeBedSand: [0.32, 0.56, 0.5], // 浅瀬に透ける湖底（暗い所）
   lakeBedLight: [0.52, 0.62, 0.5], // 浅瀬に透ける湖底（明るい所）
   shoalTeal: [0.2, 0.48, 0.47], // 浅瀬と沖の間の青緑
+  waterOffshore: [0.22, 0.42, 0.55], // 深い所の青
+  riverSilt: [0.52, 0.42, 0.28], // 河口の濁り
   gradeDayTint: [0.94, 1.0, 1.07], // 仕上げ：昼の色味（わずかに水色）
   gradeDuskTint: [1.06, 0.96, 1.0], // 仕上げ：朝夕の色味（わずかに桃色）
   gradeNightTint: [0.92, 0.97, 1.1], // 仕上げ：夜の色味
@@ -209,7 +211,8 @@ const DAY = 1416,
 let PH = Q.get("phase"),
   MO = Q.get("month");
 function clock() {
-  const t = (Date.now() - EPOCH) / 1000,
+  // 確認用に時刻を止められる（G.tFix：?debug のときだけ __scene から設定）
+  const t = G.tFix != null ? G.tFix : (Date.now() - EPOCH) / 1000,
     d = Math.floor(t / DAY);
   return { t, month: MO !== null ? +MO : ((d % 12) + 12) % 12, phase: PH !== null ? +PH : (t % DAY) / DAY };
 }
@@ -634,7 +637,7 @@ const VIS = new Set(
 );
 G.VIS = VIS;
 
-// ==== 12-renderer-water-sky.js ====
+// ==== 12-renderer.js ====
 /* ---------- three.js：近景 ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("gl"), antialias: true });
 const MOBILE_ = matchMedia("(pointer:coarse)").matches;
@@ -672,6 +675,7 @@ const scene = new THREE.Scene(),
   camera = new THREE.PerspectiveCamera(50, 1, 0.5, 12000);
 scene.fog = new THREE.Fog(0x9bb7c8, 800, 5000);
 
+// ==== 13-sky-dome.js ====
 // 空のドーム：天頂から地平へのグラデーションと、地平のかすみ、太陽
 const skyU = {
   uTop: { value: new THREE.Color() },
@@ -807,6 +811,7 @@ Object.assign(sun.shadow.camera, {
 sun.shadow.bias = -0.0005;
 scene.add(sun.target);
 
+// ==== 14-water.js ====
 // 水深テクスチャ（浅い所の色に使う）
 const dtex = new Uint8Array(GW * GH * 4);
 for (let i = 0; i < GW * GH; i++) {
@@ -1021,6 +1026,7 @@ float sh=exp(-dep/3.);
 // ── 水の色の重なり（上から順に塗り重ねる）──
 // ① 沖と浅い水の基本色（PALETTE.waterDeep / waterShallow）　② 風の筋で暗く
 // ③ 浅瀬：湖底が透ける（lakeBedSand/Light）　④ 浅瀬と沖の間の青緑（shoalTeal）　⑤ 浅瀬の光の網目
+// ⑥ 深い所の青（waterOffshore）　⑦ 河口の濁り（riverSilt）
 vec3 body=mix(uDeep,uShal,sh*.8);
 {vec2 wd=normalize(uWd+1e-4),wp=vec2(dot(vP0.xz,wd),dot(vP0.xz,vec2(-wd.y,wd.x)));
 float ws=(1.-uCalm)*smoothstep(.45,.75,fract(sin(dot(floor(vec2(wp.x*.006-uT2*.05,wp.y*.03)),vec2(5.1,3.7)))*91.))*smoothstep(.2,.8,sin(wp.y*.045+sin(wp.x*.004)*3.)*.5+.5);
@@ -1032,13 +1038,13 @@ body=mix(body,bed,sb*.5);
 float ca=abs(sin(cq.x+sin(cq.y*1.3+uT2*.9)*1.6+uT2*.6)*sin(cq.y*1.1+sin(cq.x*1.4-uT2*.7)*1.5-uT2*.5));
 body+=vec3(.09,.1,.07)*pow(1.-ca,6.)*sb*clamp(uSun.y*3.,0.,1.)*smoothstep(150.,10.,dc);
 }body=mix(body,${v3(PALETTE.shoalTeal)},smoothstep(12.,3.,dep)*(1.-sb)*.3);
-}body=mix(body,vec3(.22,.42,.55),smoothstep(10.,60.,dep)*.5);
+}body=mix(body,${v3(PALETTE.waterOffshore)},smoothstep(10.,60.,dep)*.5);
 float tb=0.;
 for(int i=0;
 i<16;
 i++){vec2 d=vP.xz-uMouth[i].xy;
 tb+=uMouth[i].w*exp(-dot(d,d)/(uMouth[i].z*uMouth[i].z));
-}body=mix(body,vec3(.52,.42,.28),clamp(tb,0.,.85));
+}body=mix(body,${v3(PALETTE.riverSilt)},clamp(tb,0.,.85));
 // ── 反射：空の色・太陽のきらめき・月の照り返し ──
 vec3 R=reflect(-V,N);
 float rs=max(dot(R,uSun),0.);
@@ -1053,12 +1059,11 @@ skyR+=vec3(.25,.16,.06)*lowR*smoothstep(.0,-.15,uSun.y)*.25*(.5+.5*sin(vP.x*.9+s
 skyR*=1.+.1*(fract(sin(dot(floor((vP.xz+R.xz*200.)*.01),vec2(1.7,9.2)))*43.)-.5)*(1.-lowR);
 // ── 建物のまわり：喫水の陰、波の斜面の陰影、建物の影、水際の泡 ──
 float ub=length(vP.xz-uHouse.xy);
-body*=1.-.38*smoothstep(uHouse.z*1.15,uHouse.z*.3,ub);
-body*=.9+.22*clamp(dot(N,normalize(vec3(uSun.x,1.2,uSun.z))),0.,1.);
-{vec2 so=uHouse.xy-normalize(uSun.xz+1e-4)*uHouse.z*.9/max(uSun.y,.25)*.6;
-float hs=smoothstep(uHouse.z*1.,uHouse.z*.4,length(vP.xz-so));
-body*=1.-hs*.28*clamp(uSun.y*3.,0.,1.);
-}float wlf=exp(-pow((ub-uHouse.z*.92)/(.6+uHouse.z*.05),2.))*(.55+.45*sin(atan(vP.z-uHouse.y,vP.x-uHouse.x)*9.+uT2*1.3))*(.5+.5*fract(sin(dot(floor(vP0.xz*3.),vec2(3.7,8.1)))*91.));
+vec2 hso=uHouse.xy-normalize(uSun.xz+1e-4)*uHouse.z*.9/max(uSun.y,.25)*.6;
+float hs=smoothstep(uHouse.z*1.,uHouse.z*.4,length(vP.xz-hso));
+// 喫水の陰 × 波の斜面の陰影 × 建物の影 を一度に掛ける
+body*=(1.-.38*smoothstep(uHouse.z*1.15,uHouse.z*.3,ub))*(.9+.22*clamp(dot(N,normalize(vec3(uSun.x,1.2,uSun.z))),0.,1.))*(1.-hs*.28*clamp(uSun.y*3.,0.,1.));
+float wlf=exp(-pow((ub-uHouse.z*.92)/(.6+uHouse.z*.05),2.))*(.55+.45*sin(atan(vP.z-uHouse.y,vP.x-uHouse.x)*9.+uT2*1.3))*(.5+.5*fract(sin(dot(floor(vP0.xz*3.),vec2(3.7,8.1)))*91.));
 skyR=mix(skyR,vec3(.18,.26,.2),lowR*.65);
 // ── 泡：白波・岸の波打ち際・雨の波紋・遠くの白波 ──
 float wfoam=smoothstep(.12,.8,wf)*(.35+.65*fract(sin(dot(floor(vP0.xz*5.),vec2(7.,3.)))*91.));
@@ -1139,6 +1144,7 @@ gl_FragColor=vec4(c,1.);
 water.frustumCulled = false;
 scene.add(water);
 
+// ==== 15-land-base.js ====
 // 陸と島（湖の穴をあけた面）
 {
   const big = new THREE.Shape([
@@ -1160,7 +1166,7 @@ scene.add(water);
   scene.add(land);
 }
 
-// ==== 13-terrain.js ====
+// ==== 16-terrain.js ====
 /* ---------- 山並み：地形図を参考にした作品用の地形（標高は実寸。表示は縮尺Sに合わせ、高さを1.5倍に強調） ---------- */
 const VEX = 2.2,
   VFAR = 1.0;
@@ -1742,7 +1748,7 @@ scene.add(innerReeds);
 // 遠景の線画とヨシ帯の判定にも加える
 scene.add(reeds);
 
-// ==== 14-trees.js ====
+// ==== 17-trees.js ====
 /* ---------- 木：描いた葉と枝の絵を十字に組んだ板で、自然な輪郭とすき間を出す ---------- */
 function paintTree(kind, seed) {
   const W = 256,
@@ -1937,7 +1943,7 @@ function cardForest(kind, list, hgt, wid, near, far, shadow) {
   }
 }
 
-// ==== 15-buildings.js ====
+// ==== 18-buildings.js ====
 /* ---------- 建物：10種類（水土空間 note「水上建築」の浮遊型を抽象化） ---------- */
 const WOODTX = (() => {
   const c = document.createElement("canvas");
@@ -2640,7 +2646,7 @@ for (const [x, y] of reedPts)
     for (let b = -1; b <= 1; b++) reedMask.add(Math.floor(x / 120) + a + "," + (Math.floor(y / 120) + b));
 const inReeds = (x, y) => reedMask.has(Math.floor(x / 120) + "," + Math.floor(y / 120));
 
-// ==== 16-boats.js ====
+// ==== 19-boats.js ====
 /* ---------- 船：定期船は共有時計で決まった航路を走る（サーバー不要） ---------- */
 const nearestIn = (x, y) => {
   if (inLake(x, y) && depth(x, y) > 2) return [x, y];
@@ -3232,7 +3238,7 @@ const smoke = new THREE.Points(
 smoke.frustumCulled = false;
 scene.add(smoke);
 
-// ==== 17-villages-houses.js ====
+// ==== 20-villages-houses.js ====
 /* ---------- 湖岸集落：黒い瓦屋根の家並み、岸沿いの道、背後の田んぼ、港の防波堤（位置は概略。家は実物大、集落の広がりは縮尺どおり） ---------- */
 const VILLAGES = [
   [136.075, 35.342],
@@ -4147,7 +4153,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
   scene.add(I);
 }
 
-// ==== 18-village-lights-roads.js ====
+// ==== 21-village-lights-roads.js ====
 // 夜の窓の灯り
 const winGeo = new THREE.BufferGeometry(),
   wp = [];
@@ -4261,7 +4267,7 @@ scene.add(windows);
   scene.add(rdM);
 }
 
-// ==== 19-paddies.js ====
+// ==== 22-paddies.js ====
 // 田んぼ（季節で色が変わる。春は水が張られて空を映す）
 const paddyM = new THREE.MeshLambertMaterial({ color: 0xffffff });
 const paddyI = new THREE.InstancedMesh(
@@ -4328,7 +4334,7 @@ function paddySeason(m, sky) {
   paddyI.instanceColor.needsUpdate = true;
 }
 
-// ==== 20-shore-landmarks.js ====
+// ==== 23-shore-landmarks.js ====
 // 防波堤
 const brk = new THREE.InstancedMesh(
   new THREE.BoxGeometry(22, 1.6, 2.2),
@@ -4706,7 +4712,7 @@ function treeSeason(m) {
   treeI.instanceColor.needsUpdate = true;
 }
 
-// ==== 21-harbors.js ====
+// ==== 24-harbors.js ====
 // 港の囲い：L字の防波堤で小さな船だまりをつくり、小舟を並べる
 {
   const walls_ = [],
@@ -5005,7 +5011,7 @@ const TREE_MAT = new THREE.MeshLambertMaterial({ vertexColors: true });
 NEAR_TREE_MAT();
 TREE_MAT.map = LEAFTX;
 
-// ==== 22-forests.js ====
+// ==== 25-forests.js ====
 // 遠くの木は1本ずつ見せず、森の面（地形の色）に溶かす：距離に応じて縮めて消す
 function treeFade(m, near, far) {
   m.onBeforeCompile = (sh) => {
@@ -5070,7 +5076,7 @@ function treeFade(m, near, far) {
   }
 }
 
-// ==== 23-sky-day.js ====
+// ==== 26-sky-day.js ====
 /* ---------- 空と一日の色 ---------- */
 const SKY = [
   [0, 0x1a2a5c],
@@ -5097,7 +5103,7 @@ function skyAt(p) {
   return new THREE.Color(SKY[0][1]);
 }
 
-// ==== 24-map.js ====
+// ==== 27-map.js ====
 /* ---------- 遠景：線画 ---------- */
 const far = document.getElementById("far"),
   fx = far.getContext("2d");
@@ -5415,7 +5421,7 @@ function drawFar(boats = [], X_ = null, W = null) {
   }
 }
 
-// ==== 25-controls.js ====
+// ==== 28-controls.js ====
 /* ---------- 操作：ドラッグで視点、ホイール/ピンチで寄り引き、矢印キー/スティックで舵 ---------- */
 let distT = 60,
   yawT = 0.6,
@@ -5612,7 +5618,7 @@ addEventListener("blur", () => {
 }); // 3 タブを離れたら舵を戻す
 const kIn = { x: 0, y: 0 };
 
-// ==== 26-audio.js ====
+// ==== 29-audio.js ====
 /* ---------- 音：すべてWeb Audioで合成（外部の音源なし）。波と風が土台 ---------- */
 const SND = { on: true, ctx: null };
 function audioInit() {
@@ -5998,7 +6004,7 @@ function audioUpdate(dt, c, W, boats, nearReed) {
   }
 }
 
-// ==== 27-ui.js ====
+// ==== 30-ui.js ====
 /* ---------- 最初の画面：Floating → 建物を選ぶ → 色・素材・灯り → 放つ ---------- */
 const $ = (id) => document.getElementById(id),
   restBtn = $("rest");
@@ -6185,7 +6191,7 @@ document.addEventListener("visibilitychange", () => {
   document.hidden ? SND.ctx.suspend() : SND.on && SND.ctx.resume();
 });
 
-// ==== 28-drawing.js ====
+// ==== 31-drawing.js ====
 /* ---------- 持ち帰る線画：湖岸線・等深線・自分の軌跡・出発点・最後の点。文字なし、白と黒だけ、縦長 ---------- */
 function makeDrawing() {
   const W_ = 1080,
@@ -6275,7 +6281,7 @@ try {
 } catch (e) {}
 $("shot").onclick = () => $("shot").classList.remove("on");
 
-// ==== 29-resize.js ====
+// ==== 32-resize.js ====
 /* ---------- 画面サイズ ---------- */
 function resize() {
   const w = innerWidth,
@@ -6293,14 +6299,14 @@ addEventListener("resize", resize);
 document.addEventListener("gesturestart", (e) => e.preventDefault());
 resize();
 
-// ==== 30-frame-state.js ====
+// ==== 33-frame-state.js ====
 /* ---------- 毎フレーム ---------- */
 let fpsN = 0,
   fpsT = 0,
   last = performance.now(),
   trailT = 0;
 
-// ==== 31-torii.js ====
+// ==== 34-torii.js ====
 {
   const [tx_, ty_] = ll(136.0115, 35.2735);
   const g = new THREE.Group(),
@@ -6360,7 +6366,7 @@ let fpsN = 0,
   G.torii = { g, red, L: L_ };
 }
 
-// ==== 32-fireworks.js ====
+// ==== 35-fireworks.js ====
 var FW;
 FW = (() => {
   const NP = QUALITY.fireworks,
@@ -6901,7 +6907,7 @@ FW = (() => {
 })();
 G.FW = FW;
 
-// ==== 33-buoys.js ====
+// ==== 36-buoys.js ====
 G.buoys = (() => {
   const LIST = [{"no": 1, "name": "浜知内", "form": "湖岸集落", "lat": 35.444156, "lon": 136.056241, "url": "https://youtu.be/jjFq9K2AmFY?si=ufqVeeX_aVCmUB1L"}, {"no": 2, "name": "浜知内", "form": "湖岸集落", "lat": 35.446439, "lon": 136.062465, "url": "https://youtu.be/1q7oIvVAhCM?si=JCi4PO1bhpbcEzYL"}, {"no": 3, "name": "海津", "form": "湖岸集落", "lat": 35.461269, "lon": 136.072577, "url": "https://youtu.be/UecpbkkTf38?si=8kMHi1T8pavBmZiB"}, {"no": 4, "name": "海津", "form": "湖岸集落", "lat": 35.46238, "lon": 136.07379, "url": "https://youtu.be/3BciUsr56RY?si=USmvr0XFcvHuJpDf"}, {"no": 5, "name": "大浦", "form": "湖岸集落", "lat": 35.484785, "lon": 136.120448, "url": "https://youtu.be/RPWBh-YWeXI?si=yzinTdO_bGTATR_z"}, {"no": 6, "name": "菅浦", "form": "湖岸集落", "lat": 35.456246, "lon": 136.137561, "url": "https://youtu.be/KuxpeiXOm5A?si=TWLwF5i7osQL98zF"}, {"no": 7, "name": "菅浦", "form": "湖岸集落", "lat": 35.455925, "lon": 136.140885, "url": "https://youtu.be/cxg_TUoD-Uc?si=exvsJGoimMebB4l_"}, {"no": 8, "name": "月出", "form": "湖岸集落", "lat": 35.494527, "lon": 136.162925, "url": "https://youtu.be/ZY6gUO0k0J4?si=IBHugHzqHOz3rlVO"}, {"no": 9, "name": "塩津", "form": "湖岸集落", "lat": 35.510984, "lon": 136.164903, "url": "https://youtu.be/1aK3fGYMvKw?si=cHjH5d7C_L18Bh8J"}, {"no": 10, "name": "飯浦", "form": "湖岸集落", "lat": 35.501305, "lon": 136.182189, "url": "https://youtu.be/pag9WEgjz1E?si=olEjCrr9BNBoxBoZ"}, {"no": 11, "name": "山梨子", "form": "湖岸集落", "lat": 35.494821, "lon": 136.186563, "url": "https://youtu.be/tFQ_NWmhTrg?si=AD3k2vKpihTJxUIs"}, {"no": 12, "name": "片山", "form": "湖岸集落", "lat": 35.459456, "lon": 136.193088, "url": "https://youtu.be/zXBxAdKKC1g?si=xvg8R6GwvDf05Kvk"}, {"no": 13, "name": "片山", "form": "湖岸集落", "lat": 35.456818, "lon": 136.19376, "url": "https://youtu.be/fb8DIJxNSwM?si=TnK-Qp26e1AOG2wT"}, {"no": 14, "name": "尾上", "form": "湖岸集落", "lat": 35.455371, "lon": 136.186533, "url": "https://youtu.be/0A8pNpCq_Lw?si=ljvSDHyMREGWHgx1"}, {"no": 15, "name": "尾上", "form": "湖岸集落", "lat": 35.455756, "lon": 136.18831, "url": "https://youtu.be/jSQpETXCC40?si=RTUJtfseuhQZchTv"}];
   const red = new THREE.MeshStandardMaterial({
@@ -7102,7 +7108,7 @@ G.buoys = (() => {
   };
 })();
 
-// ==== 34-seasonal-events.js ====
+// ==== 37-seasonal-events.js ====
 G.EV = (() => {
   const g = new THREE.Group();
   scene.add(g);
@@ -7439,7 +7445,7 @@ G.EV = (() => {
   return { update: update2, sites };
 })();
 
-// ==== 35-kaizu.js ====
+// ==== 38-kaizu.js ====
 G.kaizu = (() => {
   const g = new THREE.Group();
   scene.add(g);
@@ -7540,7 +7546,7 @@ G.kaizu = (() => {
   return { g, n: rocks.length };
 })();
 
-// ==== 36-shore-rocks.js ====
+// ==== 39-shore-rocks.js ====
 G.rocks = (() => {
   const R = rnd(9191),
     pts = [];
@@ -7586,7 +7592,7 @@ G.rocks = (() => {
   return I;
 })();
 
-// ==== 37-islands.js ====
+// ==== 40-islands.js ====
 G.isl = (() => {
   const R = rnd(3131),
     rk = [],
@@ -7666,7 +7672,7 @@ G.isl = (() => {
   return I;
 })();
 
-// ==== 38-city.js ====
+// ==== 41-city.js ====
 G.city = (() => {
   const KX_ = 111320 * Math.cos((35.25 * Math.PI) / 180),
     R = rnd(5150),
@@ -7740,24 +7746,9 @@ G.city = (() => {
   return I;
 })();
 
-// ==== 39-frame.js ====
-function frame(now) {
-  const dt = Math.min(0.1, (now - last) / 1000);
-  last = now;
-  fpsN++;
-  fpsT += dt;
-  if (fpsT > 3) {
-    const f = fpsN / fpsT;
-    const old = resScale;
-    if (f < 38) resScale = Math.max(0.5, resScale - 0.1);
-    else if (f > 57) resScale = Math.min(QUALITY.resMax, resScale + 0.05);
-    if (old !== resScale) resize();
-    fpsN = 0;
-    fpsT = 0;
-  }
-  const c = clock(),
-    W = wind(c),
-    t = now / 1000;
+// ==== 42-frame-move.js ====
+/* ---------- 毎フレーム①：建物の移動（舵・流れ・風・岸との当たり・向き） ---------- */
+function moveHouse(dt, c, W) {
   // 舵（キーボード・スティック）を、カメラの向きに合わせて地図上の向きに直す
   {
     const tx = (keys.ArrowRight || keys.d ? 1 : 0) - (keys.ArrowLeft || keys.a ? 1 : 0),
@@ -7903,29 +7894,11 @@ function frame(now) {
       (B.yawV || 0) + (d * (1.2 + Math.min(2, sp * 8)) * Math.max(0.3, BP.align) - (B.yawV || 0) * 2.2) * dt;
     B.yaw += B.yawV * dt;
   } else if (BP.align <= 0.05) B.yaw += dt * 0.01;
-  const boats = boatState(c);
-  trailT += dt;
-  if (STATE === "lake" && trailT > 1.5) {
-    trailT = 0;
-    B.trail.push([B.x, B.y]);
-    if (B.trail.length > 4000) B.trail.shift();
-  }
+}
 
-  {
-    let nr = 0;
-    const cx = Math.floor(B.x / 120),
-      cy = Math.floor(B.y / 120);
-    for (let a = -3; a <= 3; a++)
-      for (let b = -3; b <= 3; b++)
-        if (reedMask.has(cx + a + "," + (cy + b))) nr = Math.max(nr, 1 - Math.hypot(a, b) / 4.3);
-    audioUpdate(dt, c, W, boats, nr);
-  }
-  if (isFar) {
-    drawFar(boats, W.wx, W);
-    requestAnimationFrame(frame);
-    return;
-  }
-
+// ==== 43-frame-sky-light.js ====
+/* ---------- 毎フレーム②：波・空・光・霧・季節の色・夜の灯り ---------- */
+function updateSkyLight(dt, t, c, W) {
   // 波・空・光
   setWaves(W);
   waves.forEach((v, i) => {
@@ -8168,6 +8141,12 @@ function frame(now) {
     paddySeason(c.month, sky);
     paddySeason._m = c.month;
   }
+  return { X_, day, night, sa };
+}
+
+// ==== 44-frame-float.js ====
+/* ---------- 毎フレーム③：建物の浮き沈みと傾き、目的地の印、引き波 ---------- */
+function floatHouse(dt, t, W, day) {
   // 建物の浮き沈み（画面は傾けない）
   const hx = B.x * S,
     hz = B.y * S,
@@ -8250,10 +8229,12 @@ function frame(now) {
       );
     }
   }
-  updateBoats(boats, dt, t, night);
-  if (FW) FW.update(dt, c, day);
-  if (G.buoys) G.buoys.update(t, day < 0.08);
-  if (G.EV) G.EV.update(dt, c, day, t, W);
+  return { hx, hz };
+}
+
+// ==== 45-frame-camera.js ====
+/* ---------- 毎フレーム④：カメラ（水平を保って建物を追う） ---------- */
+function updateCamera(dt, t, hx, hz) {
   // カメラ：水平を保って建物を追う
   if (
     STATE === "lake" &&
@@ -8308,6 +8289,11 @@ function frame(now) {
       h = innerHeight;
     camera.setViewOffset(w, h, 0, h * 0.2, w, h);
   }
+}
+
+// ==== 46-frame-render.js ====
+/* ---------- 毎フレーム⑤：描画（映り込み → 本描画 → 色の仕上げ） ---------- */
+function renderFrame(c, W, X_, day, sa) {
   {
     const q = 5000 / (QUALITY.waterGrid);
     water.position.x = Math.round(camX / q) * q;
@@ -8443,6 +8429,58 @@ c+=gr*(.022-.01*l);
     renderer.render(G.gs, G.gc);
     renderer.toneMapping = tm;
   }
+}
+
+// ==== 47-frame.js ====
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000);
+  last = now;
+  fpsN++;
+  fpsT += dt;
+  if (fpsT > 3) {
+    const f = fpsN / fpsT;
+    const old = resScale;
+    if (f < 38) resScale = Math.max(0.5, resScale - 0.1);
+    else if (f > 57) resScale = Math.min(QUALITY.resMax, resScale + 0.05);
+    if (old !== resScale) resize();
+    fpsN = 0;
+    fpsT = 0;
+  }
+  const c = clock(),
+    W = wind(c),
+    t = now / 1000;
+  moveHouse(dt, c, W);
+  const boats = boatState(c);
+  trailT += dt;
+  if (STATE === "lake" && trailT > 1.5) {
+    trailT = 0;
+    B.trail.push([B.x, B.y]);
+    if (B.trail.length > 4000) B.trail.shift();
+  }
+
+  {
+    let nr = 0;
+    const cx = Math.floor(B.x / 120),
+      cy = Math.floor(B.y / 120);
+    for (let a = -3; a <= 3; a++)
+      for (let b = -3; b <= 3; b++)
+        if (reedMask.has(cx + a + "," + (cy + b))) nr = Math.max(nr, 1 - Math.hypot(a, b) / 4.3);
+    audioUpdate(dt, c, W, boats, nr);
+  }
+  if (isFar) {
+    drawFar(boats, W.wx, W);
+    requestAnimationFrame(frame);
+    return;
+  }
+
+  const { X_, day, night, sa } = updateSkyLight(dt, t, c, W);
+  const { hx, hz } = floatHouse(dt, t, W, day);
+  updateBoats(boats, dt, t, night);
+  if (FW) FW.update(dt, c, day);
+  if (G.buoys) G.buoys.update(t, day < 0.08);
+  if (G.EV) G.EV.update(dt, c, day, t, W);
+  updateCamera(dt, t, hx, hz);
+  renderFrame(c, W, X_, day, sa);
   requestAnimationFrame(frame);
 }
 // 確認用：URLに ?debug を付けたときだけ、撮影スクリプトから視点を動かせるようにする
@@ -8458,6 +8496,7 @@ if (Q.has("debug")) {
     if (q.month !== undefined) MO = String(q.month);
     if (q.phase !== undefined) PH = String(q.phase);
     if (q.wx !== undefined) WXQ = String(q.wx);
+    if (q.t !== undefined) G.tFix = q.t;
     if (q.b !== undefined && q.b !== CUST.b) {
       CUST.b = q.b;
       buildHouse();
