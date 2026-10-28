@@ -1,6 +1,7 @@
 /* ---------- 毎フレーム②：波・空・光・霧・季節の色・夜の灯り ---------- */
 function updateSkyLight(dt, t, c, W) {
   // 波・空・光
+  G.W = W;
   setWaves(W);
   waves.forEach((v, i) => {
     waterU.uW.value[i].set(v.dx, v.dz, v.k, v.w);
@@ -115,7 +116,15 @@ function updateSkyLight(dt, t, c, W) {
   scene.fog.far *= (1 - mist * 0.6) * (1 - mornH * 0.1);
   waterU.uFog.value.set(scene.fog.near, scene.fog.far);
   waterU.uFoam.value = Math.max(0, wxNow.wave - 1.2) * 0.9;
-  waterU.uRainR.value = wxNow.rain;
+  {
+    // 時雨：11〜12月の昼、晴れ間に数分だけ通り過ぎる
+    const dn = Math.floor(c.t / DAY),
+      lucky = Math.abs(Math.sin(dn * 7.31) * 9137.1) % 1 < 0.6;
+    const pass = Math.max(0, Math.sin(c.t / 37 + dn) * 1.6 - 0.9);
+    const want = (c.month === 10 || c.month === 11) && lucky && day > 0.3 && wxNow.rain < 0.1 && wxNow.gray < 0.6 ? Math.min(1, pass * 1.5) : 0;
+    G.shigure = (G.shigure || 0) + (want - (G.shigure || 0)) * Math.min(1, dt * 0.5);
+  }
+  waterU.uRainR.value = Math.max(wxNow.rain, G.shigure * 0.6);
   waterU.uT2.value = t;
   updatePrecip(wxNow, W, dt, t);
   W_SENSE = wxNow.sense;

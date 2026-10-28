@@ -302,6 +302,47 @@ G.life = (() => {
     scene.add(m);
     return { b, m, N, hist: [], acc: 0 };
   });
+  // 波頭のしぶき：強風の日、白波の先から細かな水しぶきが風下へ飛ぶ
+  const SPN = 600,
+    spPos = new Float32Array(SPN * 3),
+    spV = new Float32Array(SPN * 3),
+    spL = new Float32Array(SPN);
+  const spGeo = new THREE.BufferGeometry();
+  spGeo.setAttribute("position", new THREE.BufferAttribute(spPos, 3));
+  const spray = new THREE.Points(
+    spGeo,
+    new THREE.PointsMaterial({ color: 0xf4f8fa, size: 0.35, map: G.dotTex, transparent: true, opacity: 0.75, depthWrite: false }),
+  );
+  spray.frustumCulled = false;
+  spray.visible = false;
+  scene.add(spray);
+  // 遊覧船：白い大きな船が、遠くをゆっくり横切る
+  const ship = (() => {
+    const g = new THREE.Group(),
+      wh = new THREE.MeshLambertMaterial({ color: 0xf2f0ea }),
+      bl = new THREE.MeshLambertMaterial({ color: 0x2d4a6e }),
+      rd = new THREE.MeshLambertMaterial({ color: 0xa83a2a }),
+      gl = new THREE.MeshLambertMaterial({ color: 0x3a4a58 });
+    const add = (geo, m, x, y, z) => {
+      const o = new THREE.Mesh(geo, m);
+      o.position.set(x, y, z);
+      g.add(o);
+      return o;
+    };
+    add(new THREE.BoxGeometry(34, 3, 8), wh, 0, 1.5, 0);
+    add(new THREE.BoxGeometry(34.2, 0.6, 8.2), bl, 0, 0.3, 0);
+    add(new THREE.ConeGeometry(4.1, 7, 4).rotateZ(-Math.PI / 2).rotateX(Math.PI / 4), wh, 20, 1.5, 0).scale.set(1, 0.5, 1.4);
+    add(new THREE.BoxGeometry(26, 2.6, 7.4), wh, -2, 4.3, 0);
+    add(new THREE.BoxGeometry(26.2, 0.9, 7.6), gl, -2, 4.4, 0);
+    add(new THREE.BoxGeometry(16, 2.4, 6.6), wh, -4, 6.8, 0);
+    add(new THREE.BoxGeometry(16.2, 0.8, 6.8), gl, -4, 6.9, 0);
+    add(new THREE.BoxGeometry(6, 2, 5.4), wh, 1, 9, 0);
+    add(new THREE.CylinderGeometry(0.9, 1, 3.4, 10), rd, -6, 9.5, 0);
+    add(new THREE.BoxGeometry(34.3, 0.35, 8.3), rd, 0, 2.6, 0);
+    g.visible = false;
+    scene.add(g);
+    return { g, on: false, x: 0, z: 0, dx: 0, dz: 0, life: 0 };
+  })();
   function update(dt, t, c, day, wxNow) {
     const cx = camera.position.x,
       cz = camera.position.z;
@@ -420,8 +461,87 @@ G.life = (() => {
       w.m.geometry.attributes.position.needsUpdate = true;
       w.m.geometry.attributes.color.needsUpdate = true;
     }
+    {
+      const Wd = G.W || { x: 0, y: 0, s: 0 },
+        ws = Wd.s || Math.hypot(Wd.x, Wd.y),
+        str = Math.min(1, Math.max(0, (ws - 5) / 5)) * (wxNow.snow > 0.5 ? 0.3 : 1);
+      spray.visible = str > 0.01;
+      if (spray.visible) {
+        const cx = camera.position.x,
+          cz = camera.position.z,
+          ux = Wd.x / (ws || 1),
+          uz = Wd.y / (ws || 1);
+        for (let i = 0; i < SPN; i++) {
+          const o = i * 3;
+          spL[i] -= dt;
+          if (spL[i] <= 0) {
+            if (Math.random() > str * 0.9) {
+              spPos[o + 1] = -99;
+              spL[i] = Math.random() * 0.6;
+              continue;
+            }
+            // しぶきは白波の位置で、まとまって飛ぶ
+            const a = Math.random() * 6.28,
+              d = 6 + Math.random() * 90,
+              bx = cx + Math.cos(a) * d,
+              bz = cz + Math.sin(a) * d;
+            if (!inLake(bx / S, bz / S)) {
+              spPos[o + 1] = -99;
+              spL[i] = 0.3;
+              continue;
+            }
+            spPos[o] = bx;
+            spPos[o + 1] = 0.3;
+            spPos[o + 2] = bz;
+            const v = 2 + Math.random() * 4;
+            spV[o] = ux * v + (Math.random() - 0.5);
+            spV[o + 1] = 1.2 + Math.random() * 2;
+            spV[o + 2] = uz * v + (Math.random() - 0.5);
+            spL[i] = 0.6 + Math.random() * 0.8;
+          } else if (spPos[o + 1] > -50) {
+            spV[o + 1] -= 6 * dt;
+            spPos[o] += spV[o] * dt;
+            spPos[o + 1] = Math.max(0.05, spPos[o + 1] + spV[o + 1] * dt);
+            spPos[o + 2] += spV[o + 2] * dt;
+          }
+        }
+        spGeo.attributes.position.needsUpdate = true;
+        spray.material.opacity = 0.5 + str * 0.35;
+      }
+    }
+    {
+      const cx = camera.position.x,
+        cz = camera.position.z;
+      if (!ship.on && day > 0.25 && wxNow.rain < 0.3 && Math.random() < dt / 90) {
+        for (let k = 0; k < 15; k++) {
+          const a = Math.random() * 6.28,
+            d = 700 + Math.random() * 700,
+            x = cx + Math.cos(a) * d,
+            z = cz + Math.sin(a) * d;
+          if (inMain(x / S, z / S) && depth(x / S, z / S) > 5) {
+            const h = a + (Math.random() < 0.5 ? 1.57 : -1.57);
+            Object.assign(ship, { on: true, x, z, dx: Math.cos(h), dz: Math.sin(h), life: 400 });
+            ship.g.visible = true;
+            break;
+          }
+        }
+      }
+      if (ship.on) {
+        ship.life -= dt;
+        ship.x += ship.dx * 3.5 * dt;
+        ship.z += ship.dz * 3.5 * dt;
+        const gone = ship.life <= 0 || day < 0.1 || !inMain(ship.x / S, ship.z / S) || depth(ship.x / S, ship.z / S) < 3 || Math.hypot(ship.x - cx, ship.z - cz) > 2200;
+        if (gone) {
+          ship.on = false;
+          ship.g.visible = false;
+        } else {
+          ship.g.position.set(ship.x, waveH(ship.x, ship.z, t) * 0.3 - 0.2, ship.z);
+          ship.g.rotation.set(0, -Math.atan2(ship.dz, ship.dx), Math.sin(t * 0.5) * 0.008);
+        }
+      }
+    }
     // サギはときどき首をかしげる
     for (const h of herons) h.visible = day > 0.05 && !(c.month === 0 && wxNow.snow > 0.5);
   }
-  return { update, herons, bam, tabune, susuki };
+  return { update, herons, bam, tabune, susuki, ship };
 })();

@@ -207,6 +207,9 @@ wf+=exp(-dd*dd/(.5+tr.z*.9))*exp(-tr.z*.28)*tr.w*.55;
 g*=bk;
 vec3 N=normalize(n*vec3(1.-uCalm*.5,1.,1.-uCalm*.5)+vec3(-g.x,0.,-g.y)*(1.+uFoam)*(1.-uCalm*.45)*(1.-.6*smoothstep(.0,-.2,uSun.y)));
 N=normalize(mix(N,vec3(0.,1.,0.),smoothstep(150.,900.,dc)*.85));
+// 風紋の境目：微風の日、鏡のような凪の面と波立つ面がくっきり分かれる
+{vec2 wd=normalize(uWd+1e-4);vec2 q=vP0.xz*.0011-wd*uT2*.01;float fld=sin(q.x*2.3+sin(q.y*1.7)*1.8)*sin(q.y*2.1+sin(q.x*1.3)*1.5)+.25*sin(q.x*7.1+q.y*5.3);
+float lt=smoothstep(.15,.45,uCalm)*smoothstep(1.,.75,uCalm);float gz=smoothstep(.02,.06,fld)*lt;N=normalize(mix(N,vec3(0.,1.,0.),gz*.8));}
 float fr=.02+.98*pow(1.-max(dot(N,V),0.),5.);
 vec2 uv=(vP.xz-uBox.xy)/uBox.zw;
 float dep=texture2D(uDepth,uv).r*255./6.;
@@ -253,6 +256,8 @@ vec2 hso=uHouse.xy-normalize(uSun.xz+1e-4)*uHouse.z*.9/max(uSun.y,.25)*.6;
 float hs=smoothstep(uHouse.z*1.,uHouse.z*.4,length(vP.xz-hso));
 // 喫水の陰 × 波の斜面の陰影 × 建物の影 を一度に掛ける
 body*=(1.-.38*smoothstep(uHouse.z*1.15,uHouse.z*.3,ub))*(.9+.22*clamp(dot(N,normalize(vec3(uSun.x,1.2,uSun.z))),0.,1.))*(1.-hs*.28*clamp(uSun.y*3.,0.,1.));
+// 浅瀬では建物の影が湖底に落ち、水深の分だけ日の向こうへずれる
+{float shal=smoothstep(5.,.3,dep);vec2 bo=hso-normalize(uSun.xz+1e-4)*dep*1.8/max(uSun.y,.3);float bsh=smoothstep(uHouse.z*1.1,uHouse.z*.35,length(vP.xz-bo));body*=1.-bsh*.38*shal*clamp(uSun.y*3.,0.,1.);}
 {float msh=0.;vec2 sdir=normalize(uSun.xz+1e-4);for(int k=1;k<=6;k++){vec2 q=(vP.xz+sdir*float(k)*55.-uBox.xy)/uBox.zw;float d2=texture2D(uDepth,q).r;msh=max(msh,step(d2,.002)*(1.-float(k)/7.));}body*=1.-msh*.4*uLowSun;}
 {float gp=smoothstep(.62,.8,.5+.5*sin((vP.x-uT2*3.)*.0024+sin(vP.z*.0019)*2.3)*sin((vP.z+uT2*1.5)*.0021+sin(vP.x*.0017)*1.9));body*=1.+gp*.55*uGap;skyR*=1.+gp*.35*uGap;}
 float wlf=exp(-pow((ub-uHouse.z*.92)/(.6+uHouse.z*.05),2.))*(.55+.45*sin(atan(vP.z-uHouse.y,vP.x-uHouse.x)*9.+uT2*1.3))*(.5+.5*fract(sin(dot(floor(vP0.xz*3.),vec2(3.7,8.1)))*91.));

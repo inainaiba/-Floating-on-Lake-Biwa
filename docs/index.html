@@ -795,6 +795,7 @@ vec3 ly=mix(vec3(1.,.6,.32),vec3(1.,.62,.66),smoothstep(.0,.08,y));
 ly=mix(ly,vec3(.72,.66,.9),smoothstep(.06,.22,y));
 c=mix(c,ly*mix(1.,.8,smoothstep(.0,.3,y)),lw*.45*smoothstep(.45,.0,y));
 }
+ c+=uHor*.22*exp(-y*45.)*(1.-uDark)*smoothstep(-.1,.15,uSunD.y);
  c+=vec3(.1,.1,.09)*exp(-y*16.)*smoothstep(-.1,.2,uSunD.y)*(1.-uDark);
  if(uSnowCap>.01){float west=smoothstep(-.15,-.75,vD.x);float sc=smoothstep(.45,.7,fbm(vec2(atan(vD.z,vD.x)*5.+uT*.003,vD.y*14.)))*smoothstep(.03,.07,vD.y)*smoothstep(.26,.1,vD.y);c=mix(c,vec3(.58,.61,.66)*(1.-uDark*.7),clamp(sc*west*1.8,0.,.95)*uSnowCap);c=mix(c,vec3(.68,.7,.74)*(1.-uDark*.7),uSnowCap*.35*smoothstep(.5,.0,y));}
  if(uShaft>.01){float az=atan(vD.z,vD.x);float sh_=smoothstep(.55,.85,fbm(vec2(az*2.2,uT*.002)))*smoothstep(.62,.9,fbm(vec2(az*9.,vD.y*3.+uT*.01)))*smoothstep(.0,.03,vD.y)*smoothstep(.2,.05,vD.y);c=mix(c,vec3(.48,.52,.58)*(1.-uDark*.5),sh_*uShaft*.7);}
@@ -1050,6 +1051,9 @@ wf+=exp(-dd*dd/(.5+tr.z*.9))*exp(-tr.z*.28)*tr.w*.55;
 g*=bk;
 vec3 N=normalize(n*vec3(1.-uCalm*.5,1.,1.-uCalm*.5)+vec3(-g.x,0.,-g.y)*(1.+uFoam)*(1.-uCalm*.45)*(1.-.6*smoothstep(.0,-.2,uSun.y)));
 N=normalize(mix(N,vec3(0.,1.,0.),smoothstep(150.,900.,dc)*.85));
+// 風紋の境目：微風の日、鏡のような凪の面と波立つ面がくっきり分かれる
+{vec2 wd=normalize(uWd+1e-4);vec2 q=vP0.xz*.0011-wd*uT2*.01;float fld=sin(q.x*2.3+sin(q.y*1.7)*1.8)*sin(q.y*2.1+sin(q.x*1.3)*1.5)+.25*sin(q.x*7.1+q.y*5.3);
+float lt=smoothstep(.15,.45,uCalm)*smoothstep(1.,.75,uCalm);float gz=smoothstep(.02,.06,fld)*lt;N=normalize(mix(N,vec3(0.,1.,0.),gz*.8));}
 float fr=.02+.98*pow(1.-max(dot(N,V),0.),5.);
 vec2 uv=(vP.xz-uBox.xy)/uBox.zw;
 float dep=texture2D(uDepth,uv).r*255./6.;
@@ -1096,6 +1100,8 @@ vec2 hso=uHouse.xy-normalize(uSun.xz+1e-4)*uHouse.z*.9/max(uSun.y,.25)*.6;
 float hs=smoothstep(uHouse.z*1.,uHouse.z*.4,length(vP.xz-hso));
 // 喫水の陰 × 波の斜面の陰影 × 建物の影 を一度に掛ける
 body*=(1.-.38*smoothstep(uHouse.z*1.15,uHouse.z*.3,ub))*(.9+.22*clamp(dot(N,normalize(vec3(uSun.x,1.2,uSun.z))),0.,1.))*(1.-hs*.28*clamp(uSun.y*3.,0.,1.));
+// 浅瀬では建物の影が湖底に落ち、水深の分だけ日の向こうへずれる
+{float shal=smoothstep(5.,.3,dep);vec2 bo=hso-normalize(uSun.xz+1e-4)*dep*1.8/max(uSun.y,.3);float bsh=smoothstep(uHouse.z*1.1,uHouse.z*.35,length(vP.xz-bo));body*=1.-bsh*.38*shal*clamp(uSun.y*3.,0.,1.);}
 {float msh=0.;vec2 sdir=normalize(uSun.xz+1e-4);for(int k=1;k<=6;k++){vec2 q=(vP.xz+sdir*float(k)*55.-uBox.xy)/uBox.zw;float d2=texture2D(uDepth,q).r;msh=max(msh,step(d2,.002)*(1.-float(k)/7.));}body*=1.-msh*.4*uLowSun;}
 {float gp=smoothstep(.62,.8,.5+.5*sin((vP.x-uT2*3.)*.0024+sin(vP.z*.0019)*2.3)*sin((vP.z+uT2*1.5)*.0021+sin(vP.x*.0017)*1.9));body*=1.+gp*.55*uGap;skyR*=1.+gp*.35*uGap;}
 float wlf=exp(-pow((ub-uHouse.z*.92)/(.6+uHouse.z*.05),2.))*(.55+.45*sin(atan(vP.z-uHouse.y,vP.x-uHouse.x)*9.+uT2*1.3))*(.5+.5*fract(sin(dot(floor(vP0.xz*3.),vec2(3.7,8.1)))*91.));
@@ -3283,15 +3289,19 @@ scene.add(snowMesh);
 function updatePrecip(wxNow, W, dt, t) {
   const cx = camera.position.x,
     cz = camera.position.z;
-  rainMesh.material.opacity = Math.min(0.35, wxNow.rain * 0.4);
-  rainMesh.visible = wxNow.rain > 0.02;
+  // 時雨：晩秋、日が差したまま細い雨が斜めに光る
+  const sg = G.shigure || 0,
+    rn = Math.max(wxNow.rain, sg * 0.55);
+  rainMesh.material.opacity = Math.min(0.35, rn * 0.4) + sg * 0.12;
+  rainMesh.material.color.setHex(sg > wxNow.rain ? 0xfff0d8 : 0xcfd8e0);
+  rainMesh.visible = rn > 0.02;
   snowMesh.material.opacity = wxNow.snow * 0.9;
   snowMesh.visible = wxNow.snow > 0.02;
   if (rainMesh.visible) {
     const p = precipGeo.attributes.position.array,
       vy = 28 * dt,
-      sx = W.x * 0.15,
-      sz = W.y * 0.15;
+      sx = W.x * (0.15 + sg * 0.25),
+      sz = W.y * (0.15 + sg * 0.25);
     for (let i = 0; i < PN; i++) {
       const o = i * 6;
       let y = p[o + 1] - vy;
@@ -8385,6 +8395,47 @@ G.life = (() => {
     scene.add(m);
     return { b, m, N, hist: [], acc: 0 };
   });
+  // 波頭のしぶき：強風の日、白波の先から細かな水しぶきが風下へ飛ぶ
+  const SPN = 600,
+    spPos = new Float32Array(SPN * 3),
+    spV = new Float32Array(SPN * 3),
+    spL = new Float32Array(SPN);
+  const spGeo = new THREE.BufferGeometry();
+  spGeo.setAttribute("position", new THREE.BufferAttribute(spPos, 3));
+  const spray = new THREE.Points(
+    spGeo,
+    new THREE.PointsMaterial({ color: 0xf4f8fa, size: 0.35, map: G.dotTex, transparent: true, opacity: 0.75, depthWrite: false }),
+  );
+  spray.frustumCulled = false;
+  spray.visible = false;
+  scene.add(spray);
+  // 遊覧船：白い大きな船が、遠くをゆっくり横切る
+  const ship = (() => {
+    const g = new THREE.Group(),
+      wh = new THREE.MeshLambertMaterial({ color: 0xf2f0ea }),
+      bl = new THREE.MeshLambertMaterial({ color: 0x2d4a6e }),
+      rd = new THREE.MeshLambertMaterial({ color: 0xa83a2a }),
+      gl = new THREE.MeshLambertMaterial({ color: 0x3a4a58 });
+    const add = (geo, m, x, y, z) => {
+      const o = new THREE.Mesh(geo, m);
+      o.position.set(x, y, z);
+      g.add(o);
+      return o;
+    };
+    add(new THREE.BoxGeometry(34, 3, 8), wh, 0, 1.5, 0);
+    add(new THREE.BoxGeometry(34.2, 0.6, 8.2), bl, 0, 0.3, 0);
+    add(new THREE.ConeGeometry(4.1, 7, 4).rotateZ(-Math.PI / 2).rotateX(Math.PI / 4), wh, 20, 1.5, 0).scale.set(1, 0.5, 1.4);
+    add(new THREE.BoxGeometry(26, 2.6, 7.4), wh, -2, 4.3, 0);
+    add(new THREE.BoxGeometry(26.2, 0.9, 7.6), gl, -2, 4.4, 0);
+    add(new THREE.BoxGeometry(16, 2.4, 6.6), wh, -4, 6.8, 0);
+    add(new THREE.BoxGeometry(16.2, 0.8, 6.8), gl, -4, 6.9, 0);
+    add(new THREE.BoxGeometry(6, 2, 5.4), wh, 1, 9, 0);
+    add(new THREE.CylinderGeometry(0.9, 1, 3.4, 10), rd, -6, 9.5, 0);
+    add(new THREE.BoxGeometry(34.3, 0.35, 8.3), rd, 0, 2.6, 0);
+    g.visible = false;
+    scene.add(g);
+    return { g, on: false, x: 0, z: 0, dx: 0, dz: 0, life: 0 };
+  })();
   function update(dt, t, c, day, wxNow) {
     const cx = camera.position.x,
       cz = camera.position.z;
@@ -8503,10 +8554,89 @@ G.life = (() => {
       w.m.geometry.attributes.position.needsUpdate = true;
       w.m.geometry.attributes.color.needsUpdate = true;
     }
+    {
+      const Wd = G.W || { x: 0, y: 0, s: 0 },
+        ws = Wd.s || Math.hypot(Wd.x, Wd.y),
+        str = Math.min(1, Math.max(0, (ws - 5) / 5)) * (wxNow.snow > 0.5 ? 0.3 : 1);
+      spray.visible = str > 0.01;
+      if (spray.visible) {
+        const cx = camera.position.x,
+          cz = camera.position.z,
+          ux = Wd.x / (ws || 1),
+          uz = Wd.y / (ws || 1);
+        for (let i = 0; i < SPN; i++) {
+          const o = i * 3;
+          spL[i] -= dt;
+          if (spL[i] <= 0) {
+            if (Math.random() > str * 0.9) {
+              spPos[o + 1] = -99;
+              spL[i] = Math.random() * 0.6;
+              continue;
+            }
+            // しぶきは白波の位置で、まとまって飛ぶ
+            const a = Math.random() * 6.28,
+              d = 6 + Math.random() * 90,
+              bx = cx + Math.cos(a) * d,
+              bz = cz + Math.sin(a) * d;
+            if (!inLake(bx / S, bz / S)) {
+              spPos[o + 1] = -99;
+              spL[i] = 0.3;
+              continue;
+            }
+            spPos[o] = bx;
+            spPos[o + 1] = 0.3;
+            spPos[o + 2] = bz;
+            const v = 2 + Math.random() * 4;
+            spV[o] = ux * v + (Math.random() - 0.5);
+            spV[o + 1] = 1.2 + Math.random() * 2;
+            spV[o + 2] = uz * v + (Math.random() - 0.5);
+            spL[i] = 0.6 + Math.random() * 0.8;
+          } else if (spPos[o + 1] > -50) {
+            spV[o + 1] -= 6 * dt;
+            spPos[o] += spV[o] * dt;
+            spPos[o + 1] = Math.max(0.05, spPos[o + 1] + spV[o + 1] * dt);
+            spPos[o + 2] += spV[o + 2] * dt;
+          }
+        }
+        spGeo.attributes.position.needsUpdate = true;
+        spray.material.opacity = 0.5 + str * 0.35;
+      }
+    }
+    {
+      const cx = camera.position.x,
+        cz = camera.position.z;
+      if (!ship.on && day > 0.25 && wxNow.rain < 0.3 && Math.random() < dt / 90) {
+        for (let k = 0; k < 15; k++) {
+          const a = Math.random() * 6.28,
+            d = 700 + Math.random() * 700,
+            x = cx + Math.cos(a) * d,
+            z = cz + Math.sin(a) * d;
+          if (inMain(x / S, z / S) && depth(x / S, z / S) > 5) {
+            const h = a + (Math.random() < 0.5 ? 1.57 : -1.57);
+            Object.assign(ship, { on: true, x, z, dx: Math.cos(h), dz: Math.sin(h), life: 400 });
+            ship.g.visible = true;
+            break;
+          }
+        }
+      }
+      if (ship.on) {
+        ship.life -= dt;
+        ship.x += ship.dx * 3.5 * dt;
+        ship.z += ship.dz * 3.5 * dt;
+        const gone = ship.life <= 0 || day < 0.1 || !inMain(ship.x / S, ship.z / S) || depth(ship.x / S, ship.z / S) < 3 || Math.hypot(ship.x - cx, ship.z - cz) > 2200;
+        if (gone) {
+          ship.on = false;
+          ship.g.visible = false;
+        } else {
+          ship.g.position.set(ship.x, waveH(ship.x, ship.z, t) * 0.3 - 0.2, ship.z);
+          ship.g.rotation.set(0, -Math.atan2(ship.dz, ship.dx), Math.sin(t * 0.5) * 0.008);
+        }
+      }
+    }
     // サギはときどき首をかしげる
     for (const h of herons) h.visible = day > 0.05 && !(c.month === 0 && wxNow.snow > 0.5);
   }
-  return { update, herons, bam, tabune, susuki };
+  return { update, herons, bam, tabune, susuki, ship };
 })();
 
 // ==== 45-city.js ====
@@ -8737,6 +8867,7 @@ function moveHouse(dt, c, W) {
 /* ---------- 毎フレーム②：波・空・光・霧・季節の色・夜の灯り ---------- */
 function updateSkyLight(dt, t, c, W) {
   // 波・空・光
+  G.W = W;
   setWaves(W);
   waves.forEach((v, i) => {
     waterU.uW.value[i].set(v.dx, v.dz, v.k, v.w);
@@ -8851,7 +8982,15 @@ function updateSkyLight(dt, t, c, W) {
   scene.fog.far *= (1 - mist * 0.6) * (1 - mornH * 0.1);
   waterU.uFog.value.set(scene.fog.near, scene.fog.far);
   waterU.uFoam.value = Math.max(0, wxNow.wave - 1.2) * 0.9;
-  waterU.uRainR.value = wxNow.rain;
+  {
+    // 時雨：11〜12月の昼、晴れ間に数分だけ通り過ぎる
+    const dn = Math.floor(c.t / DAY),
+      lucky = Math.abs(Math.sin(dn * 7.31) * 9137.1) % 1 < 0.6;
+    const pass = Math.max(0, Math.sin(c.t / 37 + dn) * 1.6 - 0.9);
+    const want = (c.month === 10 || c.month === 11) && lucky && day > 0.3 && wxNow.rain < 0.1 && wxNow.gray < 0.6 ? Math.min(1, pass * 1.5) : 0;
+    G.shigure = (G.shigure || 0) + (want - (G.shigure || 0)) * Math.min(1, dt * 0.5);
+  }
+  waterU.uRainR.value = Math.max(wxNow.rain, G.shigure * 0.6);
   waterU.uT2.value = t;
   updatePrecip(wxNow, W, dt, t);
   W_SENSE = wxNow.sense;

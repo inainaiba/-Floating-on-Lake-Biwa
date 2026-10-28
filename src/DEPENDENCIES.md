@@ -429,11 +429,11 @@
   - 00-head.js：`G`
   - 01-settings.js：`S`
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`inLake`
+  - 06-inner-lakes.js：`inLake`、`inMain`
   - 07-depth.js：`depth`
   - 10-start.js：`rnd`
   - 12-renderer.js：`MOBILE`、`QUALITY`、`camera`、`scene`
-  - 14-water.js：`waterU`
+  - 14-water.js：`waterU`、`waveH`
   - 16-terrain.js：`VEX`、`reedPts`
   - 17-trees.js：`cardForest`
   - 20-villages-layout.js：`cvTex`、`houses`、`paddies`、`terrainAt`

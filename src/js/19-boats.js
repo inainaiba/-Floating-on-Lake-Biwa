@@ -507,15 +507,19 @@ scene.add(snowMesh);
 function updatePrecip(wxNow, W, dt, t) {
   const cx = camera.position.x,
     cz = camera.position.z;
-  rainMesh.material.opacity = Math.min(0.35, wxNow.rain * 0.4);
-  rainMesh.visible = wxNow.rain > 0.02;
+  // 時雨：晩秋、日が差したまま細い雨が斜めに光る
+  const sg = G.shigure || 0,
+    rn = Math.max(wxNow.rain, sg * 0.55);
+  rainMesh.material.opacity = Math.min(0.35, rn * 0.4) + sg * 0.12;
+  rainMesh.material.color.setHex(sg > wxNow.rain ? 0xfff0d8 : 0xcfd8e0);
+  rainMesh.visible = rn > 0.02;
   snowMesh.material.opacity = wxNow.snow * 0.9;
   snowMesh.visible = wxNow.snow > 0.02;
   if (rainMesh.visible) {
     const p = precipGeo.attributes.position.array,
       vy = 28 * dt,
-      sx = W.x * 0.15,
-      sz = W.y * 0.15;
+      sx = W.x * (0.15 + sg * 0.25),
+      sz = W.y * (0.15 + sg * 0.25);
     for (let i = 0; i < PN; i++) {
       const o = i * 6;
       let y = p[o + 1] - vy;
