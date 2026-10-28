@@ -366,6 +366,32 @@ function clock() {
   return { t, month: MO !== null ? +MO : ((d % 12) + 12) % 12, phase: PH !== null ? +PH : (t % DAY) / DAY };
 }
 
+// 太陽と月の位置（天文の計算）：作品の月は「その月の中日」、時刻は作品の一日の中の時刻として、
+// 琵琶湖の緯度で、太陽の高度・方位と、月齢に応じた月の位置を求める。
+// 返す向きは作品の座標（x 東、y 上、z 南）の単位ベクトル。
+const LAT_R = (35.25 * Math.PI) / 180;
+function astro(c) {
+  const doy = c.month * 30.44 + 15,
+    dec = ((23.44 * Math.PI) / 180) * Math.sin((2 * Math.PI * (284 + doy)) / 365),
+    H = (c.phase * 24 - 12) * ((15 * Math.PI) / 180); // 時角（正午で0）
+  const dirOf = (h, d) => {
+    const E = -Math.cos(d) * Math.sin(h),
+      N = Math.cos(LAT_R) * Math.sin(d) - Math.sin(LAT_R) * Math.cos(d) * Math.cos(h),
+      U = Math.sin(LAT_R) * Math.sin(d) + Math.cos(LAT_R) * Math.cos(d) * Math.cos(h);
+    return new THREE.Vector3(E, U, -N).normalize();
+  };
+  const sun = dirOf(H, dec),
+    noon = Math.sin(Math.PI / 2 - Math.abs(LAT_R - dec)); // 南中の高さ（sin）
+  // 月齢（0 新月 → 0.5 満月）。新月の月は太陽と同じ方角、満月は反対。赤緯も月齢で太陽と逆向きにふれる
+  const mp = ((((c.t / DAY) % 29.53) + 29.53) % 29.53) / 29.53,
+    moon = dirOf(H - mp * 2 * Math.PI, dec * Math.cos(mp * 2 * Math.PI));
+  // これまでの「太陽の角度」（日の出 0、正午 π/2、日の入り π）に読み替えた値。明るさや朝夕の判定に使う
+  const s = Math.max(-1, Math.min(1, sun.y / noon)),
+    a = Math.asin(s),
+    sunAngle = c.phase < 0.5 ? a : Math.PI - a;
+  return { sun, moon, mp, sunAngle, phaseEff: (((0.25 + sunAngle / (2 * Math.PI)) % 1) + 1) % 1 };
+}
+
 // ==== 05-lake.js ====
 /* ---------- 湖の形 ---------- */
 const outer = LAKE.outer,
@@ -876,6 +902,7 @@ const skyU = {
   uVenus: { value: 0 },
   uHzS: { value: 0 },
   uMw: { value: 1 },
+  uMoonD: { value: new THREE.Vector3(0, 1, 0) },
   uVeil: { value: 0 },
   uWin: { value: 0 },
   uCity: { value: new THREE.Vector3(0, 0, 1) },
@@ -883,7 +910,7 @@ const skyU = {
 /* 空の描画（フラグメント）：処理の順に区切った部品。一つの main の中で上から順につながる。
    前の部品で作った値（y, sd, cp, cl, nt など）を後の部品が使うので、順番は入れ替えない。 */
 const SKY_FS_HEAD = `uniform vec3 uTop,uHor,uSunD,uSunC2;
-uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;uniform float uMw;uniform float uVeil,uWin;uniform vec3 uCity;
+uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;uniform float uMw;uniform vec3 uMoonD;uniform float uVeil,uWin;uniform vec3 uCity;
 uniform vec3 uLd;
 varying vec3 vD;
 ${GLSL_NOISE}
@@ -895,7 +922,7 @@ float sd=max(dot(vD,uSunD),0.);
 float md=max(dot(vD,-uSunD),0.);
 `;
 // 月：満ち欠け・低い月の色・月のかさ
-const SKY_FS_MOON = `{vec3 md0=normalize(vec3(-uSunD.x,max(-uSunD.y*.9+.02,.02),-uSunD.z));float mlow=1.-smoothstep(.02,.22,md0.y);
+const SKY_FS_MOON = `{vec3 md0=uMoonD;/* 月の向き（天文の計算） */float mlow=1.-smoothstep(.02,.22,md0.y);
 vec3 sx=normalize(cross(md0,vec3(0.,1.,0.)));
 float a0=dot(vD,md0);
 float mr0=mix(.99955,.9993,mlow),disc=smoothstep(mr0,mr0+.00013,a0);
@@ -1142,6 +1169,7 @@ const waterU = {
   uMp2: { value: 0.5 },
   uCSh: { value: 1 },
   uCl: { value: 0 },
+  uMoonD: { value: new THREE.Vector3(0, 1, 0) },
   uLead: { value: 0 },
   uTr: { value: Array.from({ length: 40 }, () => new THREE.Vector4(0, 0, 99, 0)) },
   uLamp: { value: new THREE.Color(0) },
@@ -1176,7 +1204,7 @@ uniform float uCalm;
 uniform float uSD;
 uniform float uMist;uniform float uGap;uniform float uLowSun;
 uniform float uMp2;
-uniform float uCSh;uniform float uCl,uLead;
+uniform float uCSh;uniform float uCl,uLead;uniform vec3 uMoonD;
 ${GLSL_NOISE}
 uniform mat4 uTM;
 uniform float uWy;
@@ -1276,7 +1304,7 @@ tb+=uMouth[i].w*exp(-dot(d,d)/(uMouth[i].z*uMouth[i].z));
 const W_FS_REFLECT = `// ── 反射：空の色・太陽のきらめき・月の照り返し ──
 vec3 R=reflect(-V,N);
 float rs=max(dot(R,uSun),0.);
-float mr=max(dot(R,normalize(vec3(-uSun.x,max(-uSun.y*.9+.02,.02),-uSun.z))),0.);
+float mr=max(dot(R,uMoonD),0.)*step(.0,uMoonD.y);/* 月の映り込み（月が地平より上のときだけ） */
 float msp=(.25+.75*(1.-abs(uMp2-.5)*2.))*(pow(mr,300.)*1.4+pow(mr,40.)*.12*step(.75,fract(sin(dot(floor(vP0.xz*4.),vec2(4.1,7.3))+uT2*1.5)*99.)))*smoothstep(.0,-.15,uSun.y);
 float gh=fract(sin(dot(floor(vP0.xz*6.),vec2(4.1,7.3)))*99.);
 float glit=step(.72,gh)*smoothstep(.45,.1,length(fract(vP0.xz*6.)-.5))*pow(.5+.5*sin(uT2*(2.+gh*3.)+gh*40.),4.)*pow(rs,14.)*5.5*smoothstep(900.,10.,dc)+step(.9,fract(sin(dot(floor(vP0.xz*1.5),vec2(7.7,3.1)))*91.))*pow(.5+.5*sin(uT2*3.+gh*20.),6.)*pow(rs,40.)*3.*smoothstep(2500.,200.,dc);
@@ -9667,18 +9695,16 @@ function updateSkyLight(dt, t, c, W) {
   waterU.uT.value = t;
   const wxNow = W.wx;
   G.wxNow = wxNow;
-  const sunAngle = (c.phase - 0.25) * 2 * Math.PI,
+  // 太陽と月：天文の計算で（04-clock.js の astro）。季節で日の出の時刻・方角、南中の高さが変わる
+  const AS = astro(c),
+    sunAngle = AS.sunAngle,
     day = Math.max(0, Math.sin(sunAngle));
-  const sunHeight = SEASON.sunHeight[c.month];
-  // 日の出・日の入りの方角：夏至は北東から昇り北西へ沈み、冬至は南東から南西へ
-  const dcl = Math.cos(((c.month + 0.5 - 6) / 12) * 2 * Math.PI),
-    zNoon = 0.45 + 0.25 * (1 - sunHeight),
-    zH = -0.42 * dcl,
-    sunZ = zH + (zNoon - zH) * Math.max(0, Math.sin(sunAngle));
-  const sunDirSky = new THREE.Vector3(Math.cos(sunAngle) * 0.8, Math.sin(sunAngle) * sunHeight, sunZ).normalize();
+  const sunDirSky = AS.sun.clone();
+  skyU.uMoonD.value.copy(AS.moon);
+  waterU.uMoonD.value.copy(AS.moon);
   G.sunY = sunDirSky.y;
   G.morning = c.phase < 0.5;
-  const sky = skyAt(c.phase);
+  const sky = skyAt(AS.phaseEff); // 空の色は、実際の太陽の高さに合わせた時刻で
   {
     const g = new THREE.Color(
       sky.r * 0.3 + sky.g * 0.59 + sky.b * 0.11,
@@ -9858,7 +9884,9 @@ function updateSkyLight(dt, t, c, W) {
   }
   waterU.uSky.value.copy(sky);
   waterU.uFogC.value.copy(skyU.uHor.value);
-  const sd = new THREE.Vector3(Math.cos(sunAngle) * 0.8, Math.max(0.05, Math.sin(sunAngle) * sunHeight), sunZ).normalize();
+  const sd = AS.sun.clone();
+  sd.y = Math.max(0.05, sd.y);
+  sd.normalize();
   waterU.uSun.value.copy(sd);
   sun.position.copy(sd).multiplyScalar(100).add(house.position);
   sun.target.position.copy(house.position);

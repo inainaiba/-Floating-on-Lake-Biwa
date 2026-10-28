@@ -18,18 +18,16 @@ function updateSkyLight(dt, t, c, W) {
   waterU.uT.value = t;
   const wxNow = W.wx;
   G.wxNow = wxNow;
-  const sunAngle = (c.phase - 0.25) * 2 * Math.PI,
+  // 太陽と月：天文の計算で（04-clock.js の astro）。季節で日の出の時刻・方角、南中の高さが変わる
+  const AS = astro(c),
+    sunAngle = AS.sunAngle,
     day = Math.max(0, Math.sin(sunAngle));
-  const sunHeight = SEASON.sunHeight[c.month];
-  // 日の出・日の入りの方角：夏至は北東から昇り北西へ沈み、冬至は南東から南西へ
-  const dcl = Math.cos(((c.month + 0.5 - 6) / 12) * 2 * Math.PI),
-    zNoon = 0.45 + 0.25 * (1 - sunHeight),
-    zH = -0.42 * dcl,
-    sunZ = zH + (zNoon - zH) * Math.max(0, Math.sin(sunAngle));
-  const sunDirSky = new THREE.Vector3(Math.cos(sunAngle) * 0.8, Math.sin(sunAngle) * sunHeight, sunZ).normalize();
+  const sunDirSky = AS.sun.clone();
+  skyU.uMoonD.value.copy(AS.moon);
+  waterU.uMoonD.value.copy(AS.moon);
   G.sunY = sunDirSky.y;
   G.morning = c.phase < 0.5;
-  const sky = skyAt(c.phase);
+  const sky = skyAt(AS.phaseEff); // 空の色は、実際の太陽の高さに合わせた時刻で
   {
     const g = new THREE.Color(
       sky.r * 0.3 + sky.g * 0.59 + sky.b * 0.11,
@@ -209,7 +207,9 @@ function updateSkyLight(dt, t, c, W) {
   }
   waterU.uSky.value.copy(sky);
   waterU.uFogC.value.copy(skyU.uHor.value);
-  const sd = new THREE.Vector3(Math.cos(sunAngle) * 0.8, Math.max(0.05, Math.sin(sunAngle) * sunHeight), sunZ).normalize();
+  const sd = AS.sun.clone();
+  sd.y = Math.max(0.05, sd.y);
+  sd.normalize();
   waterU.uSun.value.copy(sd);
   sun.position.copy(sd).multiplyScalar(100).add(house.position);
   sun.target.position.copy(house.position);

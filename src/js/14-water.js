@@ -91,6 +91,7 @@ const waterU = {
   uMp2: { value: 0.5 },
   uCSh: { value: 1 },
   uCl: { value: 0 },
+  uMoonD: { value: new THREE.Vector3(0, 1, 0) },
   uLead: { value: 0 },
   uTr: { value: Array.from({ length: 40 }, () => new THREE.Vector4(0, 0, 99, 0)) },
   uLamp: { value: new THREE.Color(0) },
@@ -125,7 +126,7 @@ uniform float uCalm;
 uniform float uSD;
 uniform float uMist;uniform float uGap;uniform float uLowSun;
 uniform float uMp2;
-uniform float uCSh;uniform float uCl,uLead;
+uniform float uCSh;uniform float uCl,uLead;uniform vec3 uMoonD;
 ${GLSL_NOISE}
 uniform mat4 uTM;
 uniform float uWy;
@@ -225,7 +226,7 @@ tb+=uMouth[i].w*exp(-dot(d,d)/(uMouth[i].z*uMouth[i].z));
 const W_FS_REFLECT = `// ── 反射：空の色・太陽のきらめき・月の照り返し ──
 vec3 R=reflect(-V,N);
 float rs=max(dot(R,uSun),0.);
-float mr=max(dot(R,normalize(vec3(-uSun.x,max(-uSun.y*.9+.02,.02),-uSun.z))),0.);
+float mr=max(dot(R,uMoonD),0.)*step(.0,uMoonD.y);/* 月の映り込み（月が地平より上のときだけ） */
 float msp=(.25+.75*(1.-abs(uMp2-.5)*2.))*(pow(mr,300.)*1.4+pow(mr,40.)*.12*step(.75,fract(sin(dot(floor(vP0.xz*4.),vec2(4.1,7.3))+uT2*1.5)*99.)))*smoothstep(.0,-.15,uSun.y);
 float gh=fract(sin(dot(floor(vP0.xz*6.),vec2(4.1,7.3)))*99.);
 float glit=step(.72,gh)*smoothstep(.45,.1,length(fract(vP0.xz*6.)-.5))*pow(.5+.5*sin(uT2*(2.+gh*3.)+gh*40.),4.)*pow(rs,14.)*5.5*smoothstep(900.,10.,dc)+step(.9,fract(sin(dot(floor(vP0.xz*1.5),vec2(7.7,3.1)))*91.))*pow(.5+.5*sin(uT2*3.+gh*20.),6.)*pow(rs,40.)*3.*smoothstep(2500.,200.,dc);

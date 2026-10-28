@@ -20,7 +20,7 @@
 - 作る：`KX`、`KY`、`LAT0`、`LON0`、`ll`
 
 ## 04-clock.js
-- 作る：`DAY`、`EPOCH`、`MO`、`PH`、`clock`
+- 作る：`DAY`、`EPOCH`、`LAT_R`、`MO`、`PH`、`astro`、`clock`
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`Q`
@@ -512,7 +512,7 @@
   - 01-settings.js：`LAKE`、`S`
   - 02-season.js：`LOOK`、`SEASON`
   - 03-coords.js：`ll`
-  - 04-clock.js：`DAY`
+  - 04-clock.js：`DAY`、`astro`
   - 08-weather.js：`LEVEL`、`WXQ`
   - 09-wind.js：`flow`
   - 12-renderer.js：`camera`、`renderer`、`scene`

@@ -22,6 +22,7 @@ const skyU = {
   uVenus: { value: 0 },
   uHzS: { value: 0 },
   uMw: { value: 1 },
+  uMoonD: { value: new THREE.Vector3(0, 1, 0) },
   uVeil: { value: 0 },
   uWin: { value: 0 },
   uCity: { value: new THREE.Vector3(0, 0, 1) },
@@ -29,7 +30,7 @@ const skyU = {
 /* 空の描画（フラグメント）：処理の順に区切った部品。一つの main の中で上から順につながる。
    前の部品で作った値（y, sd, cp, cl, nt など）を後の部品が使うので、順番は入れ替えない。 */
 const SKY_FS_HEAD = `uniform vec3 uTop,uHor,uSunD,uSunC2;
-uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;uniform float uMw;uniform float uVeil,uWin;uniform vec3 uCity;
+uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;uniform float uMw;uniform vec3 uMoonD;uniform float uVeil,uWin;uniform vec3 uCity;
 uniform vec3 uLd;
 varying vec3 vD;
 ${GLSL_NOISE}
@@ -41,7 +42,7 @@ float sd=max(dot(vD,uSunD),0.);
 float md=max(dot(vD,-uSunD),0.);
 `;
 // 月：満ち欠け・低い月の色・月のかさ
-const SKY_FS_MOON = `{vec3 md0=normalize(vec3(-uSunD.x,max(-uSunD.y*.9+.02,.02),-uSunD.z));float mlow=1.-smoothstep(.02,.22,md0.y);
+const SKY_FS_MOON = `{vec3 md0=uMoonD;/* 月の向き（天文の計算） */float mlow=1.-smoothstep(.02,.22,md0.y);
 vec3 sx=normalize(cross(md0,vec3(0.,1.,0.)));
 float a0=dot(vD,md0);
 float mr0=mix(.99955,.9993,mlow),disc=smoothstep(mr0,mr0+.00013,a0);
