@@ -1,0 +1,6 @@
+{
+  "name": "floating-on-lake-biwa",
+  "private": true,
+  "description": "Floating — 琵琶湖を漂う建築（確認用の道具だけが使う依存）",
+  "devDependencies": { "three": "0.160.0" }
+}
