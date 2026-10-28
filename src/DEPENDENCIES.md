@@ -406,7 +406,24 @@
   - 20-villages-layout.js：`paddies`、`terrainAt`
   - 29-controls.js：`isFar`、`yawT`
 
-## 43-city.js
+## 43-moments.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`
+  - 01-settings.js：`S`
+  - 04-clock.js：`DAY`
+  - 05-lake.js：`outer`
+  - 06-inner-lakes.js：`inLake`
+  - 10-start.js：`rnd`
+  - 12-renderer.js：`QUALITY`、`camera`、`scene`
+  - 14-water.js：`waveH`
+  - 16-terrain.js：`VEX`、`reedPts`
+  - 17-trees.js：`cardForest`
+  - 20-villages-layout.js：`terrainAt`
+  - 29-controls.js：`isFar`
+  - 30-audio.js：`SND`
+
+## 44-city.js
 - 作る：（なし）
 - 使う：
   - 00-head.js：`G`
@@ -418,7 +435,7 @@
   - 16-terrain.js：`VEX`
   - 20-villages-layout.js：`cvTex`、`terrainAt`
 
-## 44-frame-move.js
+## 45-frame-move.js
 - 作る：`moveHouse`
 - 使う：
   - 00-head.js：`G`
@@ -432,7 +449,7 @@
   - 29-controls.js：`joyId`、`kIn`、`keys`、`yaw`
   - 31-ui.js：`restBtn`
 
-## 45-frame-sky-light.js
+## 46-frame-sky-light.js
 - 作る：`updateSkyLight`
 - 使う：
   - 00-head.js：`G`
@@ -445,7 +462,7 @@
   - 13-sky-dome.js：`hemi`、`skyDome`、`skyU`、`sun`
   - 14-water.js：`setWaves`、`water`、`waterU`、`waves`
   - 16-terrain.js：`FOREST_TINT`、`INNER_Y`、`REED_MONTH`、`REED_TEX`、`SNOW`、`innerReeds`、`reedU`、`reeds`、`terrMat`
-  - 18-buildings.js：`CUST`、`LIGHT_COLORS`、`glassMats`、`house`
+  - 18-buildings.js：`BUILDINGS`、`CUST`、`LIGHT_COLORS`、`glassMats`、`house`
   - 19-boats.js：`W_SENSE`、`flash`、`nextFlash`、`portLamps`、`smB`、`smoke`、`smokeGeo`、`updatePrecip`
   - 20-villages-layout.js：`roofM`、`roofSnowU`
   - 22-village-lights-roads.js：`windows`
@@ -454,7 +471,7 @@
   - 27-sky-day.js：`skyAt`
   - 29-controls.js：`isFar`
 
-## 46-frame-float.js
+## 47-frame-float.js
 - 作る：`floatHouse`
 - 使う：
   - 00-head.js：`G`
@@ -467,7 +484,7 @@
   - 18-buildings.js：`BP`、`house`
   - 19-boats.js：`WAKE_N`、`wakeBob`、`wakeI`、`wakeP`
 
-## 47-frame-camera.js
+## 48-frame-camera.js
 - 作る：`updateCamera`
 - 使う：
   - 00-head.js：`G`
@@ -482,7 +499,7 @@
   - 29-controls.js：`dist`、`distT`、`pitch`、`ptrs`、`yaw`、`yawT`
   - 42-ambience.js：`idleLook`
 
-## 48-frame-render.js
+## 49-frame-render.js
 - 作る：`renderFrame`
 - 使う：
   - 00-head.js：`G`
@@ -491,7 +508,7 @@
   - 13-sky-dome.js：`skyDome`
   - 14-water.js：`water`、`waterU`
 
-## 49-frame.js
+## 50-frame.js
 - 作る：`frame`
 - 使う：
   - 00-head.js：`G`
@@ -511,15 +528,15 @@
   - 33-resize.js：`resize`
   - 34-frame-state.js：`fpsN`、`fpsT`、`last`、`trailT`
   - 36-fireworks.js：`FW`
-  - 44-frame-move.js：`moveHouse`
-  - 45-frame-sky-light.js：`updateSkyLight`
-  - 46-frame-float.js：`floatHouse`
-  - 47-frame-camera.js：`updateCamera`
-  - 48-frame-render.js：`renderFrame`
+  - 45-frame-move.js：`moveHouse`
+  - 46-frame-sky-light.js：`updateSkyLight`
+  - 47-frame-float.js：`floatHouse`
+  - 48-frame-camera.js：`updateCamera`
+  - 49-frame-render.js：`renderFrame`
 
 ## 共有の値（window.__xxx）
 
 - `__floating`：00-head.js
-- `__scene`：49-frame.js
-- `__set`：49-frame.js
-- `__setH`：49-frame.js
+- `__scene`：50-frame.js
+- `__set`：50-frame.js
+- `__setH`：50-frame.js

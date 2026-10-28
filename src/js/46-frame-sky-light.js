@@ -70,6 +70,8 @@ function updateSkyLight(dt, t, c, W) {
       G.lt = (G.lt || 0) * 0.85;
       skyU.uLt.value = G.lt * (Math.random() < 0.7 ? 1 : 0.3);
     }
+    skyU.uShaft.value = (c.month >= 5 && c.month <= 7 && c.phase > 0.55 && c.phase < 0.72 ? 1 : 0) * Math.min(1, skyU.uCu.value * 1.4) * (wxNow.rain > 0.2 ? 1.4 : 0.6);
+    waterU.uGap.value = wxNow.gray > 0.45 && wxNow.rain < 0.3 ? Math.min(1, day * 3) * wxNow.gray : 0;
     skyU.uStar.value = SEASON.stars[c.month] * (1 - wxNow.gray * 0.8);
     skyU.uHzS.value = SEASON.springHaze[c.month] * Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3.5);
     waterU.uLowSun.value = (c.month >= 8 && c.month <= 11 ? 1 : 0.4) * Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3) * (day > 0 ? 1 : 0) * (1 - wxNow.gray);
@@ -206,10 +208,13 @@ function updateSkyLight(dt, t, c, W) {
     house.halo.visible = night || day < 0.12;
     house.halo.material.color.set(LIGHT_COLORS[CUST.light]);
     house.halo.material.opacity = CUST.bright;
+    house.halo.scale.setScalar((CUST.b !== undefined && BUILDINGS[CUST.b].lamp ? 3.2 : 7) * (1 + (wxNow.white || 0) * 3.5));
   }
   for (const g of glassMats)
     g.emissive.set(night ? LIGHT_COLORS[CUST.light] : 0).multiplyScalar(night ? CUST.bright * 0.8 : 0);
   portLamps.visible = night || day < 0.12;
+  windows.material.size = 3.4 * (1 + (wxNow.white || 0) * 1.6);
+  if (G.street) G.street.material.size = 2.4 * (1 + (wxNow.white || 0) * 1.8);
   if (G.torii) {
     G.torii.L.intensity = day < 0.08 ? 60 : 0;
     G.torii.red.emissive.set(day < 0.08 ? 0x3a0e06 : 0);

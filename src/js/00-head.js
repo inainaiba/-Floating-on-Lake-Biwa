@@ -2,6 +2,19 @@ import * as THREE from "three";
 
 // 部品をまたいで使う共有の値はここに集める（開発ツールからは window.__floating で見える）
 const G = (window.__floating = {});
+// 点を丸く柔らかく描くための小さな画像（蛍・花びら・落ち葉など）
+G.dotTex = (() => {
+  const c = document.createElement("canvas");
+  c.width = c.height = 32;
+  const g = c.getContext("2d"),
+    gr = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+  gr.addColorStop(0, "rgba(255,255,255,1)");
+  gr.addColorStop(0.45, "rgba(255,255,255,.8)");
+  gr.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = gr;
+  g.fillRect(0, 0, 32, 32);
+  return new THREE.CanvasTexture(c);
+})();
 
 var LEAFTX;
 function mkLeaf() {

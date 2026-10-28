@@ -15,6 +15,7 @@ const skyU = {
   uLd: { value: new THREE.Vector3(1, 0, 0) },
   uRb: { value: 0 },
   uStar: { value: 1 },
+  uShaft: { value: 0 },
   uHzS: { value: 0 },
 };
 const skyDome = new THREE.Mesh(
@@ -26,7 +27,7 @@ const skyDome = new THREE.Mesh(
     fog: false,
     vertexShader: `varying vec3 vD;void main(){vD=normalize(position);vec4 p=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*p;gl_Position.z=gl_Position.w*.9999;}`,
     fragmentShader: `uniform vec3 uTop,uHor,uSunD,uSunC2;
-uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS;
+uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft;
 uniform vec3 uLd;
 varying vec3 vD;
  float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);
@@ -46,16 +47,16 @@ a*=.5;
 vec3 c=mix(uHor,uTop,pow(y,.45));
 float sd=max(dot(vD,uSunD),0.);
 float md=max(dot(vD,-uSunD),0.);
-{vec3 md0=normalize(-uSunD*vec3(1.,-1.,1.)+vec3(0.,.25,0.));
+{vec3 md0=normalize(vec3(-uSunD.x,max(-uSunD.y*.9+.02,.02),-uSunD.z));float mlow=1.-smoothstep(.02,.22,md0.y);
 vec3 sx=normalize(cross(md0,vec3(0.,1.,0.)));
 float a0=dot(vD,md0);
-float disc=smoothstep(.99955,.99968,a0);
+float mr0=mix(.99955,.9993,mlow),disc=smoothstep(mr0,mr0+.00013,a0);
 float ph=uMp*6.2832;
 vec3 sh=normalize(md0+sx*.026*cos(ph)*-1.);
-float occ=smoothstep(.99955,.99968,dot(vD,sh));
+float occ=smoothstep(mr0,mr0+.00013,dot(vD,sh));
 float lit=uMp<.5?disc*(1.-occ*step(.03,abs(uMp-.5))):disc*(1.-occ*step(.03,abs(uMp-.5)));
 float fullness=1.-abs(uMp-.5)*2.;
-c+=vec3(.95,.95,.88)*max(lit,disc*.06)*smoothstep(.05,-.1,uSunD.y);
+c+=mix(vec3(.95,.95,.88),vec3(1.,.66,.4),mlow*.85)*max(lit,disc*.06)*smoothstep(.05,-.1,uSunD.y);c+=vec3(1.,.6,.35)*pow(max(a0,0.),900.)*.35*mlow*smoothstep(.05,-.1,uSunD.y);
 c+=vec3(.5,.55,.7)*pow(max(a0,0.),300.)*.25*fullness*smoothstep(.05,-.1,uSunD.y);
 }c+=uSunC2*(mix(pow(sd,1500.)*3.5,pow(sd,380.)*1.6,uHzS)+vec3(.35,-.15,-.3)*pow(sd,380.)*uHzS*.8+pow(sd,40.)*.2+pow(sd,6.)*.08+pow(sd,14.)*.22*uCloud);
 c+=vec3(1.,.55,.3)*pow(max(dot(normalize(vec3(vD.x,0.,vD.z)),normalize(vec3(uSunD.x,0.,uSunD.z))),0.),6.)*smoothstep(.35,0.,y)*smoothstep(.35,0.,abs(uSunD.y))*.6;
@@ -96,6 +97,7 @@ ly=mix(ly,vec3(.72,.66,.9),smoothstep(.06,.22,y));
 c=mix(c,ly*mix(1.,.8,smoothstep(.0,.3,y)),lw*.45*smoothstep(.45,.0,y));
 }
  c+=vec3(.1,.1,.09)*exp(-y*16.)*smoothstep(-.1,.2,uSunD.y)*(1.-uDark);
+ if(uShaft>.01){float az=atan(vD.z,vD.x);float sh_=smoothstep(.55,.85,fbm(vec2(az*2.2,uT*.002)))*smoothstep(.62,.9,fbm(vec2(az*9.,vD.y*3.+uT*.01)))*smoothstep(.0,.03,vD.y)*smoothstep(.2,.05,vD.y);c=mix(c,vec3(.48,.52,.58)*(1.-uDark*.5),sh_*uShaft*.7);}
  float nt=smoothstep(.05,-.15,uSunD.y);
  vec2 sp_=vD.xz/(vD.y+.25);
 float h1=fract(sin(dot(floor(sp_*160.),vec2(12.9,78.2)))*43758.5),h2=fract(sin(dot(floor(sp_*70.),vec2(39.3,11.1)))*24634.6);

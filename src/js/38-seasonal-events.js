@@ -92,6 +92,8 @@ G.EV = (() => {
   fgeo.setAttribute("position", new THREE.BufferAttribute(fpos, 3));
   const fmat = new THREE.PointsMaterial({
     color: 0xd8ff8a,
+    map: G.dotTex,
+    alphaTest: 0.02,
     size: 1.3,
     transparent: true,
     blending: THREE.AdditiveBlending,
