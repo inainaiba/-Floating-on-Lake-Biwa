@@ -89,8 +89,9 @@ body.far #rest{display:none}
 // ==== 00-head.js ====
 import * as THREE from "three";
 
-// 部品をまたいで使う共有の値はここに集める（開発ツールからは window.__floating で見える）
-const G = (window.__floating = {});
+// 部品をまたいで使う共有の値はここに集める。
+// URL に ?debug を付けたときだけ、確認用に window.__floating として外から見えるようにする（公開時は閉じておく）
+const G = /[?&]debug(?:[=&]|$)/.test(location.search) ? (window.__floating = {}) : {};
 // 点を丸く柔らかく描くための小さな画像（蛍・花びら・落ち葉など）
 G.dotTex = (() => {
   const c = document.createElement("canvas");
@@ -3661,8 +3662,6 @@ function groundH(x, y) {
   if (ih !== null) return ih;
   return inLake(x, y) ? 0 : landY(x, y);
 }
-G.groundH = groundH;
-G.S = S;
 function terrainAt(x, y) {
   const i = (x - tx0) / tdx,
     j = (y - ty0) / tdy,
@@ -8549,7 +8548,6 @@ G.life = (() => {
     // 水辺の林の季節：冬は葉を落として枝の灰色、春は芽吹きの淡い緑、秋は黄色
     wet.cm.color.setHex([0x8a8478, 0x8a8478, 0xc8d8a0, 0xe0f0c0, 0xffffff, 0xffffff, 0xffffff, 0xffffff, 0xf4f0c0, 0xf0d890, 0xd8b880, 0x9a9080][c.month]);
   }
-  G.camera = camera;
   return { update, bam, susuki };
 })();
 
@@ -8901,7 +8899,6 @@ G.shore = (() => {
     });
     eri.castShadow = false;
     scene.add(eri);
-    G.eriMesh = eri;
     G.eri = P; // 全体地図に点で描く
   }
   function update(dt, t, c, day, wxNow) {
@@ -9726,9 +9723,13 @@ c+=gr*(.022-.01*l);
       .set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1)
       .multiply(rc.projectionMatrix)
       .multiply(rc.matrixWorldInverse);
-    const vis = [water.visible, skyDome.visible];
+    // 映り込みを描く間は、水面の材質を使うもの（湖・内湖）を隠す。
+    // 隠さないと、描いている最中の映り込みの画像を自分で読むことになる（WebGL のフィードバックループ）
+    const vis = [water.visible, skyDome.visible],
+      inner = (G.innerMeshes || []).map((m) => m.visible);
     water.visible = false;
     skyDome.visible = false;
+    for (const m of G.innerMeshes || []) m.visible = false;
     const cc = renderer.getClearColor(new THREE.Color()),
       ca = renderer.getClearAlpha();
     renderer.setClearColor(0, 0);
@@ -9741,6 +9742,7 @@ c+=gr*(.022-.01*l);
     renderer.setClearColor(cc, ca);
     water.visible = vis[0];
     skyDome.visible = vis[1];
+    (G.innerMeshes || []).forEach((m, i) => (m.visible = inner[i]));
     waterU.uRefl.value = G.rf.texture;
     waterU.uWy.value = wy;
     waterU.uRes.value.set(w, h);
@@ -9831,6 +9833,10 @@ function frame(now) {
 }
 // 確認用：URLに ?debug を付けたときだけ、撮影スクリプトから視点を動かせるようにする
 if (Q.has("debug")) {
+  // 撮影スクリプトが中を調べるための口（?debug のときだけ）
+  G.camera = camera;
+  G.groundH = groundH;
+  G.S = S;
   window.__setH = (k, yw, pt, ds) => {
     const h = houses[k];
     B.x = h.x; B.y = h.y; camX = h.x * S; camZ = h.y * S;

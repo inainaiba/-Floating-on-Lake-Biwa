@@ -1,7 +1,8 @@
 import * as THREE from "three";
 
-// 部品をまたいで使う共有の値はここに集める（開発ツールからは window.__floating で見える）
-const G = (window.__floating = {});
+// 部品をまたいで使う共有の値はここに集める。
+// URL に ?debug を付けたときだけ、確認用に window.__floating として外から見えるようにする（公開時は閉じておく）
+const G = /[?&]debug(?:[=&]|$)/.test(location.search) ? (window.__floating = {}) : {};
 // 点を丸く柔らかく描くための小さな画像（蛍・花びら・落ち葉など）
 G.dotTex = (() => {
   const c = document.createElement("canvas");

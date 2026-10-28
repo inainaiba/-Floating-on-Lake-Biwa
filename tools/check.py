@@ -51,7 +51,7 @@ SCENES = [
     ('冬のヨシ原',         'month=0&phase=0.45&wx=0', [135.9295, 35.124, 320, 0, 1.57, 0.25, 60], 0),
     ('夜の庵の灯り',       'month=5&phase=0.9&wx=0', [136.03, 35.22, 0, 0, 0.7, 0.12, 60], 8),
 ]
-QUICK = [0, 1, 2, 3]
+QUICK = [0, 1, 2, 3, 16]  # 代表4場面と全体地図
 
 
 def serve():
@@ -64,6 +64,15 @@ def serve():
     return s
 
 
+def gl_error(m, errs):
+    """ブラウザのコンソールから、シェーダーや WebGL の誤りを拾う（画面が黒くなるだけでページのエラーにならないため）。"""
+    t = m.text
+    if m.type == 'error' or 'Shader Error' in t or 'WebGL: INVALID' in t or 'GL_INVALID' in t or 'WebGLProgram' in t:
+        if 'favicon' in t or 'Failed to load resource' in t:
+            return
+        errs.append('コンソール：' + t.split('\n')[0][:200])
+
+
 def shoot(idx):
     OUT.mkdir(parents=True, exist_ok=True)
     srv = serve()
@@ -74,6 +83,7 @@ def shoot(idx):
         b = p.chromium.launch(args=['--use-gl=swiftshader'])
         pg = b.new_page(viewport={'width': 640, 'height': 400})
         pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.on('console', lambda m: gl_error(m, errs))
         if three.exists():
             pg.route('**/three.module.js', lambda r: r.fulfill(path=str(three)))
         loaded = False
@@ -122,6 +132,7 @@ def start_check(n=10):
         b = p.chromium.launch(args=['--use-gl=swiftshader'])
         pg = b.new_page(viewport={'width': 320, 'height': 200})
         pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.on('console', lambda m: gl_error(m, errs))
         if three.exists():
             pg.route('**/three.module.js', lambda r: r.fulfill(path=str(three)))
         for k in range(n):
@@ -192,8 +203,8 @@ def main():
     for line in sheet(idx):
         print(line)
     print('比較画像：check/sheet.png')
-    if '--quick' not in a:
-        bad, e2 = start_check()
+    if True:
+        bad, e2 = start_check(3 if '--quick' in a else 10)
         errs += e2 + [f'開始地点が陸や島に近すぎ：{r}' for r in bad]
     if errs:
         print('ページのエラー：')

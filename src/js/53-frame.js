@@ -56,6 +56,10 @@ function frame(now) {
 }
 // 確認用：URLに ?debug を付けたときだけ、撮影スクリプトから視点を動かせるようにする
 if (Q.has("debug")) {
+  // 撮影スクリプトが中を調べるための口（?debug のときだけ）
+  G.camera = camera;
+  G.groundH = groundH;
+  G.S = S;
   window.__setH = (k, yw, pt, ds) => {
     const h = houses[k];
     B.x = h.x; B.y = h.y; camX = h.x * S; camZ = h.y * S;

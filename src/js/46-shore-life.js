@@ -57,7 +57,6 @@ G.shore = (() => {
     });
     eri.castShadow = false;
     scene.add(eri);
-    G.eriMesh = eri;
     G.eri = P; // 全体地図に点で描く
   }
   function update(dt, t, c, day, wxNow) {

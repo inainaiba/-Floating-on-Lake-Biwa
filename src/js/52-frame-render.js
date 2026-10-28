@@ -111,9 +111,13 @@ c+=gr*(.022-.01*l);
       .set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1)
       .multiply(rc.projectionMatrix)
       .multiply(rc.matrixWorldInverse);
-    const vis = [water.visible, skyDome.visible];
+    // 映り込みを描く間は、水面の材質を使うもの（湖・内湖）を隠す。
+    // 隠さないと、描いている最中の映り込みの画像を自分で読むことになる（WebGL のフィードバックループ）
+    const vis = [water.visible, skyDome.visible],
+      inner = (G.innerMeshes || []).map((m) => m.visible);
     water.visible = false;
     skyDome.visible = false;
+    for (const m of G.innerMeshes || []) m.visible = false;
     const cc = renderer.getClearColor(new THREE.Color()),
       ca = renderer.getClearAlpha();
     renderer.setClearColor(0, 0);
@@ -126,6 +130,7 @@ c+=gr*(.022-.01*l);
     renderer.setClearColor(cc, ca);
     water.visible = vis[0];
     skyDome.visible = vis[1];
+    (G.innerMeshes || []).forEach((m, i) => (m.visible = inner[i]));
     waterU.uRefl.value = G.rf.texture;
     waterU.uWy.value = wy;
     waterU.uRes.value.set(w, h);

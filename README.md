@@ -37,10 +37,10 @@
 
 1. `src/` や `data/` を直す（季節の値は `src/js/03-season.js`、ブイは `data/buoys.xlsx`）
 2. `python3 tools/release.py "変更の説明"`
-   - 組み立て（`build.py`）→ 代表4場面の撮影と比較（`tools/check.py --quick`）→ GitHubへ記録
+   - 組み立て（`build.py`）→ 代表4場面と全体地図の撮影・比較、開始地点の検査3回（`tools/check.py --quick`）→ GitHubへ記録
    - ページのエラーが出たら記録せずに止まる。比較画像は `check/sheet.png`
    - 数分で GitHub Pages に反映される
-3. 見た目を意図して変えたときは、`python3 tools/check.py` で全24場面を撮り、あわせて開始地点を10回試して陸や島に埋まらないかを調べる。問題なければ `python3 tools/check.py --accept` で基準を更新して記録する
+3. 見た目を意図して変えたときは、`python3 tools/check.py` で全24場面を撮り、あわせて開始地点を10回試して陸や島に埋まらないかを調べる（シェーダーや WebGL の誤りもブラウザのコンソールから拾い、あれば失敗にする）。問題なければ `python3 tools/check.py --accept` で基準を更新して記録する
 
 準備（初回だけ）：`npm install`（確認用に three.js を手元に置く）、Python の `playwright`・`Pillow`・`openpyxl`
 

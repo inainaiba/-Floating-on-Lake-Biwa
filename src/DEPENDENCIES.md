@@ -8,6 +8,7 @@
 - 作る：`G`、`GLSL_NOISE`、`LEAFTX`、`NEAR_TREE_MAT`、`mkLeaf`
 - 使う：
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
+  - 31-ui.js（後ろの部品・要注意）：`$`
 
 ## 01-settings.js
 - 作る：`LAKE`、`Q`、`RM`、`S`、`SPEED`
@@ -558,10 +559,10 @@
   - 08-weather.js：`WXQ`
   - 09-wind.js：`wind`
   - 11-state.js：`B`、`STATE`、`camX`、`camZ`
-  - 12-renderer.js：`QUALITY`、`resScale`
+  - 12-renderer.js：`QUALITY`、`camera`、`resScale`
   - 18-buildings.js：`CUST`、`buildHouse`、`reedMask`
   - 19-boats.js：`boatState`、`updateBoats`
-  - 20-villages-layout.js：`houses`
+  - 20-villages-layout.js：`groundH`、`houses`
   - 28-map.js：`drawFar`
   - 29-controls.js：`dist`、`distT`、`isFar`、`pitch`、`yaw`、`yawT`
   - 30-audio.js：`audioUpdate`
@@ -587,19 +588,18 @@
 
 - `G.EV`：38-seasonal-events.js
 - `G.FW`：36-fireworks.js
-- `G.S`：20-villages-layout.js
+- `G.S`：53-frame.js
 - `G.VIS`：11-state.js
 - `G.W`：49-frame-sky-light.js
 - `G.afterRain`：49-frame-sky-light.js
 - `G.ambience`：42-ambience.js
 - `G.boats`：45-boats.js
 - `G.buoys`：37-buoys.js
-- `G.camera`：44-life.js
+- `G.camera`：53-frame.js
 - `G.cards`：17-trees.js
 - `G.city`：47-city.js
 - `G.dotTex`：00-head.js
 - `G.eri`：46-shore-life.js
-- `G.eriMesh`：46-shore-life.js
 - `G.exp`：12-renderer.js
 - `G.forest`：17-trees.js
 - `G.gc`：52-frame-render.js
@@ -607,7 +607,7 @@
 - `G.gm`：50-frame-float.js
 - `G.gq`：52-frame-render.js
 - `G.grass`：21-villages-walls-roofs.js
-- `G.groundH`：20-villages-layout.js
+- `G.groundH`：53-frame.js
 - `G.gs`：52-frame-render.js
 - `G.harb`：25-harbors.js
 - `G.innerMeshes`：16-terrain.js

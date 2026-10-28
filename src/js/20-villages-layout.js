@@ -39,8 +39,6 @@ function groundH(x, y) {
   if (ih !== null) return ih;
   return inLake(x, y) ? 0 : landY(x, y);
 }
-G.groundH = groundH;
-G.S = S;
 function terrainAt(x, y) {
   const i = (x - tx0) / tdx,
     j = (y - ty0) / tdy,
