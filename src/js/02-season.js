@@ -45,3 +45,29 @@ const PALETTE = {
 };
 // GLSL の vec3(...) 表記にする
 const v3 = (c) => `vec3(${c.map((x) => (Number.isInteger(x) ? x + "." : String(x))).join(",")})`;
+const glf = (x) => (Number.isInteger(x) ? x + "." : String(x)); // シェーダーに数値を埋め込む
+// 景観の調整値：見た目の強さや距離はここで調整する（シェーダーと毎フレームの処理の両方から使う）
+const LOOK = {
+  cloudShadowLand: 0.55, // 山肌に落ちる雲の影の濃さ
+  sunlitBoost: 0.08, // 雲の影の外（日なた）を明るくする量
+  cloudShadowWater: 0.36, // 湖面に落ちる雲の影の濃さ
+  hazeNear: 500, // 山のかすみが始まる距離（作品内の単位）
+  hazeFar: 6200, // かすみが最大になる距離
+  hazeAmount: 0.55, // かすみの最大の濃さ
+  farDarkFrom: 2500, // 遠い山が暗い青灰に沈み始める距離
+  farDarkTo: 7500,
+  waterCalmGrade: 0.2, // 湖の色の鮮やかさを鎮める量
+  cloudReflect: [0.4, 0.85], // 雲の映り込みの強さ（波のある日、凪の日）
+  longShadowMinSun: 0.07, // 建物の影の長さの上限（日の高さの下限）
+  glowNight: 1.9, // 夜、建物の内側の灯りの明るさ
+  glassNight: 0.8, // 夜、ガラス・幕の明るさ
+  haloOpacity: 0.45, // 灯りのにじみの濃さ
+  flicker: [0.03, 0.02], // 灯りの揺らぎ（ゆっくり、速い）
+  months: {
+    petals: 3, // 水に浮かぶ花びら（4月）
+    leaves: 10, // 水に浮かぶ落ち葉（11月）
+    fireflies: 5, // 蛍（6月）
+    susuki: [8, 10], // ススキ（9〜11月）
+    shigure: [10, 11], // 時雨（11〜12月）
+  },
+};

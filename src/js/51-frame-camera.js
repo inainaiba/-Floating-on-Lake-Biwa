@@ -37,11 +37,8 @@ function updateCamera(dt, t, hx, hz) {
   const lookUp = STATE === "lake" && pitch < 0.04 ? Math.tan(Math.min(1.2, 0.04 - pitch)) * hd : 0;
   camera.position.set(camX + Math.sin(yaw) * hd, ch, camZ + Math.cos(yaw) * hd);
   {
-    const qx = camera.position.x / S,
-      qz = camera.position.z / S,
-      ih = typeof isleH === "function" ? isleH(qx, qz) : null;
     // 陸や島の上に回り込んだときは、地面より上に保つ
-    const gh = Math.max(inLake(qx, qz) ? 0 : terrainAt(qx, qz) * S * VEX, ih === null ? 0 : ih) + 1.5;
+    const gh = Math.max(0, groundH(camera.position.x / S, camera.position.z / S)) + 1.5;
     if (camera.position.y < gh) camera.position.y = gh;
   }
   camera.lookAt(camX, (STATE === "lake" ? 2 : house.h * 0.45) + lookUp, camZ);

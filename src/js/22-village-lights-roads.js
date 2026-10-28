@@ -93,7 +93,7 @@ scene.add(windows);
     "position",
     new THREE.Float32BufferAttribute(
       pos.flatMap((v, i) =>
-        i % 2 ? [] : [pos[i] * S, 0.66 + terrainAt(pos[i], pos[i + 1]) * S * VEX, pos[i + 1] * S],
+        i % 2 ? [] : [pos[i] * S, landY(pos[i], pos[i + 1]) + 0.06, pos[i + 1] * S],
       ),
       3,
     ),

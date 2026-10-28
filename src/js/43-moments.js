@@ -17,7 +17,7 @@ G.moments = (() => {
       x = x1 - (dx / L) * 18,
       y = y1 - (dy / L) * 18;
     if (inLake(x, y) || lone.some((p) => Math.hypot(p[0] - x, p[1] - y) < 2500)) continue;
-    lone.push([x, y, 0.6 + terrainAt(x, y) * S * VEX, 1.5 + R() * 0.5, R()]);
+    lone.push([x, y, landY(x, y), 1.5 + R() * 0.5, R()]);
   }
   if (lone.length) cardForest("broad", lone, 13, 12, 10, 6000, QUALITY.treeShadow);
 
@@ -82,7 +82,7 @@ G.moments = (() => {
         const xx = x + 40 + k * 5,
           yy = y + (R() - 0.5) * 6;
         Qq.setFromEuler(E.set((R() - 0.5) * 0.25, R() * 6, (R() - 0.5) * 0.25));
-        M.compose(V.set(xx * S, 0.6 + terrainAt(xx, yy) * S * VEX, yy * S), Qq, Sc.set(1, 0.9 + R() * 0.3, 1));
+        M.compose(V.set(xx * S, landY(xx, yy), yy * S), Qq, Sc.set(1, 0.9 + R() * 0.3, 1));
         bI.setMatrixAt(i * 3 + k, M);
       }
     });
@@ -124,7 +124,7 @@ G.moments = (() => {
   }
 
   function update(dt, t, c, W) {
-    const kind = c.month === 3 ? 3 : c.month === 10 ? 10 : -1;
+    const kind = c.month === LOOK.months.petals ? 3 : c.month === LOOK.months.leaves ? 10 : -1;
     // 雪の日は出さない
     pts.visible = kind >= 0 && !isFar && !(G.wxNow && G.wxNow.snow > 0.05);
     if (kind >= 0) {

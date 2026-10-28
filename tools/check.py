@@ -4,6 +4,7 @@
   python3 tools/check.py            全場面（18）を撮る
   python3 tools/check.py --quick    代表の4場面だけ撮る
   python3 tools/check.py --accept   今回の撮影を新しい基準にする
+  python3 tools/check.py --start    開始地点の検査だけ（10回開始して、陸や島に埋まらないか）
 
 結果
   check/now/NN.png        今回の撮影
@@ -42,6 +43,13 @@ SCENES = [
     ('虹（雨上がりの午後）', 'month=6&phase=0.64&wx=0', [136.03, 35.22, 0, 0, 0.7, -0.25, 80], 0, {'t': 1001416}),
     ('全体地図',           'month=6&phase=0.45&wx=0', [136.05537, 35.4446699, 120, 0, 1.57, 0.2, 60], 0, {'act': 'map'}),
     ('建物の選択画面',     'month=6&phase=0.45&wx=0', [136.03, 35.22, 0, 0, 0.7, 0.2, 60], 0, {'act': 'select'}),
+    # 湖岸の景物と遠景
+    ('沖島の集落',         'month=4&phase=0.45&wx=0', [136.06, 35.196, 0, 0, 0.0, 0.05, 70], 0),
+    ('えりの夕方',         'month=7&phase=0.735&wx=0', [135.9388, 35.089, 0, 0, 3.14, 0.05, 60], 0),
+    ('近江舞子の松',       'month=5&phase=0.42&wx=0', [135.975, 35.255, 0, 0, 1.2, 0.1, 70], 0),
+    ('遠景の山影',         'month=4&phase=0.45&wx=0', [136.03, 35.22, 0, 0, 2.4, 0.0, 80], 0),
+    ('冬のヨシ原',         'month=0&phase=0.45&wx=0', [135.9295, 35.124, 320, 0, 1.57, 0.25, 60], 0),
+    ('夜の庵の灯り',       'month=5&phase=0.9&wx=0', [136.03, 35.22, 0, 0, 0.7, 0.12, 60], 8),
 ]
 QUICK = [0, 1, 2, 3]
 
@@ -104,6 +112,39 @@ def shoot(idx):
     return errs
 
 
+def start_check(n=10):
+    """開始を n 回くり返し、カメラが陸や島に埋まっていないか・建物が湖の上にあるかを調べる。"""
+    srv = serve()
+    port = srv.server_address[1]
+    three = R / 'node_modules/three/build/three.module.js'
+    bad, errs = [], []
+    with sync_playwright() as p:
+        b = p.chromium.launch(args=['--use-gl=swiftshader'])
+        pg = b.new_page(viewport={'width': 320, 'height': 200})
+        pg.on('pageerror', lambda e: errs.append(str(e)))
+        if three.exists():
+            pg.route('**/three.module.js', lambda r: r.fulfill(path=str(three)))
+        for k in range(n):
+            pg.goto(f'http://127.0.0.1:{port}/docs/index.html?debug')
+            pg.evaluate("()=>{try{localStorage.setItem('floating.hint2','1')}catch(e){}}")
+            pg.wait_for_timeout(700)
+            pg.evaluate("()=>document.getElementById('title').click()")
+            pg.wait_for_timeout(900)
+            pg.evaluate("()=>document.getElementById('go').click()")
+            pg.wait_for_timeout(1500)
+            r = pg.evaluate("""()=>{const G=__floating,c=G.camera.position,S=G.S;
+              let worst=1e9;for(let a=0;a<8;a++){const x=c.x+Math.cos(a*.785)*12,z=c.z+Math.sin(a*.785)*12;worst=Math.min(worst,c.y-G.groundH(x/S,z/S));}
+              return {clear:Math.min(worst,c.y-G.groundH(c.x/S,c.z/S)),x:c.x/S,y:c.z/S}}""")
+            if r['clear'] < 1:
+                bad.append(r)
+        b.close()
+    srv.shutdown()
+    print(f'開始地点の検査：{n} 回中 {len(bad)} 回が陸や島に近すぎ')
+    for r in bad:
+        print('   ', r)
+    return bad, errs
+
+
 def sheet(idx):
     idx = [i for i in idx if (OUT / f'{i:02d}.png').exists()]
     W, H = 400, 250
@@ -132,6 +173,11 @@ def sheet(idx):
 
 def main():
     a = sys.argv[1:]
+    if '--start' in a:
+        import subprocess
+        subprocess.run([sys.executable, str(R / 'build.py')], cwd=R, check=True)
+        bad, errs = start_check()
+        sys.exit(1 if bad or errs else 0)
     if '--accept' in a:
         BASE.mkdir(parents=True, exist_ok=True)
         for f in OUT.glob('*.png'):
@@ -146,6 +192,9 @@ def main():
     for line in sheet(idx):
         print(line)
     print('比較画像：check/sheet.png')
+    if '--quick' not in a:
+        bad, e2 = start_check()
+        errs += e2 + [f'開始地点が陸や島に近すぎ：{r}' for r in bad]
     if errs:
         print('ページのエラー：')
         for e in sorted(set(errs)):

@@ -5,7 +5,7 @@
 部品は番号順に1つのモジュールとしてつながる。後ろの部品で作る名前は、前の部品の「読み込み時に動く処理」からは使えない（関数の中や毎フレームの処理からは使える）。
 
 ## 00-head.js
-- 作る：`G`、`LEAFTX`、`NEAR_TREE_MAT`、`mkLeaf`
+- 作る：`G`、`GLSL_NOISE`、`LEAFTX`、`NEAR_TREE_MAT`、`mkLeaf`
 - 使う：
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
@@ -13,7 +13,7 @@
 - 作る：`LAKE`、`Q`、`RM`、`S`、`SPEED`
 
 ## 02-season.js
-- 作る：`PALETTE`、`SEASON`、`v3`
+- 作る：`LOOK`、`PALETTE`、`SEASON`、`glf`、`v3`
 
 ## 03-coords.js
 - 作る：`KX`、`KY`、`LAT0`、`LON0`、`ll`
@@ -83,7 +83,7 @@
   - 12-renderer.js：`QUALITY`、`scene`
 
 ## 14-water.js
-- 作る：`NW`、`depthTex`、`dtex`、`setWaves`、`water`、`waterU`、`waveH`、`waveTop`、`waves`
+- 作る：`NW`、`W_FS_COLOR`、`W_FS_FINISH`、`W_FS_FOAM`、`W_FS_HEAD`、`W_FS_HOUSE`、`W_FS_LIGHT`、`W_FS_MIRROR`、`W_FS_NORMAL`、`W_FS_REFLECT`、`depthTex`、`dtex`、`setWaves`、`water`、`waterU`、`waveH`、`waveTop`、`waves`
 - 使う：
   - 01-settings.js：`RM`、`S`
   - 02-season.js：`PALETTE`
@@ -147,15 +147,16 @@
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
 ## 20-villages-layout.js
-- 作る：`ROOF_COLS`、`VILLAGES`、`breaks`、`cvTex`、`houses`、`isLand`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`terrainAt`、`wallG`、`wallM`、`wallTex`
+- 作る：`ROOF_COLS`、`VILLAGES`、`breaks`、`cvTex`、`groundH`、`houses`、`isLand`、`landY`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`terrainAt`、`wallG`、`wallM`、`wallTex`
 - 使う：
   - 00-head.js：`G`
+  - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inInner`、`inLake`、`maxY`、`minY`
   - 07-depth.js：`depth`、`distShore`
   - 10-start.js：`rnd`
-  - 16-terrain.js：`TH`、`TW`、`tdx`、`tdy`、`terrH`、`tx0`、`ty0`
+  - 16-terrain.js：`TH`、`TW`、`VEX`、`isleH`、`tdx`、`tdy`、`terrH`、`tx0`、`ty0`
   - 18-buildings.js：`buildHouse`
   - 19-boats.js：`PORT`
 
@@ -172,7 +173,7 @@
   - 16-terrain.js：`VEX`
   - 17-trees.js：`cardForest`
   - 18-buildings.js：`inReeds`
-  - 20-villages-layout.js：`ROOF_COLS`、`cvTex`、`houses`、`roads`、`roofGab`、`roofHip`、`roofM`、`terrainAt`、`wallG`
+  - 20-villages-layout.js：`ROOF_COLS`、`cvTex`、`houses`、`landY`、`roads`、`roofGab`、`roofHip`、`roofM`、`wallG`
   - 25-harbors.js（後ろの部品・関数なので可）：`lumpy`
   - 26-forests.js（後ろの部品・関数なので可）：`treeFade`
 
@@ -184,7 +185,7 @@
   - 07-depth.js：`distShore`
   - 12-renderer.js：`scene`
   - 16-terrain.js：`VEX`
-  - 20-villages-layout.js：`houses`、`roads`、`terrainAt`
+  - 20-villages-layout.js：`houses`、`landY`、`roads`
 
 ## 23-paddies.js
 - 作る：`PADDY`、`ghI`、`paddyI`、`paddyM`、`paddySeason`
@@ -192,25 +193,23 @@
   - 01-settings.js：`S`
   - 02-season.js：`SEASON`
   - 12-renderer.js：`scene`
-  - 16-terrain.js：`VEX`
-  - 20-villages-layout.js：`cvTex`、`paddies`、`terrainAt`
+  - 20-villages-layout.js：`cvTex`、`landY`、`paddies`
 
 ## 24-shore-landmarks.js
 - 作る：`brk`、`shoreTrees`、`treeI`、`treeM`、`treeSeason`
 - 使う：
-  - 00-head.js：`G`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`inInner`、`inLake`、`inMain`、`innerPolys`
+  - 06-inner-lakes.js：`inInner`、`inLake`、`innerPolys`
   - 07-depth.js：`depth`、`distShore`
   - 10-start.js：`rnd`
   - 12-renderer.js：`QUALITY`、`scene`
-  - 16-terrain.js：`REED_SITES`、`VEX`
+  - 16-terrain.js：`VEX`
   - 17-trees.js：`cardForest`
   - 18-buildings.js：`inReeds`
   - 19-boats.js：`PORT`
-  - 20-villages-layout.js：`ROOF_COLS`、`breaks`、`cvTex`、`houses`、`roofHip`、`roofM`、`terrainAt`
+  - 20-villages-layout.js：`ROOF_COLS`、`breaks`、`cvTex`、`houses`、`landY`、`roofHip`、`roofM`、`terrainAt`
   - 25-harbors.js（後ろの部品・関数なので可）：`treeGeom`
   - 26-forests.js（後ろの部品・関数なので可）：`treeFade`
 
@@ -249,7 +248,6 @@
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`RECLAIMED`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`
   - 07-depth.js：`CELL`、`GH`、`GW`、`depthG`
-  - 10-start.js：`rnd`
   - 11-state.js：`B`、`VIS`
   - 16-terrain.js：`PK`、`innerReedPts`、`landContours`、`reedPts`
   - 20-villages-layout.js：`houses`
@@ -344,13 +342,13 @@
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
+  - 02-season.js：`LOOK`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inLake`
   - 10-start.js：`rnd`
   - 12-renderer.js：`camera`、`scene`
-  - 14-water.js：`waveH`
-  - 16-terrain.js：`VEX`、`reedPts`
-  - 20-villages-layout.js：`terrainAt`
+  - 16-terrain.js：`reedPts`
+  - 20-villages-layout.js：`landY`
   - 25-harbors.js：`lumpy`
 
 ## 39-kaizu.js
@@ -362,8 +360,7 @@
   - 06-inner-lakes.js：`inLake`
   - 10-start.js：`rnd`
   - 12-renderer.js：`scene`
-  - 16-terrain.js：`VEX`
-  - 20-villages-layout.js：`cvTex`、`terrainAt`
+  - 20-villages-layout.js：`cvTex`、`landY`
 
 ## 40-shore-rocks.js
 - 作る：（なし）
@@ -374,9 +371,9 @@
   - 06-inner-lakes.js：`inLake`
   - 10-start.js：`rnd`
   - 12-renderer.js：`scene`
-  - 16-terrain.js：`VEX`、`vnoise`
+  - 16-terrain.js：`vnoise`
   - 18-buildings.js：`reedMask`
-  - 20-villages-layout.js：`terrainAt`
+  - 20-villages-layout.js：`landY`
 
 ## 41-islands.js
 - 作る：（なし）
@@ -390,6 +387,7 @@
   - 12-renderer.js：`MOBILE`、`QUALITY`、`scene`
   - 16-terrain.js：`ISLES`、`isleH`、`okiZone`
   - 17-trees.js：`cardForest`
+  - 18-buildings.js：`gable`
 
 ## 42-ambience.js
 - 作る：`idleLook`
@@ -402,8 +400,7 @@
   - 11-state.js：`STATE`
   - 12-renderer.js：`QUALITY`、`camera`、`scene`
   - 14-water.js：`waveH`
-  - 16-terrain.js：`VEX`
-  - 20-villages-layout.js：`paddies`、`terrainAt`
+  - 20-villages-layout.js：`landY`、`paddies`
   - 29-controls.js：`isFar`、`yawT`
 
 ## 43-moments.js
@@ -411,15 +408,16 @@
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
+  - 02-season.js：`LOOK`
   - 04-clock.js：`DAY`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inLake`
   - 10-start.js：`rnd`
   - 12-renderer.js：`QUALITY`、`camera`、`scene`
   - 14-water.js：`waveH`
-  - 16-terrain.js：`VEX`、`reedPts`
+  - 16-terrain.js：`reedPts`
   - 17-trees.js：`cardForest`
-  - 20-villages-layout.js：`terrainAt`
+  - 20-villages-layout.js：`landY`
   - 29-controls.js：`isFar`
   - 30-audio.js：`SND`
 
@@ -428,20 +426,44 @@
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
-  - 03-coords.js：`ll`
+  - 02-season.js：`LOOK`
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`inInner`、`inLake`、`inMain`
+  - 06-inner-lakes.js：`inInner`、`inLake`
   - 07-depth.js：`depth`
   - 10-start.js：`rnd`
   - 12-renderer.js：`MOBILE`、`QUALITY`、`camera`、`scene`
-  - 14-water.js：`waterU`、`waveH`
   - 16-terrain.js：`VEX`、`reedPts`
   - 17-trees.js：`cardForest`
-  - 20-villages-layout.js：`cvTex`、`houses`、`paddies`、`terrainAt`
-  - 22-village-lights-roads.js：`winGeo`
+  - 20-villages-layout.js：`cvTex`、`houses`、`landY`、`paddies`、`terrainAt`
   - 29-controls.js：`isFar`
 
-## 45-city.js
+## 45-boats.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`
+  - 01-settings.js：`S`
+  - 03-coords.js：`ll`
+  - 06-inner-lakes.js：`inLake`、`inMain`
+  - 07-depth.js：`depth`
+  - 10-start.js：`rnd`
+  - 11-state.js：`B`
+  - 12-renderer.js：`camera`、`scene`
+  - 14-water.js：`waterU`、`waveH`
+  - 16-terrain.js：`reedPts`
+
+## 46-shore-life.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`
+  - 01-settings.js：`S`
+  - 05-lake.js：`outer`
+  - 06-inner-lakes.js：`inLake`
+  - 07-depth.js：`depth`
+  - 10-start.js：`rnd`
+  - 12-renderer.js：`camera`、`scene`
+  - 22-village-lights-roads.js：`winGeo`
+
+## 47-city.js
 - 作る：（なし）
 - 使う：
   - 00-head.js：`G`
@@ -451,10 +473,9 @@
   - 07-depth.js：`distShore`
   - 10-start.js：`rnd`
   - 12-renderer.js：`scene`
-  - 16-terrain.js：`VEX`
-  - 20-villages-layout.js：`cvTex`、`terrainAt`
+  - 20-villages-layout.js：`cvTex`、`landY`
 
-## 46-frame-move.js
+## 48-frame-move.js
 - 作る：`moveHouse`
 - 使う：
   - 00-head.js：`G`
@@ -468,12 +489,12 @@
   - 29-controls.js：`joyId`、`kIn`、`keys`、`yaw`
   - 31-ui.js：`restBtn`
 
-## 47-frame-sky-light.js
+## 49-frame-sky-light.js
 - 作る：`updateSkyLight`
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`LAKE`、`S`
-  - 02-season.js：`SEASON`
+  - 02-season.js：`LOOK`、`SEASON`
   - 03-coords.js：`ll`
   - 04-clock.js：`DAY`
   - 08-weather.js：`LEVEL`、`WXQ`
@@ -491,7 +512,7 @@
   - 27-sky-day.js：`skyAt`
   - 29-controls.js：`isFar`
 
-## 48-frame-float.js
+## 50-frame-float.js
 - 作る：`floatHouse`
 - 使う：
   - 00-head.js：`G`
@@ -504,22 +525,20 @@
   - 18-buildings.js：`BP`、`house`
   - 19-boats.js：`WAKE_N`、`wakeBob`、`wakeI`、`wakeP`
 
-## 49-frame-camera.js
+## 51-frame-camera.js
 - 作る：`updateCamera`
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
-  - 06-inner-lakes.js：`inLake`
   - 11-state.js：`B`、`STATE`、`camX`、`camZ`
   - 12-renderer.js：`camera`
   - 14-water.js：`water`、`waveH`
-  - 16-terrain.js：`VEX`、`isleH`
   - 18-buildings.js：`house`
-  - 20-villages-layout.js：`terrainAt`
+  - 20-villages-layout.js：`groundH`
   - 29-controls.js：`dist`、`distT`、`pitch`、`ptrs`、`yaw`、`yawT`
   - 42-ambience.js：`idleLook`
 
-## 50-frame-render.js
+## 52-frame-render.js
 - 作る：`renderFrame`
 - 使う：
   - 00-head.js：`G`
@@ -529,7 +548,7 @@
   - 14-water.js：`water`、`waterU`
   - 18-buildings.js：`house`
 
-## 51-frame.js
+## 53-frame.js
 - 作る：`frame`
 - 使う：
   - 00-head.js：`G`
@@ -549,15 +568,74 @@
   - 33-resize.js：`resize`
   - 34-frame-state.js：`fpsN`、`fpsT`、`last`、`trailT`
   - 36-fireworks.js：`FW`
-  - 46-frame-move.js：`moveHouse`
-  - 47-frame-sky-light.js：`updateSkyLight`
-  - 48-frame-float.js：`floatHouse`
-  - 49-frame-camera.js：`updateCamera`
-  - 50-frame-render.js：`renderFrame`
+  - 48-frame-move.js：`moveHouse`
+  - 49-frame-sky-light.js：`updateSkyLight`
+  - 50-frame-float.js：`floatHouse`
+  - 51-frame-camera.js：`updateCamera`
+  - 52-frame-render.js：`renderFrame`
 
 ## 共有の値（window.__xxx）
 
 - `__floating`：00-head.js
-- `__scene`：51-frame.js
-- `__set`：51-frame.js
-- `__setH`：51-frame.js
+- `__scene`：53-frame.js
+- `__set`：53-frame.js
+- `__setH`：53-frame.js
+
+## 共有の箱 G に載せる名前（G.xxx）
+
+2つの部品で同じ名前を載せるとビルドが止まる（tools/deps.py の G_SHARED に書いたものを除く）。
+
+- `G.EV`：38-seasonal-events.js
+- `G.FW`：36-fireworks.js
+- `G.S`：20-villages-layout.js
+- `G.VIS`：11-state.js
+- `G.W`：49-frame-sky-light.js
+- `G.afterRain`：49-frame-sky-light.js
+- `G.ambience`：42-ambience.js
+- `G.boats`：45-boats.js
+- `G.buoys`：37-buoys.js
+- `G.camera`：44-life.js
+- `G.cards`：17-trees.js
+- `G.city`：47-city.js
+- `G.dotTex`：00-head.js
+- `G.eri`：46-shore-life.js
+- `G.eriMesh`：46-shore-life.js
+- `G.exp`：12-renderer.js
+- `G.forest`：17-trees.js
+- `G.gc`：52-frame-render.js
+- `G.glowMat`：18-buildings.js
+- `G.gm`：50-frame-float.js
+- `G.gq`：52-frame-render.js
+- `G.grass`：21-villages-walls-roofs.js
+- `G.groundH`：20-villages-layout.js
+- `G.gs`：52-frame-render.js
+- `G.harb`：25-harbors.js
+- `G.innerMeshes`：16-terrain.js
+- `G.isl`：41-islands.js
+- `G.kaizu`：39-kaizu.js
+- `G.lastDrag`：29-controls.js
+- `G.lastInput`：42-ambience.js
+- `G.life`：44-life.js
+- `G.lock`：53-frame.js
+- `G.lt`：49-frame-sky-light.js
+- `G.moments`：43-moments.js
+- `G.morning`：49-frame-sky-light.js
+- `G.netTx2`：18-buildings.js
+- `G.okishima`：41-islands.js
+- `G.plTx`：18-buildings.js
+- `G.pm`：29-controls.js
+- `G.rc`：52-frame-render.js
+- `G.rf`：52-frame-render.js
+- `G.rocks`：40-shore-rocks.js
+- `G.roofTex`：20-villages-layout.js
+- `G.rt`：52-frame-render.js
+- `G.shigure`：49-frame-sky-light.js
+- `G.shore`：46-shore-life.js
+- `G.street`：21-villages-walls-roofs.js
+- `G.sunY`：49-frame-sky-light.js
+- `G.tFix`：53-frame.js
+- `G.thTx`：18-buildings.js
+- `G.torii`：35-torii.js
+- `G.trT`：50-frame-float.js
+- `G.wake`：19-boats.js
+- `G.wxNow`：49-frame-sky-light.js

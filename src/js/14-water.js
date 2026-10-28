@@ -102,35 +102,9 @@ const waterU = {
   uRainR: { value: 0 },
   uMurk: { value: 0 },
 };
-const water = new THREE.Mesh(
-  new THREE.PlaneGeometry(5000, 5000, QUALITY.waterGrid, QUALITY.waterGrid).rotateX(
-    -Math.PI / 2,
-  ),
-  new THREE.ShaderMaterial({
-    uniforms: waterU,
-    vertexShader: `uniform float uT;
-uniform vec4 uW[${NW}];
-uniform vec2 uA[${NW}];
-varying vec3 vP;
-varying vec3 vP0;
-void main(){vec3 p=(modelMatrix*vec4(position,1.)).xyz;
-vec3 q=p;
-float dc=length(cameraPosition.xz-p.xz);
-for(int i=0;
-i<3;
-i++){float fi=float(i);float ra=.28*sin(p.x*.0017+fi*1.7)*sin(p.z*.0013+fi*2.3);vec2 d=mat2(cos(ra),-sin(ra),sin(ra),cos(ra))*uW[i].xy;
-float k=uW[i].z,w=uW[i].w,A=uA[i].x*(.62+.38*sin(dot(p.xz,vec2(.0021,.0016))*(1.+fi*.7)+fi*2.)*sin(dot(p.xz,vec2(-.0014,.0023))*(1.+fi*.4)+fi)),Qs=uA[i].y/(k*A*3.+1e-4);
-float f=k*dot(d,p.xz)-w*uT+sin(dot(p.xz,vec2(.013,.017))*(1.+float(i)))*2.;
-float att=1.-smoothstep(120.,500.,dc);
-q.x+=Qs*A*d.x*cos(f)*att;
-q.z+=Qs*A*d.y*cos(f)*att;
-q.y+=A*sin(f)*att;
-}
-vP=q;
-vP0=p;
-gl_Position=projectionMatrix*viewMatrix*vec4(q,1.);
-}`,
-    fragmentShader: `uniform vec3 uSky,uDeep,uShal,uSun,uSunC,uFogC;
+/* 水面の描画（フラグメント）：処理の順に区切った部品。上から順に一つの main の中でつながる。
+   どの部品も前の部品で作った値（V, dc, N, body, skyR, foam, c など）を使うので、順番は入れ替えない。 */
+const W_FS_HEAD = `uniform vec3 uSky,uDeep,uShal,uSun,uSunC,uFogC;
 uniform sampler2D uDepth;
 uniform vec4 uBox;
 uniform vec2 uFog;
@@ -152,9 +126,7 @@ uniform float uSD;
 uniform float uMist;uniform float uGap;uniform float uLowSun;
 uniform float uMp2;
 uniform float uCSh;uniform float uCl,uLead;
-float wh_(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}
-float wn_(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(wh_(i),wh_(i+vec2(1,0)),f.x),mix(wh_(i+vec2(0,1)),wh_(i+1.),f.x),f.y);}
-float wf_(vec2 p){float s=0.,a=.5;for(int i=0;i<4;i++){s+=a*wn_(p);p*=2.03;a*=.5;}return s;}
+${GLSL_NOISE}
 uniform mat4 uTM;
 uniform float uWy;
 uniform vec4 uTr[40];
@@ -163,8 +135,9 @@ uniform float uT;
 uniform vec4 uW[${NW}];
 uniform vec2 uA[${NW}];
 varying vec3 vP;
-varying vec3 vP0;
-void main(){vec3 V=normalize(cameraPosition-vP);
+varying vec3 vP0;`;
+// 波の法線：うねり・小波・航跡のさざなみ
+const W_FS_NORMAL = `vec3 V=normalize(cameraPosition-vP);
 float dc=length(cameraPosition-vP);
 vec3 n=vec3(0.,1.,0.);
 for(int i=0;
@@ -218,14 +191,15 @@ float lt=smoothstep(.15,.45,uCalm)*smoothstep(1.,.75,uCalm);float gz=smoothstep(
 float fr=.02+.98*pow(1.-max(dot(N,V),0.),5.);
 vec2 uv=(vP.xz-uBox.xy)/uBox.zw;
 float dep=texture2D(uDepth,uv).r*255./6.;
-float sh=exp(-dep/3.);
-// ── 水の色の重なり（上から順に塗り重ねる）──
+float sh=exp(-dep/3.);`;
+// 水の色の重なり
+const W_FS_COLOR = `// ── 水の色の重なり（上から順に塗り重ねる）──
 // ① 沖と浅い水の基本色（PALETTE.waterDeep / waterShallow）　② 風の筋で暗く
 // ③ 浅瀬：湖底が透ける（lakeBedSand/Light）　④ 浅瀬と沖の間の青緑（shoalTeal）　⑤ 浅瀬の光の網目
 // ⑥ 深い所の青（waterOffshore）　⑦ 河口の濁り（riverSilt）
 vec3 body=mix(uDeep,uShal,sh*.8);
 // 湖面の色のまだら：場所ごとに青寄り・緑寄りに分かれる
-{float pt=wf_(vP0.xz*.0007+vec2(uT2*.002,0.));body*=mix(vec3(.93,1.05,.98),vec3(1.03,.98,1.05),smoothstep(.3,.7,pt));}
+{float pt=nzF4(vP0.xz*.0007+vec2(uT2*.002,0.));body*=mix(vec3(.93,1.05,.98),vec3(1.03,.98,1.05),smoothstep(.3,.7,pt));}
 // 冬の曇りの日は、灰色がかった重い青
 body=mix(body,body*vec3(.7,.76,.82)+vec3(.04,.045,.05),uLead*.9);
 // 風の通り道：さざ波の立った暗い帯が風下へ流れる（静かな日ほど目立つ）
@@ -246,8 +220,9 @@ for(int i=0;
 i<16;
 i++){vec2 d=vP.xz-uMouth[i].xy;
 tb+=uMouth[i].w*exp(-dot(d,d)/(uMouth[i].z*uMouth[i].z));
-}body=mix(body,${v3(PALETTE.riverSilt)},clamp(tb,0.,.85));
-// ── 反射：空の色・太陽のきらめき・月の照り返し ──
+}body=mix(body,${v3(PALETTE.riverSilt)},clamp(tb,0.,.85));`;
+// 反射：空・太陽・月
+const W_FS_REFLECT = `// ── 反射：空の色・太陽のきらめき・月の照り返し ──
 vec3 R=reflect(-V,N);
 float rs=max(dot(R,uSun),0.);
 float mr=max(dot(R,normalize(vec3(-uSun.x,max(-uSun.y*.9+.02,.02),-uSun.z))),0.);
@@ -259,12 +234,13 @@ float sp=glit+msp+pow(rs,900.)*2.*smoothstep(500.,30.,dc)*(.6+.8*fract(sin(dot(f
 vec3 skyR=mix(uSky*1.12,uSky*.78,pow(clamp(R.y,0.,1.),.5))+vec3(1.,.6,.35)*exp(-max(R.y,0.)*12.)*smoothstep(.05,-.15,uSun.y)*.3+vec3(.8,.85,1.)*step(.996,fract(sin(dot(floor(R.xz/(R.y+.25)*300.),vec2(12.9,78.2)))*43758.5))*smoothstep(.05,-.15,uSun.y)*smoothstep(.05,.25,R.y)*.6+vec3(.02,.03,.05)*smoothstep(.05,-.1,uSun.y);
 float lowR=smoothstep(.09,.0,R.y);
 skyR+=vec3(.25,.16,.06)*lowR*smoothstep(.0,-.15,uSun.y)*.25*(.5+.5*sin(vP.x*.9+sin(vP.z*.3)*3.));
-skyR*=1.+.1*(fract(sin(dot(floor((vP.xz+R.xz*200.)*.01),vec2(1.7,9.2)))*43.)-.5)*(1.-lowR);
-// ── 建物のまわり：喫水の陰、波の斜面の陰影、建物の影、水際の泡 ──
+skyR*=1.+.1*(fract(sin(dot(floor((vP.xz+R.xz*200.)*.01),vec2(1.7,9.2)))*43.)-.5)*(1.-lowR);`;
+// 建物のまわり
+const W_FS_HOUSE = `// ── 建物のまわり：喫水の陰、波の斜面の陰影、建物の影、水際の泡 ──
 float ub=length(vP.xz-uHouse.xy);
 vec2 hso=uHouse.xy-normalize(uSun.xz+1e-4)*uHouse.z*.9/max(uSun.y,.25)*.6;
 // 建物の影：日が低いほど長く伸びる（家から影の先までの線分への距離）
-vec2 hsE=uHouse.xy-normalize(uSun.xz+1e-4)*uHouse.z*.55/max(uSun.y,.07);
+vec2 hsE=uHouse.xy-normalize(uSun.xz+1e-4)*uHouse.z*.55/max(uSun.y,${glf(LOOK.longShadowMinSun)});
 float hs;{vec2 ab=hsE-uHouse.xy;float tt=clamp(dot(vP.xz-uHouse.xy,ab)/max(dot(ab,ab),1e-3),0.,1.);hs=smoothstep(uHouse.z*.8,uHouse.z*.3,length(vP.xz-uHouse.xy-ab*tt))*(1.-tt*.5);}
 // 喫水の陰 × 波の斜面の陰影 × 建物の影 を一度に掛ける
 body*=(1.-.38*smoothstep(uHouse.z*1.15,uHouse.z*.3,ub))*(.9+.22*clamp(dot(N,normalize(vec3(uSun.x,1.2,uSun.z))),0.,1.))*(1.-hs*.28*clamp(uSun.y*3.,0.,1.));
@@ -276,8 +252,9 @@ float wlf=exp(-pow((ub-uHouse.z*.92)/(.6+uHouse.z*.05),2.))*(.55+.45*sin(atan(vP
 skyR=mix(skyR,vec3(.18,.26,.2),lowR*.65);
 skyR*=1.-cpw*.3;
 // 水面に映る雲：凪の日ほどはっきり
-{vec2 cp=R.xz/(max(R.y,0.)+.08)*1.4+vec2(uT2*.004,uT2*.002);cp+=vec2(wf_(cp*.35+1.3),wf_(cp*.35+7.1))*1.1-.55;float clr=smoothstep(.5-uCl*.3,1.,wf_(cp))*smoothstep(0.,.12,R.y);vec3 cc_=mix(mix(vec3(1.),uSky*1.3,.3),uSunC*1.15+vec3(.08,.05,.1),smoothstep(.35,.02,uSun.y))*(.35+.65*clamp(uSun.y*3.+.25,0.,1.));skyR=mix(skyR,cc_,clr*mix(.4,.85,uCalm));}
-// ── 泡：白波・岸の波打ち際・雨の波紋・遠くの白波 ──
+{vec2 cp=R.xz/(max(R.y,0.)+.08)*1.4+vec2(uT2*.004,uT2*.002);cp+=vec2(nzF4(cp*.35+1.3),nzF4(cp*.35+7.1))*1.1-.55;float clr=smoothstep(.5-uCl*.3,1.,nzF4(cp))*smoothstep(0.,.12,R.y);vec3 cc_=mix(mix(vec3(1.),uSky*1.3,.3),uSunC*1.15+vec3(.08,.05,.1),smoothstep(.35,.02,uSun.y))*(.35+.65*clamp(uSun.y*3.+.25,0.,1.));skyR=mix(skyR,cc_,clr*mix(${glf(LOOK.cloudReflect[0])},${glf(LOOK.cloudReflect[1])},uCalm));}`;
+// 泡と波紋
+const W_FS_FOAM = `// ── 泡：白波・岸の波打ち際・雨の波紋・遠くの白波 ──
 float wfoam=smoothstep(.12,.8,wf)*(.35+.65*fract(sin(dot(floor(vP0.xz*5.),vec2(7.,3.)))*91.));
 float foam=wfoam*.55+uFoam*smoothstep(.12,.3,1.-N.y)*.8+smoothstep(.06,.12,1.-N.y)*uFoam*.25;
 float swn=sin(dot(vP0.xz,vec2(.6,.8))*.9-uT*1.4+sin(vP0.x*.21)*2.)*.5+.5;
@@ -288,7 +265,7 @@ foam+=(1.-uCalm)*smoothstep(.3,1.,1.-uCalm)*step(.985,fract(sin(dot(floor(vec2(d
 body=mix(body,vec3(.48,.56,.42),smoothstep(.5,0.,dep)*.3);
 {vec2 sq=vP0.xz*1.6,si=floor(sq);
 float sn=fract(sin(dot(si,vec2(7.1,3.9)))*91.),sd2=length(fract(sq)-.5);
-float sandy=smoothstep(.4,.6,wf_(vP0.xz*.0012+3.7));
+float sandy=smoothstep(.4,.6,nzF4(vP0.xz*.0012+3.7));
 vec3 stone=mix(mix(vec3(.55,.48,.36),vec3(.38,.36,.4),sn)*(1.-smoothstep(.3,.5,sd2)*.4),mix(vec3(.78,.72,.6),vec3(.84,.79,.68),sn),sandy);
 body=mix(body,stone,smoothstep(.45,0.,dep)*.55);
 }body*=1.-.15*smoothstep(.6,.1,dep);
@@ -303,19 +280,18 @@ float r=length(cf-o),rad=ph*.45;
 rr+=smoothstep(.04,.0,abs(r-rad))*(1.-ph)*step(.35,h);
 }rr*=uRainR*.55*smoothstep(160.,8.,length(cameraPosition-vP));
 }foam+=wlf*.32;
-// 建物の周りの小さな渦：風下側に流れの乱れが巻く
-{vec2 dv=vP.xz-uHouse.xy;float ang=atan(dv.y,dv.x);vec2 wd=normalize(uWd+1e-4);float down=smoothstep(-.2,.8,dot(normalize(dv+1e-4),wd));
-float sw=sin(ang*4.+ub*.9-uT2*1.6)*sin(ub*.5+uT2*.7);foam+=0.*smoothstep(.7,.95,sw)*down*smoothstep(uHouse.z*.95,uHouse.z*1.2,ub)*smoothstep(uHouse.z*3.,uHouse.z*1.4,ub)*.08*(1.-uCalm*.5);}
-foam+=rr;
-// ── 明るさ：時刻、空の映り込み、浅瀬の濡れた石、遠くで空と溶ける ──
+foam+=rr;`;
+// 明るさ
+const W_FS_LIGHT = `// ── 明るさ：時刻、空の映り込み、浅瀬の濡れた石、遠くで空と溶ける ──
 body*=.55+.6*clamp(uSun.y*2.+.1,0.,1.);
 body+=uSky*.14;
 float sss=pow(max(dot(V,-uSun+N*.5),0.),3.)*max(vP.y,0.)*.25;
 body+=vec3(.1,.18,.12)*sss;
 float graz=pow(1.-max(V.y,0.),3.);
 N=normalize(mix(N,vec3(0.,1.,0.),graz*.3*smoothstep(60.,400.,dc)));
-body=mix(body,body*vec3(.75,.85,.95),graz*.5);
-// ── 山や建物の映り込み（静かな日ほど鮮明に）──
+body=mix(body,body*vec3(.75,.85,.95),graz*.5);`;
+// 山や建物の映り込み
+const W_FS_MIRROR = `// ── 山や建物の映り込み（静かな日ほど鮮明に）──
 vec4 tp=uTM*vec4(vP.x,uWy,vP.z,1.);
 vec2 ruv=tp.xy/tp.w+N.xz*vec2(.04,.08)*(1.2-uCalm*.7)*(.35+.65*smoothstep(1400.,40.,dc));
 vec4 rf=vec4(0.);
@@ -337,20 +313,21 @@ i++){if(uFW[i].w<.01)continue;
 vec3 Lf=normalize(uFW[i].xyz-vP);
 float dd=max(dot(R,Lf),0.);
 skyR+=uFWc[i]*uFW[i].w*(pow(dd,180.)*1.6+pow(dd,30.)*.25);
-}
-// ── 合成：水の色と反射を混ぜ、灯り・花火・霧・遠景の霞を重ねる ──
+}`;
+// 合成と仕上げ
+const W_FS_FINISH = `// ── 合成：水の色と反射を混ぜ、灯り・花火・霧・遠景の霞を重ねる ──
  vec3 c=mix(body,skyR*mix(vec3(.9,.95,1.),vec3(1.05),graz),min(1.,fr*(1.05-uRainR*.3)+.03))+uSunC*sp+foam+uSunC*.04*pow(max(dot(-V,uSun),0.),2.);
 float ws_=smoothstep(.6,1.,sin(dot(vP0.xz,vec2(.011,.017))+sin(vP0.x*.004)*3.)*.5+.5)*.04*(1.-smoothstep(300.,1500.,dc));
 c+=ws_;
 // 夜の湖面：月のない夜も、空の明るさをうっすら映す
 c+=vec3(.02,.03,.055)*smoothstep(.0,-.15,uSun.y)*(.4+.6*pow(1.-max(V.y,0.),2.));
 // 写真のような落ち着いた湖の色：鮮やかすぎる青緑を少し鎮める
-c=mix(c,vec3(dot(c,vec3(.3,.59,.11)))*vec3(.92,.97,1.06),.2);
+c=mix(c,vec3(dot(c,vec3(.3,.59,.11)))*vec3(.92,.97,1.06),${glf(LOOK.waterCalmGrade)});
 // 真昼の水面に流れる細かな光の網目
 {vec2 cq=vP0.xz*.35;float ca=abs(sin(cq.x+sin(cq.y*1.3+uT2*.7)*1.6+uT2*.5)*sin(cq.y*1.1+sin(cq.x*1.4-uT2*.6)*1.5-uT2*.4));c+=uSunC*pow(1.-ca,10.)*.05*smoothstep(.45,.8,uSun.y)*smoothstep(250.,20.,dc)*(.4+.6*uCalm);}
 c*=.97+.06*sin(vP.x*.002+sin(vP.z*.0017)*2.);
 float csh=smoothstep(.35,.8,.5+.5*sin((vP.x+uT2*4.)*.0045+sin(vP.z*.0031)*2.)*sin((vP.z+uT2*2.)*.0038+sin(vP.x*.0027)*1.7));
-c*=1.-csh*.36*clamp(uSun.y*3.,0.,1.)*uCSh;
+c*=1.-csh*${glf(LOOK.cloudShadowWater)}*clamp(uSun.y*3.,0.,1.)*uCSh;
 if(uHL.w>.001){vec2 dh=vP.xz-uHL.xz;
 float dl=length(dh);
 vec3 Lh=normalize(uHL.xyz-vP);
@@ -361,7 +338,45 @@ c=mix(c,mix(uFogC,vec3(1.),.45)*1.05,uMist*smoothstep(30.,700.,dc)*.8);
 c=mix(c,uFogC*1.02,smoothstep(1500.,6500.,dc)*(.25+.45*uCalm));
 float fd=length(cameraPosition-vP);
 c=mix(c,uFogC,smoothstep(uFog.x*.6,uFog.y,fd));
-gl_FragColor=vec4(c,1.);
+gl_FragColor=vec4(c,1.);`;
+const water = new THREE.Mesh(
+  new THREE.PlaneGeometry(5000, 5000, QUALITY.waterGrid, QUALITY.waterGrid).rotateX(
+    -Math.PI / 2,
+  ),
+  new THREE.ShaderMaterial({
+    uniforms: waterU,
+    vertexShader: `uniform float uT;
+uniform vec4 uW[${NW}];
+uniform vec2 uA[${NW}];
+varying vec3 vP;
+varying vec3 vP0;
+void main(){vec3 p=(modelMatrix*vec4(position,1.)).xyz;
+vec3 q=p;
+float dc=length(cameraPosition.xz-p.xz);
+for(int i=0;
+i<3;
+i++){float fi=float(i);float ra=.28*sin(p.x*.0017+fi*1.7)*sin(p.z*.0013+fi*2.3);vec2 d=mat2(cos(ra),-sin(ra),sin(ra),cos(ra))*uW[i].xy;
+float k=uW[i].z,w=uW[i].w,A=uA[i].x*(.62+.38*sin(dot(p.xz,vec2(.0021,.0016))*(1.+fi*.7)+fi*2.)*sin(dot(p.xz,vec2(-.0014,.0023))*(1.+fi*.4)+fi)),Qs=uA[i].y/(k*A*3.+1e-4);
+float f=k*dot(d,p.xz)-w*uT+sin(dot(p.xz,vec2(.013,.017))*(1.+float(i)))*2.;
+float att=1.-smoothstep(120.,500.,dc);
+q.x+=Qs*A*d.x*cos(f)*att;
+q.z+=Qs*A*d.y*cos(f)*att;
+q.y+=A*sin(f)*att;
+}
+vP=q;
+vP0=p;
+gl_Position=projectionMatrix*viewMatrix*vec4(q,1.);
+}`,
+    fragmentShader: `${W_FS_HEAD}
+void main(){
+${W_FS_NORMAL}
+${W_FS_COLOR}
+${W_FS_REFLECT}
+${W_FS_HOUSE}
+${W_FS_FOAM}
+${W_FS_LIGHT}
+${W_FS_MIRROR}
+${W_FS_FINISH}
 }`,
   }),
 );

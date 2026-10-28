@@ -234,43 +234,12 @@ function drawFar(boats = [], wxNow = null, W = null) {
   }
   fx.strokeStyle = "#d9542b";
   fx.lineWidth = 1.8 * dpr;
-  const jt = 0; // 地図では嵐の揺れを描かない
   fx.beginPath();
   B.trail.forEach(([x, y], i) =>
-    i
-      ? fx.lineTo(X(x) + (Math.random() - 0.5) * jt, Y(y) + (Math.random() - 0.5) * jt)
-      : fx.moveTo(X(x), Y(y)),
+    i ? fx.lineTo(X(x), Y(y)) : fx.moveTo(X(x), Y(y)),
   );
   fx.lineTo(X(B.x), Y(B.y));
   fx.stroke();
-  if (false && wxNow) {
-    // 地図には天気（濁り・雨・雪）を描かない
-    const R = rnd(Math.floor(performance.now() / 120));
-    fx.strokeStyle = "rgba(27,27,27,.35)";
-    fx.fillStyle = "rgba(27,27,27,.35)";
-    fx.lineWidth = 0.6 * dpr;
-    for (const [mx, my] of LAKE.mouths) {
-      const n = Math.floor(wxNow.turb * 40);
-      for (let i = 0; i < n; i++) {
-        const a = R() * 6.28,
-          q = Math.sqrt(R()) * (800 + wxNow.turb * 2500);
-        fx.fillRect(X(mx + Math.cos(a) * q), Y(my + Math.sin(a) * q), dpr, dpr);
-      }
-    } // 濁りは点
-    const nR = 0, // 地図には雨を描かない
-      sl = W ? Math.atan2(W.x, 10) : 0;
-    fx.beginPath();
-    for (let i = 0; i < nR; i++) {
-      const x = R() * w,
-        y = R() * h,
-        L = (4 + wxNow.rain * 6) * dpr;
-      fx.moveTo(x, y);
-      fx.lineTo(x + Math.sin(sl) * L, y + L);
-    }
-    fx.stroke(); // 雨は斜線
-    const nS = Math.floor(wxNow.snow * 400 + (wxNow.white || 0) * 1500);
-    for (let i = 0; i < nS; i++) fx.fillRect(R() * w, R() * h, 1.4 * dpr, 1.4 * dpr);
-  } // 雪と霧は点描
   fx.fillStyle = "rgba(27,27,27,.45)";
   fx.font = 9 * dpr + "px sans-serif";
   fx.textAlign = "right";

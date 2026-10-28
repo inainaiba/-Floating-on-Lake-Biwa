@@ -60,7 +60,7 @@ G.city = (() => {
     c = new THREE.Color();
   bl.forEach(([x, y, w, d, h, r], i) => {
     M.compose(
-      new THREE.Vector3(x * S, 0.6 + terrainAt(x, y) * S * VEX, y * S),
+      new THREE.Vector3(x * S, landY(x, y), y * S),
       Qq.setFromEuler(E.set(0, -r, 0)),
       new THREE.Vector3(w, h, d),
     );

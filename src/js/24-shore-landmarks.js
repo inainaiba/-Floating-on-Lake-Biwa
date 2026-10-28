@@ -96,7 +96,7 @@ scene.add(brk);
   }
   cardForest(
     "pine",
-    tr.map(([x, y, s], i) => [x, y, 0.6 + terrainAt(x, y) * S * VEX, s * 1.1, i * 0.71]),
+    tr.map(([x, y, s], i) => [x, y, landY(x, y), s * 1.1, i * 0.71]),
     10,
     13,
     QUALITY.nearTrees[0],
@@ -278,52 +278,6 @@ scene.add(brk);
   scene.add(BG);
 }
 
-// エリ：浅い沖に竹の杭を矢印形に並べた定置網（ヨシ帯の沖に置く。位置は概略）
-{
-  const st = [],
-    R = rnd(808);
-  for (const [cx, cy] of REED_SITES)
-    for (let n = 0; n < 3; n++) {
-      let x = cx + (R() - 0.5) * 3000,
-        y = cy + (R() - 0.5) * 3000,
-        ok = false;
-      for (let k = 0; k < 40 && !ok; k++) {
-        if (inMain(x, y) && depth(x, y) > 1.5 && depth(x, y) < 5) ok = true;
-        else {
-          x = cx + (R() - 0.5) * 4000;
-          y = cy + (R() - 0.5) * 4000;
-        }
-      }
-      if (!ok) continue;
-      const a = R() * 6.28,
-        L = 60 + R() * 80;
-      const arm = (ang, len) => {
-        for (let s = 0; s < len; s += (1.6 / S) * 0 + 12)
-          st.push([x + Math.cos(ang) * s, y + Math.sin(ang) * s]);
-      };
-      arm(a, L * 3);
-      arm(a + 0.5, L);
-      arm(a - 0.5, L);
-      const hx = x + Math.cos(a) * L * 3,
-        hy = y + Math.sin(a) * L * 3;
-      for (let k = 0; k < 20; k++) {
-        const b = (k / 20) * 6.28;
-        st.push([hx + Math.cos(b) * 25, hy + Math.sin(b) * 25]);
-      }
-    }
-  const E = new THREE.InstancedMesh(
-      new THREE.CylinderGeometry(0.04, 0.05, 2.6, 4).translate(0, 0.8, 0),
-      new THREE.MeshLambertMaterial({ color: 0x4e4334 }),
-      st.length,
-    ),
-    M = new THREE.Matrix4();
-  st.forEach(([x, y], i) => {
-    M.makeTranslation(x * S, 0, y * S);
-    E.setMatrixAt(i, M);
-  });
-  scene.add(E);
-  G.eri = st;
-}
 
 // 内湖のまわりの木（ヤナギとメタセコイア。秋に色づく）
 const shoreTrees = [];
@@ -347,7 +301,7 @@ const treeM = treeFade(new THREE.MeshLambertMaterial({ vertexColors: true }), 26
   shoreTrees.forEach(([x, y, c], i) => {
     const s = c ? 1 : 0.8;
     M.compose(
-      new THREE.Vector3(x * S, 0.6 + terrainAt(x, y) * S * VEX, y * S),
+      new THREE.Vector3(x * S, landY(x, y), y * S),
       new THREE.Quaternion(),
       new THREE.Vector3(c ? 0.8 : 1.4 * s, s, c ? 0.8 : 1.4 * s),
     );

@@ -30,7 +30,7 @@ G.rocks = (() => {
     E = new THREE.Euler(),
     c = new THREE.Color();
   pts.forEach(([x, y, s], i) => {
-    const gy = inLake(x, y) ? -0.35 : 0.6 + terrainAt(x, y) * S * VEX - 0.25;
+    const gy = inLake(x, y) ? -0.35 : landY(x, y) - 0.25;
     M.compose(
       new THREE.Vector3(x * S, gy, y * S),
       Qq.setFromEuler(E.set(R() * 3, R() * 3, R() * 3)),

@@ -339,7 +339,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
     gt.map((h, i) => {
       const x = h.x + (Math.cos(h.rot + 1.6) * 7) / S,
         y = h.y + (Math.sin(h.rot + 1.6) * 7) / S;
-      return [x, y, 0.6 + terrainAt(x, y) * S * VEX, 0.55 + ((i * 37) % 10) / 22, i * 0.37];
+      return [x, y, landY(x, y), 0.55 + ((i * 37) % 10) / 22, i * 0.37];
     }),
     9,
     9,
@@ -374,7 +374,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
       M.makeScale(0, 0, 0);
     } else
       M.compose(
-        new THREE.Vector3(x * S, 0.6 + terrainAt(x, y) * S * VEX, y * S),
+        new THREE.Vector3(x * S, landY(x, y), y * S),
         new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -r, 0)),
         new THREE.Vector3(1, 1, 1),
       );
@@ -394,7 +394,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
     sg.setAttribute(
       "position",
       new THREE.Float32BufferAttribute(
-        pl.flatMap(([x, y]) => [x * S, 0.6 + terrainAt(x, y) * S * VEX + 6.2, y * S]),
+        pl.flatMap(([x, y]) => [x * S, landY(x, y) + 6.2, y * S]),
         3,
       ),
     );
@@ -423,7 +423,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
       P.setMatrixAt(i, M);
       return;
     }
-    M.makeTranslation(x * S, 0.6 + terrainAt(x, y) * S * VEX, y * S);
+    M.makeTranslation(x * S, landY(x, y), y * S);
     P.setMatrixAt(i, M);
   });
   scene.add(P);
@@ -500,7 +500,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
     cc = new THREE.Color();
   gs.forEach(([x, y, r], i) => {
     M.compose(
-      new THREE.Vector3(x * S, 0.6 + terrainAt(x, y) * S * VEX, y * S),
+      new THREE.Vector3(x * S, landY(x, y), y * S),
       new THREE.Quaternion(),
       new THREE.Vector3(1 + r, 0.6 + r, 1 + r),
     );
@@ -567,7 +567,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
       return;
     }
     M.compose(
-      new THREE.Vector3(x * S, 0.6 + terrainAt(x, y) * S * VEX, y * S),
+      new THREE.Vector3(x * S, landY(x, y), y * S),
       new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -r, 0)),
       new THREE.Vector3(L * S * 1.05, 1, 1),
     );

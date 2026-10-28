@@ -54,7 +54,7 @@ G.kaizu = (() => {
         l = Math.min(step, L - s),
         bx = x1 + (x2 - x1) * (u + l / L / 2) + nx * 9,
         by = y1 + (y2 - y1) * (u + l / L / 2) + ny * 9;
-      const gy = 0.6 + terrainAt(bx, by) * S * VEX;
+      const gy = landY(bx, by);
       const w = new THREE.Mesh(new THREE.BoxGeometry(l * S + 0.3, 3.6, 0.9), wm);
       w.geometry.attributes.uv.array.forEach((v, k, a) => {
         if (k % 2 === 0) a[k] = (v * (l * S)) / 6;
@@ -85,7 +85,7 @@ G.kaizu = (() => {
     E = new THREE.Euler(),
     c = new THREE.Color();
   rocks.forEach(([x, y, s], i) => {
-    const gy = inLake(x, y) ? -0.3 : 0.6 + terrainAt(x, y) * S * VEX - 0.2;
+    const gy = inLake(x, y) ? -0.3 : landY(x, y) - 0.2;
     M.compose(
       new THREE.Vector3(x * S, gy, y * S),
       Qq.setFromEuler(E.set(R() * 3, R() * 3, R() * 3)),

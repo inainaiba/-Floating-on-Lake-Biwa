@@ -41,7 +41,7 @@ G.ambience = (() => {
       E = new THREE.Euler(),
       V = new THREE.Vector3();
     hz.forEach((p, i) => {
-      const gy = 0.63 + terrainAt(p.x, p.y) * S * VEX,
+      const gy = landY(p.x, p.y) + 0.03,
         rot = -p.rot,
         ox = Math.sin(rot) * 5,
         oz = Math.cos(rot) * 5;

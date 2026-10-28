@@ -115,10 +115,7 @@ G.okishima = (() => {
     whiteM = new THREE.MeshStandardMaterial({ color: 0xf0f0ec, roughness: 0.5 }),
     tireM = new THREE.MeshStandardMaterial({ color: 0x1e1e20, roughness: 0.9 }),
     poleM = new THREE.MeshStandardMaterial({ color: 0x8a8880, roughness: 0.8 });
-  const gable2 = (L, W, H, m) => {
-    const s = new THREE.Shape([new THREE.Vector2(-W / 2, 0), new THREE.Vector2(W / 2, 0), new THREE.Vector2(0, H)]);
-    return new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth: L, bevelEnabled: false }).translate(0, 0, -L / 2), m);
-  };
+
   const add = (o, x, y, z, ry = 0) => {
     o.position.set(x, y, z);
     o.rotation.y = ry;
@@ -162,9 +159,7 @@ G.okishima = (() => {
         // 一階の庇
         add(new THREE.Mesh(new THREE.BoxGeometry(w, 0.12, 1.1), roofM), wx + s.nx * (d / 2 + 0.5), gy + 2.6, wz + s.ny * (d / 2 + 0.5), rot);
         // 瓦屋根（切妻、棟は岸と平行）
-        const r = gable2(w + 0.9, d + 1.2, 1.7 + R() * 0.5, roofM);
-        r.rotation.y = rot + Math.PI / 2;
-        add(r, wx, gy + h, wz, rot + Math.PI / 2);
+        add(gable(w + 0.9, d + 1.2, 1.7 + R() * 0.5, roofM), wx, gy + h, wz, rot);
         houses++;
       }
     // 電柱：道に沿って

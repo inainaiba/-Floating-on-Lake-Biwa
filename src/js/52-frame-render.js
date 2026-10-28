@@ -13,11 +13,6 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
       new THREE.ShaderMaterial({
         uniforms: {
           tD: { value: null },
-          tZ: { value: null },
-          uN: { value: 0.1 },
-          uF: { value: 1000 },
-          uFoc: { value: 50 },
-          uDof: { value: 0 },
           uAsp: { value: 1.6 },
           uSunS: { value: new THREE.Vector3(0, 0, 0) },
           uBlue: { value: 0 },
@@ -29,16 +24,13 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
         depthTest: false,
         depthWrite: false,
         vertexShader: `varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy,0.,1.);}`,
-        fragmentShader: `uniform sampler2D tD,tZ;uniform float uN,uF,uFoc,uDof,uAsp;uniform vec3 uSunS;uniform float uBlue;
-float lz(vec2 u){float z=texture2D(tZ,u).r*2.-1.;return 2.*uN*uF/(uF+uN-z*(uF-uN));}
-float coc(vec2 u){return clamp((lz(u)-uFoc*3.)/(uFoc*10.),0.,1.);}
+        fragmentShader: `uniform sampler2D tD;uniform float uAsp;uniform vec3 uSunS;uniform float uBlue;
+
 uniform float uWarm,uDay,uMorn,uTm;
 varying vec2 vU;
    vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);
 }
    void main(){vec3 c0=texture2D(tD,vU).rgb;
-// 被写界深度：建物に寄ったときだけ、遠景をほのかにぼかす
-if(uDof>.01){float k=coc(vU)*uDof;if(k>.02){vec3 s=c0;float ws=1.;for(int i=0;i<14;i++){float a=float(i)*2.399,r=sqrt(float(i)+.5)*.001*k;vec2 o=vU+vec2(cos(a),sin(a)*uAsp)*r;float w=coc(o);s+=texture2D(tD,o).rgb*w;ws+=w;}c0=s/ws;}}
 vec3 c=aces(c0*1.15);
 vec3 bl=vec3(0.);
 for(int i=0;
@@ -144,12 +136,7 @@ c+=gr*(.022-.01*l);
   renderer.setRenderTarget(null);
   G.gq.material.uniforms.tD.value = G.rt.texture;
   {
-    const u = G.gq.material.uniforms,
-      fd = camera.position.distanceTo(house.position);
-    u.tZ.value = null;
-    u.uN.value = camera.near;
-    u.uF.value = camera.far;
-    u.uFoc.value = fd;
+    const u = G.gq.material.uniforms;
     u.uAsp.value = camera.aspect;
     {
       const sp = sun.position.clone().sub(house.position).normalize().multiplyScalar(500).add(camera.position).project(camera);
@@ -157,7 +144,6 @@ c+=gr*(.022-.01*l);
       u.uSunS.value.set(sp.x * 0.5 + 0.5, sp.y * 0.5 + 0.5, vis);
     }
     u.uBlue.value = G.morning ? Math.max(0, 1 - Math.abs((G.sunY || 0) + 0.13) / 0.11) * (1 - wxNow.gray * 0.5) : 0;
-    u.uDof.value = 0.8 * Math.min(1, Math.max(0, (85 - fd) / 20)) * QUALITY.dof;
   }
   G.gq.material.uniforms.uTm.value = (performance.now() / 1000) % 100;
   G.gq.material.uniforms.uDay.value = Math.min(1, day * 2.5) * (1 - wxNow.dark);

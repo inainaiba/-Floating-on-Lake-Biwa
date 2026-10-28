@@ -22,7 +22,7 @@ paddyM.map = cvTex(64, 32, (g, w, h) => {
   paddies.forEach((p, i) => {
     q.setFromEuler(new THREE.Euler(0, -p.rot, 0));
     M.compose(
-      new THREE.Vector3(p.x * S, 0.63 + terrainAt(p.x, p.y) * S * VEX, p.y * S),
+      new THREE.Vector3(p.x * S, landY(p.x, p.y) + 0.03, p.y * S),
       q,
       new THREE.Vector3(1, 1, 1),
     );
@@ -43,7 +43,7 @@ const ghI = new THREE.InstancedMesh(
   paddies.forEach((p) => {
     if (p.v > 0.9) {
       M.compose(
-        new THREE.Vector3(p.x * S, 0.63 + terrainAt(p.x, p.y) * S * VEX, p.y * S),
+        new THREE.Vector3(p.x * S, landY(p.x, p.y) + 0.03, p.y * S),
         new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -p.rot + Math.PI / 2, 0)),
         new THREE.Vector3(1, 1, 1),
       );

@@ -28,6 +28,19 @@ const VILLAGES = [
   [136.005, 35.265],
   [136.06, 35.31],
 ];
+// 地面の高さの窓口（実寸の x, y → 作品内の高さ y）。陸・島・湖の振り分けはここだけで行う
+//   landY   ：陸の地面（湖の外の地形）
+//   groundH ：どこでも使える地面。島なら島の丘、湖なら水面(0)、陸なら landY
+function landY(x, y) {
+  return 0.6 + terrainAt(x, y) * S * VEX;
+}
+function groundH(x, y) {
+  const ih = isleH(x, y);
+  if (ih !== null) return ih;
+  return inLake(x, y) ? 0 : landY(x, y);
+}
+G.groundH = groundH;
+G.S = S;
 function terrainAt(x, y) {
   const i = (x - tx0) / tdx,
     j = (y - ty0) / tdy,

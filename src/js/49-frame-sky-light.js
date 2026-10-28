@@ -143,7 +143,7 @@ function updateSkyLight(dt, t, c, W) {
     const dn = Math.floor(c.t / DAY),
       lucky = Math.abs(Math.sin(dn * 7.31) * 9137.1) % 1 < 0.6;
     const pass = Math.max(0, Math.sin(c.t / 37 + dn) * 1.6 - 0.9);
-    const want = (c.month === 10 || c.month === 11) && lucky && day > 0.3 && wxNow.rain < 0.1 && wxNow.gray < 0.6 ? Math.min(1, pass * 1.5) : 0;
+    const want = c.month >= LOOK.months.shigure[0] && c.month <= LOOK.months.shigure[1] && lucky && day > 0.3 && wxNow.rain < 0.1 && wxNow.gray < 0.6 ? Math.min(1, pass * 1.5) : 0;
     G.shigure = (G.shigure || 0) + (want - (G.shigure || 0)) * Math.min(1, dt * 0.5);
   }
   waterU.uRainR.value = Math.max(wxNow.rain, G.shigure * 0.6);
@@ -252,7 +252,7 @@ function updateSkyLight(dt, t, c, W) {
   }
   const night = day < 0.05;
   // 灯りの揺らぎ：ろうそくのように、ごくわずかに
-  const flick = 0.95 + 0.03 * Math.sin(t * 7.1) + 0.02 * Math.sin(t * 13.7 + Math.sin(t * 2.3));
+  const flick = 0.95 + LOOK.flicker[0] * Math.sin(t * 7.1) + LOOK.flicker[1] * Math.sin(t * 13.7 + Math.sin(t * 2.3));
   house.light.intensity = night ? 9 * CUST.bright * flick : 0;
   {
     const hp = house.lamp.getWorldPosition(new THREE.Vector3()),
@@ -265,11 +265,11 @@ function updateSkyLight(dt, t, c, W) {
   if (house.halo) {
     house.halo.visible = night || day < 0.12;
     house.halo.material.color.set(LIGHT_COLORS[CUST.light]);
-    house.halo.material.opacity = CUST.bright * 0.45;
+    house.halo.material.opacity = CUST.bright * LOOK.haloOpacity;
     house.halo.scale.setScalar(2.4 * (1 + (wxNow.white || 0) * 3.5));
   }
   for (const g of glassMats)
-    g.emissive.set(night ? LIGHT_COLORS[CUST.light] : 0).multiplyScalar(night ? CUST.bright * (g === G.glowMat ? 1.9 : 0.8) * flick : 0);
+    g.emissive.set(night ? LIGHT_COLORS[CUST.light] : 0).multiplyScalar(night ? CUST.bright * (g === G.glowMat ? LOOK.glowNight : LOOK.glassNight) * flick : 0);
   portLamps.visible = night || day < 0.12;
   windows.material.size = 3.4 * (1 + (wxNow.white || 0) * 1.6);
   if (G.street) G.street.material.size = 2.4 * (1 + (wxNow.white || 0) * 1.8);

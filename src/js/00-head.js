@@ -56,3 +56,9 @@ function NEAR_TREE_MAT() {
   }
   return new THREE.MeshLambertMaterial({ vertexColors: true, map: LEAFTX });
 }
+
+// シェーダーで共有する雑音の関数（空・水で使う）：nzH 乱数、nzN なめらかな雑音、nzF4/nzF5 重ね合わせ（4段・5段）
+const GLSL_NOISE = `float nzH(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}
+float nzN(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(nzH(i),nzH(i+vec2(1,0)),f.x),mix(nzH(i+vec2(0,1)),nzH(i+1.),f.x),f.y);}
+float nzF4(vec2 p){float s=0.,a=.5;for(int i=0;i<4;i++){s+=a*nzN(p);p*=2.03;a*=.5;}return s;}
+float nzF5(vec2 p){float s=0.,a=.5;for(int i=0;i<5;i++){s+=a*nzN(p);p*=2.03;a*=.5;}return s;}`;
