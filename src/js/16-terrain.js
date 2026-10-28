@@ -382,6 +382,25 @@ const ISLE_H = [
   [136.065, 35.205, 220],
   [136.205, 35.293, 40],
 ].map(([a, b, h]) => [...ll(a, b), h]);
+const ISLES = [];
+// 沖島の南西側の集落：岸から約100mは低く平らな土地にして、その奥から山になる
+const OKI = ll(136.065, 35.205);
+let OKI_BOX = null;
+const okiZone = (x, y) => {
+  if (!OKI_BOX) return false;
+  const [a, b, c, d] = OKI_BOX;
+  return x > a - 300 && x < a + (c - a) * 0.58 && y > (b + d) / 2 - (d - b) * 0.05 && y < d + 300;
+};
+function isleShape(I, x, y, dd) {
+  let h = 0.6 + I.top * S * VEX * Math.pow(dd / I.md, 0.6);
+  const [a, b, c, d] = I.box;
+  if (Math.hypot((a + c) / 2 - OKI[0], (b + d) / 2 - OKI[1]) < 2500) OKI_BOX = I.box;
+  if (OKI_BOX === I.box && okiZone(x, y)) {
+    const flat = 1.3 + Math.max(0, dd - 30) * 0.004;
+    h = Math.min(h, flat + Math.max(0, h - flat) * Math.min(1, Math.max(0, (dd - 110) / 120)) ** 1.5);
+  }
+  return h;
+}
 for (const h of islands) {
   let a = 1e9,
     b = 1e9,
@@ -400,7 +419,7 @@ for (const h of islands) {
       0,
       Math.min(60, Math.sqrt((c - a) * (d - b)) * 0.08),
     ])[2];
-  const n = 48,
+  const n = 110,
     geo = new THREE.PlaneGeometry((c - a) * S, (d - b) * S, n, n).rotateX(-Math.PI / 2),
     pos = geo.attributes.position;
   const segI = [];
@@ -426,14 +445,34 @@ for (const h of islands) {
     }
     ds.push(dd);
   }
+  ISLES.push({ h, top, md, box: [a, b, c, d] });
   for (let k = 0; k < pos.count; k++)
-    pos.setY(k, ds[k] < 0 ? -3 : 0.6 + top * S * VEX * Math.pow(ds[k] / md, 0.6));
+    pos.setY(k, ds[k] < 0 ? -3 : isleShape(ISLES[ISLES.length - 1], cx + pos.getX(k) / S, cy + pos.getZ(k) / S, ds[k]));
   geo.computeVertexNormals();
-  const m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: 0x3f5536 }));
+  const m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: 0x4a6a3a }));
   m.position.set(cx * S, 0, cy * S);
   scene.add(m);
 }
 
+// 島の地面の高さ（作品内の高さ。島の外は null）
+function isleH(x, y) {
+  for (const I of ISLES) {
+    const [a, b, c, d] = I.box;
+    if (x < a || x > c || y < b || y > d || !inPoly(x, y, I.h)) continue;
+    let dd = 1e12;
+    for (let i = 0; i < I.h.length - 1; i++) {
+      const p = I.h[i],
+        q = I.h[i + 1],
+        dx = q[0] - p[0],
+        dy = q[1] - p[1];
+      let u = ((x - p[0]) * dx + (y - p[1]) * dy) / (dx * dx + dy * dy || 1);
+      u = Math.max(0, Math.min(1, u));
+      dd = Math.min(dd, Math.hypot(p[0] + u * dx - x, p[1] + u * dy - y));
+    }
+    return isleShape(I, x, y, dd);
+  }
+  return null;
+}
 // ヨシ（指定区域の近くの、浅い岸だけに立てる）
 const REED_SITES = [
   [136.235, 35.465, 2500],
