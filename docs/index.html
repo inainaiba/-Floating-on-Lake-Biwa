@@ -227,6 +227,13 @@ function mergeStatic(root) {
   return out.length;
 }
 
+// 置き場所の記録（点検用）：景物ごとに位置（実寸の x, y）と、守るべき決まりを残す。
+// 決まり：water＝湖の上、land＝陸か島の上、shore＝岸の近く（約250m以内）。tools/audit.py が数を調べる
+const PLACE_LOG = [];
+function placeLog(name, rule, pts) {
+  PLACE_LOG.push({ name, rule, pts });
+}
+
 // ==== 01-settings.js ====
 /* ---------- 設定（試作用の調整値：URLの ?scale=10&speed=20 で変更） ---------- */
 const Q = new URLSearchParams(location.search);
@@ -473,6 +480,24 @@ function distShore(x, y) {
     if (d < m) m = d;
   }
   return Math.sqrt(m);
+}
+// いちばん近い岸の点（湖岸・島の輪郭の上）
+function shoreSnap(x, y) {
+  let m = 1e12,
+    best = [x, y];
+  for (let i = 0; i < segs.length; i += 2) {
+    const a = segs[i],
+      b = segs[i + 1],
+      dx = b[0] - a[0],
+      dy = b[1] - a[1];
+    let t = ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy || 1);
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const px = a[0] + t * dx,
+      py = a[1] + t * dy,
+      d = (px - x) ** 2 + (py - y) ** 2;
+    if (d < m) (m = d), (best = [px, py]);
+  }
+  return best;
 }
 const pockets = [
   [...ll(136.1, 35.38), 9000, 22],
@@ -3193,6 +3218,17 @@ const nearestIn = (x, y) => {
     }
   return [x, y];
 };
+const PORT_LL = {
+  imazu: [136.033, 35.413],
+  chikubu: [136.143, 35.417],
+  nagahama: [136.262, 35.381],
+  otsu: [135.866, 35.012],
+  nionohama: [135.879, 35.004],
+  yanagasaki: [135.871, 35.022],
+  ogoto: [135.899, 35.075],
+  ohashi: [135.932, 35.104],
+};
+// 船が着く点（水深2m以上の沖に寄せた点）。港の施設はこれではなく、下の PORT_SITES（岸の点）に建てる
 const PORT = Object.fromEntries(
   Object.entries({
     imazu: [136.033, 35.413],
@@ -3205,6 +3241,8 @@ const PORT = Object.fromEntries(
     ohashi: [135.932, 35.104],
   }).map(([k, [lo, la]]) => [k, nearestIn(...ll(lo, la))]),
 );
+// 港の施設（防波堤・灯り・桟橋・舟小屋・架台）を建てる岸の点
+const PORT_SITES = [...Object.values(PORT_LL).map(([lo, la]) => ll(lo, la)), ...LAKE.ports.map((q) => [q[0], q[1]])].map(([x, y]) => shoreSnap(x, y));
 const WP = Object.fromEntries(
   Object.entries({
     s1: [135.9, 35.035],
@@ -3636,7 +3674,8 @@ const portLamps = new THREE.InstancedMesh(
 );
 {
   const m = new THREE.Matrix4();
-  [...LAKE.ports, ...Object.values(PORT)].forEach(([x, y], i) => {
+  placeLog("港の灯り", "shore", PORT_SITES);
+  PORT_SITES.forEach(([x, y], i) => {
     m.makeTranslation(x * S, 5, y * S);
     portLamps.setMatrixAt(i, m);
   });
@@ -3971,6 +4010,7 @@ const houses = [],
       }
     }
     breaks.push({ x: p[0] + Math.cos(a) * 120, y: p[1] + Math.sin(a) * 120, rot: a + Math.PI / 2 });
+    placeLog("防波堤", "water", [[breaks.at(-1).x, breaks.at(-1).y]]);
   }
 }
 const ROOF_COLS = [0x3c4046, 0x474b51, 0x707479, 0x969ba0, 0x51606e, 0x7a4038, 0x4f7ea8, 0x5a9590];
@@ -4501,7 +4541,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
     }
   }
   const H = new THREE.InstancedMesh(
-    lumpy(1, rnd(12), 2, 0.12).scale(1.8, 0.6, 0.7).translate(0, 0.5, 0),
+    lumpy(1, rnd(12), 1, 0.12).scale(1.8, 0.6, 0.7).translate(0, 0.5, 0), // 生け垣：細かさを1段落とす（数が多いので）
     NEAR_TREE_MAT(),
     hd.length,
   );
@@ -5038,6 +5078,7 @@ scene.add(brk);
       }
     }
   }
+  placeLog("岸の松", "land", tr);
   cardForest(
     "pine",
     tr.map(([x, y, s], i) => [x, y, landY(x, y), s * 1.1, i * 0.71]),
@@ -5110,7 +5151,7 @@ scene.add(brk);
 }
 // 浮御堂（堅田）：湖に張り出した宝形造の小堂と橋
 {
-  const [x, y] = ll(135.917, 35.115),
+  const [x, y] = shoreSnap(...ll(135.917, 35.115)), // 堅田の岸の点
     g = new THREE.Group(),
     dk = new THREE.MeshLambertMaterial({ color: 0x5a5650 }),
     wd = new THREE.MeshLambertMaterial({ color: 0x7a5a3a });
@@ -5145,7 +5186,12 @@ scene.add(brk);
       ang = t;
     }
   }
-  g.position.set((x + Math.cos(ang) * 30) * S, 0, (y + Math.sin(ang) * 30) * S);
+  // 岸から沖へ、水の上に出てさらに30m（実寸）の所に建てる（橋で岸とつながる）
+  let off = 30;
+  while (off < 600 && !inLake(x + Math.cos(ang) * off, y + Math.sin(ang) * off)) off += 10;
+  off += 30;
+  g.position.set((x + Math.cos(ang) * off) * S, 0, (y + Math.sin(ang) * off) * S);
+  placeLog("浮御堂", "water", [[x + Math.cos(ang) * off, y + Math.sin(ang) * off]]);
   g.rotation.y = -ang - Math.PI / 2;
   scene.add(g);
 }
@@ -5154,28 +5200,33 @@ scene.add(brk);
 {
   const M = new THREE.Matrix4(),
     js = [];
-  for (const p of [...Object.values(PORT), ...LAKE.ports.map((q) => [q[0], q[1]])]) {
+  for (const p of PORT_SITES) {
     let a = 0,
       bd = -1;
     for (let k = 0; k < 6.28; k += 0.2) {
-      const d = depth(p[0] + Math.cos(k) * 250, p[1] + Math.sin(k) * 250);
+      const d = inLake(p[0] + Math.cos(k) * 80, p[1] + Math.sin(k) * 80) ? depth(p[0] + Math.cos(k) * 250, p[1] + Math.sin(k) * 250) : -1; // すぐ前が水で、沖が深い向き
       if (d > bd) {
         bd = d;
         a = k;
       }
     }
-    js.push([p[0], p[1], a]);
+    // 長さ：先が水の上に収まる長さまで縮める（狭い入江で向こう岸に届かないように）
+    let len = 40;
+    while (len > 8 && !inLake(p[0] + (Math.cos(a) * len) / S, p[1] + (Math.sin(a) * len) / S)) len -= 4;
+    js.push([p[0], p[1], a, len]);
+    placeLog("桟橋の根元", "shore", [[p[0], p[1]]]);
+    placeLog("桟橋の先", "water", [[p[0] + (Math.cos(a) * len) / S, p[1] + (Math.sin(a) * len) / S]]);
   }
   const J = new THREE.InstancedMesh(
     new THREE.BoxGeometry(1, 0.5, 2.2).translate(0.5, 0, 0),
     new THREE.MeshLambertMaterial({ color: 0x8a8478 }),
     js.length,
   );
-  js.forEach(([x, y, a], i) => {
+  js.forEach(([x, y, a, len], i) => {
     M.compose(
       new THREE.Vector3(x * S, 0.9, y * S),
       new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -a, 0)),
-      new THREE.Vector3(40, 1, 1),
+      new THREE.Vector3(len, 1, 1),
     );
     J.setMatrixAt(i, M);
   });
@@ -5279,7 +5330,7 @@ function treeSeason(m) {
   const walls_ = [],
     boats_ = [],
     R = rnd(612);
-  for (const p of [...Object.values(PORT), ...LAKE.ports.map((q) => [q[0], q[1]])]) {
+  for (const p of PORT_SITES) {
     let a = 0,
       bd = -1;
     for (let k = 0; k < 6.28; k += 0.2) {
@@ -5377,6 +5428,7 @@ function treeSeason(m) {
           a,
         ]);
       crane.push([ox - Math.cos(a) * 15, oy - Math.sin(a) * 15, a]);
+      placeLog("荷揚げの架台", "shore", [crane.at(-1)]);
     }
     const T = new THREE.InstancedMesh(
       new THREE.DodecahedronGeometry(1.4, 0),
@@ -5435,6 +5487,7 @@ function treeSeason(m) {
       g.rotation.y = -a;
       cg.add(g);
     });
+    mergeStatic(cg); // 荷揚げの架台を束ねる
     scene.add(cg);
   }
   G.harb = walls_;
@@ -7080,6 +7133,7 @@ let fpsN = 0,
   let ox_ = tx_;
   for (let k = 0; k < 80 && depth(ox_, ty_) < 1.2; k++) ox_ += 10;
   g.position.set(ox_ * S, 0, ty_ * S);
+  placeLog("白鬚神社の鳥居", "water", [[ox_, ty_]]);
   g.rotation.y = Math.PI / 2;
   g.traverse((o) => {
     if (o.isMesh) {
@@ -7087,6 +7141,7 @@ let fpsN = 0,
       o.receiveShadow = true;
     }
   });
+  mergeStatic(g); // 柱・笠木・貫を材質ごとに束ねる
   scene.add(g);
   const L_ = new THREE.PointLight(0xffc890, 0, 60, 1.6);
   L_.position.set(-12, 4, 0);
@@ -7669,6 +7724,7 @@ G.buoys = (() => {
       x = x0 + Math.cos(a) * r;
       y = y0 + Math.sin(a) * r;
     }
+    placeLog("ブイ", "water", [[x, y]]);
     const g = new THREE.Group(),
       ball = new THREE.Mesh(new THREE.SphereGeometry(0.8, 24, 16), red);
     ball.position.y = 0.45;
@@ -8419,6 +8475,7 @@ G.okishima = (() => {
         bg.add(t);
       }
       bg.position.set(wx, 0, wz);
+      placeLog("沖島の漁船", "water", [[wx / S, wz / S]]);
       bg.rotation.y = rot + (R() < 0.5 ? 0 : Math.PI);
       bg.userData.ph = R() * 6.28;
       g.add(bg);
@@ -8465,6 +8522,7 @@ G.ambience = (() => {
     rod.rotation.z = -1.0;
     g.add(rod);
     g.visible = false;
+    mergeStatic(g); // 舟の部品を材質ごとに束ねる
     scene.add(g);
     return { g, a: R() * 6.28, r: 0, cx: 0, cz: 0, sp: 0.004 + R() * 0.004, on: false };
   };
@@ -8860,6 +8918,7 @@ G.life = (() => {
       }
     }
     const ok = pts.reverse().filter(([x, y]) => !inLake(x, y)).slice(0, MOBILE ? 8000 : 22000);
+    placeLog("ススキ", "land", ok);
     const im = new THREE.InstancedMesh(gm, mat, Math.max(1, ok.length)),
       M2 = new THREE.Matrix4(),
       Q2 = new THREE.Quaternion(),
@@ -8931,7 +8990,7 @@ G.life = (() => {
       [135.972, 35.284, 900],
       [136.043, 35.334, 900],
       [136.082, 35.172, 800],
-    ].map(([lo, la, r]) => [...ll(lo, la), r]);
+    ].map(([lo, la, r]) => [...shoreSnap(...ll(lo, la)), r]); // 湖岸線の上の点に寄せる
     const P = [];
     for (let i = 0; i < outer.length - 1; i++) {
       const [x1, y1] = outer[i],
@@ -8951,6 +9010,7 @@ G.life = (() => {
         }
     }
     if (P.length) cardForest("pine", P, 11, 7, 60, 3500, QUALITY.treeShadow);
+    placeLog("松並木", "land", P);
   }
   function update(dt, t, c, day, wxNow) {
     const cx = camera.position.x,
@@ -8999,6 +9059,7 @@ G.boats = (() => {
     pole.position.set(0.2, 0.32, 0);
     pole.rotation.x = Math.PI / 2;
     g0.add(pole);
+    mergeStatic(g0); // 田舟の部品を束ねてから複製する
     reedPts.forEach(([x, y], i) => {
       if (i % 97 !== 11 || tabune.length > 40) return;
       for (let k = 0; k < 6; k++) {
@@ -9009,6 +9070,7 @@ G.boats = (() => {
         if (inLake(xx, yy) && dp > 0.1 && dp < 1.5) {
           const g = g0.clone();
           g.position.set(xx * S, -0.12, yy * S);
+          placeLog("田舟", "water", [[xx, yy]]);
           g.rotation.y = a + 1.57 + (R() - 0.5) * 0.6;
           g.userData.ph = R() * 6.28;
           scene.add(g);
@@ -9115,6 +9177,7 @@ G.boats = (() => {
     mast.position.set(2.2, 10.3, 0);
     g.add(mast);
     g.visible = false;
+    mergeStatic(g); // 遊覧船の部品を材質ごとに束ねる
     scene.add(g);
     return { g, on: false, x: 0, z: 0, dx: 0, dz: 0, life: 0 };
   })();
@@ -9137,11 +9200,14 @@ G.boats = (() => {
     g0.add(hat);
     // 長い柄の鋤簾（じょれん）：水中へ斜めに差し込む
     const arm = new THREE.Group();
+    arm.name = "arm";
     arm.position.set(0, 1.2, 1.2);
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 7, 4).translate(0, -3.5, 0), new THREE.MeshLambertMaterial({ color: 0x9a8a62 }));
+    pole.userData.keep = true; // 動かす部品は束ねない
     arm.add(pole);
     arm.rotation.x = 0.9;
     g0.add(arm);
+    mergeStatic(g0); // 舟体・人・笠を束ねる（竿は動かすので残す）
     const [sx, sy] = ll(135.906, 35.003);
     for (let n = 0; n < 400 && shijimi.length < 5; n++) {
       const x = sx + (R() - 0.5) * 3000,
@@ -9150,8 +9216,9 @@ G.boats = (() => {
       if (inLake(x, y) && dp > 0.8 && dp < 4 && shijimi.every((b) => Math.hypot(b.position.x - x * S, b.position.z - y * S) > 60)) {
         const g = g0.clone();
         g.position.set(x * S, -0.1, y * S);
+        placeLog("シジミ舟", "water", [[x, y]]);
         g.rotation.y = R() * 6.28;
-        g.userData.arm = g.children[3];
+        g.userData.arm = g.getObjectByName("arm");
         g.userData.ph = R() * 6.28;
         scene.add(g);
         shijimi.push(g);
@@ -9328,6 +9395,7 @@ G.shore = (() => {
     eri.castShadow = false;
     scene.add(eri);
     G.eri = P; // 全体地図に点で描く
+    placeLog("えり", "water", P);
   }
   function update(dt, t, c, day, wxNow) {
     const cx = camera.position.x,
@@ -9901,6 +9969,11 @@ function updateSkyLight(dt, t, c, W) {
 }
 
 // ==== 50-frame-float.js ====
+// 航跡の波紋を消す（確認用の場面切り替えで使う）
+G.resetTrail = () => {
+  for (const v of waterU.uTr.value) v.set(0, 0, 99, 0);
+  G.trT = 0;
+};
 /* ---------- 毎フレーム③：建物の浮き沈みと傾き、目的地の印、引き波 ---------- */
 function floatHouse(dt, t, W, day) {
   // 建物の浮き沈み（画面は傾けない）
@@ -10167,6 +10240,18 @@ c+=gr*(.022-.01*l);
     water.visible = false;
     skyDome.visible = false;
     for (const m of G.innerMeshes || []) m.visible = false;
+    // 映り込みには、小さなもの（石・草・生け垣・粒）を描かない。水面では見分けられず、描く量だけが増えるので
+    if (!G.noRefl) {
+      G.noRefl = [];
+      scene.traverse((o) => {
+        if (o.isPoints) return G.noRefl.push(o);
+        if (!o.isInstancedMesh) return;
+        if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+        if (o.geometry.boundingSphere.radius < 1.3) G.noRefl.push(o);
+      });
+    }
+    const nrVis = G.noRefl.map((o) => o.visible);
+    for (const o of G.noRefl) o.visible = false;
     const cc = renderer.getClearColor(new THREE.Color()),
       ca = renderer.getClearAlpha();
     renderer.setClearColor(0, 0);
@@ -10180,6 +10265,7 @@ c+=gr*(.022-.01*l);
     water.visible = vis[0];
     skyDome.visible = vis[1];
     (G.innerMeshes || []).forEach((m, i) => (m.visible = inner[i]));
+    G.noRefl.forEach((o, i) => (o.visible = nrVis[i]));
     waterU.uRefl.value = G.rf.texture;
     waterU.uWy.value = wy;
     waterU.uRes.value.set(w, h);
@@ -10223,7 +10309,8 @@ function frame(now) {
   last = now;
   fpsN++;
   fpsT += dt;
-  if (fpsT > 3) {
+  if (fpsT > 3 && !G.prof) {
+    // 描画が重いときは解像度を下げる（確認用 ?debug のときは、撮影の条件をそろえるため変えない）
     const f = fpsN / fpsT;
     const old = resScale;
     if (f < 38) resScale = Math.max(0.5, resScale - 0.1);
@@ -10301,7 +10388,7 @@ if (Q.has("debug")) {
   G.S = S;
   G.prof = {};
   G.scene = scene;
-  G.dbg = { houses, inLake, inMain, isleH, terrainAt, distShore, landY };
+  G.dbg = { houses, inLake, inMain, isleH, terrainAt, distShore, landY, PLACE_LOG };
   window.__setH = (k, yw, pt, ds) => {
     const h = houses[k];
     B.x = h.x; B.y = h.y; camX = h.x * S; camZ = h.y * S;
@@ -10344,6 +10431,9 @@ if (Q.has("debug")) {
     G.lock = null;
     const [x, y] = ll(lo, la);
     B.x = x + dx; B.y = y + dy; B.vx = B.vy = 0; camX = B.x * S; camZ = B.y * S;
+    // 向き・回転・航跡の波紋も初期に戻す（前の場面の動きを持ち越さない）
+    B.yaw = 0; B.yawV = 0; B.kick = 0; B.goal = null;
+    G.resetTrail();
     yaw = yawT = yw; pitch = pt; dist = distT = ds;
   };
 }

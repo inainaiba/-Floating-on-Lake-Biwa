@@ -1,3 +1,8 @@
+// 航跡の波紋を消す（確認用の場面切り替えで使う）
+G.resetTrail = () => {
+  for (const v of waterU.uTr.value) v.set(0, 0, 99, 0);
+  G.trT = 0;
+};
 /* ---------- 毎フレーム③：建物の浮き沈みと傾き、目的地の印、引き波 ---------- */
 function floatHouse(dt, t, W, day) {
   // 建物の浮き沈み（画面は傾けない）

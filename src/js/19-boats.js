@@ -9,6 +9,17 @@ const nearestIn = (x, y) => {
     }
   return [x, y];
 };
+const PORT_LL = {
+  imazu: [136.033, 35.413],
+  chikubu: [136.143, 35.417],
+  nagahama: [136.262, 35.381],
+  otsu: [135.866, 35.012],
+  nionohama: [135.879, 35.004],
+  yanagasaki: [135.871, 35.022],
+  ogoto: [135.899, 35.075],
+  ohashi: [135.932, 35.104],
+};
+// 船が着く点（水深2m以上の沖に寄せた点）。港の施設はこれではなく、下の PORT_SITES（岸の点）に建てる
 const PORT = Object.fromEntries(
   Object.entries({
     imazu: [136.033, 35.413],
@@ -21,6 +32,8 @@ const PORT = Object.fromEntries(
     ohashi: [135.932, 35.104],
   }).map(([k, [lo, la]]) => [k, nearestIn(...ll(lo, la))]),
 );
+// 港の施設（防波堤・灯り・桟橋・舟小屋・架台）を建てる岸の点
+const PORT_SITES = [...Object.values(PORT_LL).map(([lo, la]) => ll(lo, la)), ...LAKE.ports.map((q) => [q[0], q[1]])].map(([x, y]) => shoreSnap(x, y));
 const WP = Object.fromEntries(
   Object.entries({
     s1: [135.9, 35.035],
@@ -452,7 +465,8 @@ const portLamps = new THREE.InstancedMesh(
 );
 {
   const m = new THREE.Matrix4();
-  [...LAKE.ports, ...Object.values(PORT)].forEach(([x, y], i) => {
+  placeLog("港の灯り", "shore", PORT_SITES);
+  PORT_SITES.forEach(([x, y], i) => {
     m.makeTranslation(x * S, 5, y * S);
     portLamps.setMatrixAt(i, m);
   });

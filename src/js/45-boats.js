@@ -23,6 +23,7 @@ G.boats = (() => {
     pole.position.set(0.2, 0.32, 0);
     pole.rotation.x = Math.PI / 2;
     g0.add(pole);
+    mergeStatic(g0); // 田舟の部品を束ねてから複製する
     reedPts.forEach(([x, y], i) => {
       if (i % 97 !== 11 || tabune.length > 40) return;
       for (let k = 0; k < 6; k++) {
@@ -33,6 +34,7 @@ G.boats = (() => {
         if (inLake(xx, yy) && dp > 0.1 && dp < 1.5) {
           const g = g0.clone();
           g.position.set(xx * S, -0.12, yy * S);
+          placeLog("田舟", "water", [[xx, yy]]);
           g.rotation.y = a + 1.57 + (R() - 0.5) * 0.6;
           g.userData.ph = R() * 6.28;
           scene.add(g);
@@ -139,6 +141,7 @@ G.boats = (() => {
     mast.position.set(2.2, 10.3, 0);
     g.add(mast);
     g.visible = false;
+    mergeStatic(g); // 遊覧船の部品を材質ごとに束ねる
     scene.add(g);
     return { g, on: false, x: 0, z: 0, dx: 0, dz: 0, life: 0 };
   })();
@@ -161,11 +164,14 @@ G.boats = (() => {
     g0.add(hat);
     // 長い柄の鋤簾（じょれん）：水中へ斜めに差し込む
     const arm = new THREE.Group();
+    arm.name = "arm";
     arm.position.set(0, 1.2, 1.2);
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 7, 4).translate(0, -3.5, 0), new THREE.MeshLambertMaterial({ color: 0x9a8a62 }));
+    pole.userData.keep = true; // 動かす部品は束ねない
     arm.add(pole);
     arm.rotation.x = 0.9;
     g0.add(arm);
+    mergeStatic(g0); // 舟体・人・笠を束ねる（竿は動かすので残す）
     const [sx, sy] = ll(135.906, 35.003);
     for (let n = 0; n < 400 && shijimi.length < 5; n++) {
       const x = sx + (R() - 0.5) * 3000,
@@ -174,8 +180,9 @@ G.boats = (() => {
       if (inLake(x, y) && dp > 0.8 && dp < 4 && shijimi.every((b) => Math.hypot(b.position.x - x * S, b.position.z - y * S) > 60)) {
         const g = g0.clone();
         g.position.set(x * S, -0.1, y * S);
+        placeLog("シジミ舟", "water", [[x, y]]);
         g.rotation.y = R() * 6.28;
-        g.userData.arm = g.children[3];
+        g.userData.arm = g.getObjectByName("arm");
         g.userData.ph = R() * 6.28;
         scene.add(g);
         shijimi.push(g);

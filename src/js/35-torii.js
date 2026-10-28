@@ -43,6 +43,7 @@
   let ox_ = tx_;
   for (let k = 0; k < 80 && depth(ox_, ty_) < 1.2; k++) ox_ += 10;
   g.position.set(ox_ * S, 0, ty_ * S);
+  placeLog("白鬚神社の鳥居", "water", [[ox_, ty_]]);
   g.rotation.y = Math.PI / 2;
   g.traverse((o) => {
     if (o.isMesh) {
@@ -50,6 +51,7 @@
       o.receiveShadow = true;
     }
   });
+  mergeStatic(g); // 柱・笠木・貫を材質ごとに束ねる
   scene.add(g);
   const L_ = new THREE.PointLight(0xffc890, 0, 60, 1.6);
   L_.position.set(-12, 4, 0);

@@ -62,6 +62,7 @@ G.shore = (() => {
     eri.castShadow = false;
     scene.add(eri);
     G.eri = P; // 全体地図に点で描く
+    placeLog("えり", "water", P);
   }
   function update(dt, t, c, day, wxNow) {
     const cx = camera.position.x,

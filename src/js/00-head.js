@@ -137,3 +137,10 @@ function mergeStatic(root) {
   }
   return out.length;
 }
+
+// 置き場所の記録（点検用）：景物ごとに位置（実寸の x, y）と、守るべき決まりを残す。
+// 決まり：water＝湖の上、land＝陸か島の上、shore＝岸の近く（約250m以内）。tools/audit.py が数を調べる
+const PLACE_LOG = [];
+function placeLog(name, rule, pts) {
+  PLACE_LOG.push({ name, rule, pts });
+}

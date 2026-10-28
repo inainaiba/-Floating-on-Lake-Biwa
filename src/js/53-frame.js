@@ -9,7 +9,8 @@ function frame(now) {
   last = now;
   fpsN++;
   fpsT += dt;
-  if (fpsT > 3) {
+  if (fpsT > 3 && !G.prof) {
+    // 描画が重いときは解像度を下げる（確認用 ?debug のときは、撮影の条件をそろえるため変えない）
     const f = fpsN / fpsT;
     const old = resScale;
     if (f < 38) resScale = Math.max(0.5, resScale - 0.1);
@@ -87,7 +88,7 @@ if (Q.has("debug")) {
   G.S = S;
   G.prof = {};
   G.scene = scene;
-  G.dbg = { houses, inLake, inMain, isleH, terrainAt, distShore, landY };
+  G.dbg = { houses, inLake, inMain, isleH, terrainAt, distShore, landY, PLACE_LOG };
   window.__setH = (k, yw, pt, ds) => {
     const h = houses[k];
     B.x = h.x; B.y = h.y; camX = h.x * S; camZ = h.y * S;
@@ -130,6 +131,9 @@ if (Q.has("debug")) {
     G.lock = null;
     const [x, y] = ll(lo, la);
     B.x = x + dx; B.y = y + dy; B.vx = B.vy = 0; camX = B.x * S; camZ = B.y * S;
+    // 向き・回転・航跡の波紋も初期に戻す（前の場面の動きを持ち越さない）
+    B.yaw = 0; B.yawV = 0; B.kick = 0; B.goal = null;
+    G.resetTrail();
     yaw = yawT = yw; pitch = pt; dist = distT = ds;
   };
 }

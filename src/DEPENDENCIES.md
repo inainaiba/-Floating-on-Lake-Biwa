@@ -5,7 +5,7 @@
 部品は番号順に1つのモジュールとしてつながる。後ろの部品で作る名前は、前の部品の「読み込み時に動く処理」からは使えない（関数の中や毎フレームの処理からは使える）。
 
 ## 00-head.js
-- 作る：`G`、`GLSL_NOISE`、`LEAFTX`、`NEAR_TREE_MAT`、`mergeStatic`、`mkLeaf`
+- 作る：`G`、`GLSL_NOISE`、`LEAFTX`、`NEAR_TREE_MAT`、`PLACE_LOG`、`mergeStatic`、`mkLeaf`、`placeLog`
 - 使う：
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
   - 31-ui.js（後ろの部品・要注意）：`$`
@@ -39,7 +39,7 @@
   - 10-start.js（後ろの部品・関数なので可）：`rnd`
 
 ## 07-depth.js
-- 作る：`CELL`、`GH`、`GW`、`depth`、`depthG`、`distShore`、`pockets`、`segs`
+- 作る：`CELL`、`GH`、`GW`、`depth`、`depthG`、`distShore`、`pockets`、`segs`、`shoreSnap`
 - 使う：
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`bridgeY`、`inInner`、`inLake`、`inMain`、`maxX`、`maxY`、`minX`、`minY`
@@ -133,12 +133,14 @@
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
 ## 19-boats.js
-- 作る：`FISH`、`P`、`PN`、`PORT`、`REED_YEAR`、`ROUTES`、`ROUTE_OFF`、`WAKE_N`、`WP`、`W_SENSE`、`astar`、`avoid`、`boatMeshes`、`boatState`、`clearLine`、`fishPorts`、`flash`、`makeBoat`、`nearestIn`、`nextFlash`、`pPos`、`portLamps`、`precipGeo`、`rainMesh`、`routePos`、`sPos`、`smB`、`smP`、`smoke`、`smokeGeo`、`snowGeo`、`snowMesh`、`updateBoats`、`updatePrecip`、`wake`、`wakeBob`、`wakeI`、`wakeP`
+- 作る：`FISH`、`P`、`PN`、`PORT`、`PORT_LL`、`PORT_SITES`、`REED_YEAR`、`ROUTES`、`ROUTE_OFF`、`WAKE_N`、`WP`、`W_SENSE`、`astar`、`avoid`、`boatMeshes`、`boatState`、`clearLine`、`fishPorts`、`flash`、`makeBoat`、`nearestIn`、`nextFlash`、`pPos`、`portLamps`、`precipGeo`、`rainMesh`、`routePos`、`sPos`、`smB`、`smP`、`smoke`、`smokeGeo`、`snowGeo`、`snowMesh`、`updateBoats`、`updatePrecip`、`wake`、`wakeBob`、`wakeI`、`wakeP`
 - 使う：
+  - 00-head.js：`placeLog`
   - 01-settings.js：`LAKE`、`S`
+  - 03-coords.js：`ll`
   - 04-clock.js：`DAY`
   - 06-inner-lakes.js：`inLake`、`minX`、`minY`
-  - 07-depth.js：`CELL`、`GH`、`GW`、`depth`、`depthG`
+  - 07-depth.js：`CELL`、`GH`、`GW`、`depth`、`depthG`、`shoreSnap`
   - 10-start.js：`rnd`
   - 11-state.js：`B`
   - 12-renderer.js：`camera`、`scene`
@@ -150,7 +152,7 @@
 ## 20-villages-layout.js
 - 作る：`ROOF_COLS`、`VILLAGES`、`breaks`、`cvTex`、`groundH`、`houses`、`isLand`、`landY`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`terrainAt`、`wallG`、`wallM`、`wallTex`
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 05-lake.js：`outer`
@@ -199,18 +201,18 @@
 ## 24-shore-landmarks.js
 - 作る：`brk`、`shoreTrees`、`treeI`、`treeM`、`treeSeason`
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inInner`、`inLake`、`innerPolys`
-  - 07-depth.js：`depth`、`distShore`
+  - 07-depth.js：`depth`、`distShore`、`shoreSnap`
   - 10-start.js：`rnd`
   - 12-renderer.js：`QUALITY`、`scene`
   - 16-terrain.js：`VEX`
   - 17-trees.js：`cardForest`
   - 18-buildings.js：`inReeds`
-  - 19-boats.js：`PORT`
+  - 19-boats.js：`PORT_SITES`
   - 20-villages-layout.js：`ROOF_COLS`、`breaks`、`cvTex`、`houses`、`landY`、`roofHip`、`roofM`、`terrainAt`
   - 25-harbors.js（後ろの部品・関数なので可）：`treeGeom`
   - 26-forests.js（後ろの部品・関数なので可）：`treeFade`
@@ -218,13 +220,13 @@
 ## 25-harbors.js
 - 作る：`TREE_MAT`、`lumpy`、`treeGeom`
 - 使う：
-  - 00-head.js：`G`、`LEAFTX`、`NEAR_TREE_MAT`
+  - 00-head.js：`G`、`LEAFTX`、`NEAR_TREE_MAT`、`mergeStatic`、`placeLog`
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inLake`
   - 07-depth.js：`depth`
   - 10-start.js：`rnd`
   - 12-renderer.js：`scene`
-  - 19-boats.js：`PORT`
+  - 19-boats.js：`PORT_SITES`
 
 ## 26-forests.js
 - 作る：`treeFade`
@@ -316,7 +318,7 @@
 ## 35-torii.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`mergeStatic`、`placeLog`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 07-depth.js：`depth`
@@ -339,7 +341,7 @@
 ## 37-buoys.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 07-depth.js：`depth`
@@ -389,7 +391,7 @@
 ## 41-islands.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`mergeStatic`
+  - 00-head.js：`G`、`mergeStatic`、`placeLog`
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
   - 03-coords.js：`ll`
@@ -404,7 +406,7 @@
 ## 42-ambience.js
 - 作る：`idleLook`
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`mergeStatic`
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inLake`
   - 07-depth.js：`depth`
@@ -436,7 +438,7 @@
 ## 44-life.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
   - 05-lake.js：`outer`
@@ -452,7 +454,7 @@
 ## 45-boats.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`mergeStatic`、`placeLog`
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
   - 03-coords.js：`ll`
@@ -467,7 +469,7 @@
 ## 46-shore-life.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
   - 05-lake.js：`outer`
@@ -565,7 +567,7 @@
 ## 53-frame.js
 - 作る：`frame`
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`PLACE_LOG`
   - 01-settings.js：`Q`、`S`
   - 03-coords.js：`ll`
   - 04-clock.js：`MO`、`PH`、`clock`
@@ -644,6 +646,7 @@
 - `G.moments`：43-moments.js
 - `G.morning`：49-frame-sky-light.js
 - `G.netTx2`：18-buildings.js
+- `G.noRefl`：52-frame-render.js
 - `G.okishima`：41-islands.js
 - `G.paused`：53-frame.js
 - `G.plTx`：18-buildings.js
@@ -651,6 +654,7 @@
 - `G.prof`：53-frame.js
 - `G.rc`：52-frame-render.js
 - `G.resetSky`：49-frame-sky-light.js
+- `G.resetTrail`：50-frame-float.js
 - `G.rf`：52-frame-render.js
 - `G.rocks`：40-shore-rocks.js
 - `G.roofTex`：20-villages-layout.js

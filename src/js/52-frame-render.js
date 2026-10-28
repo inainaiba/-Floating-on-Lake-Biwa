@@ -118,6 +118,18 @@ c+=gr*(.022-.01*l);
     water.visible = false;
     skyDome.visible = false;
     for (const m of G.innerMeshes || []) m.visible = false;
+    // 映り込みには、小さなもの（石・草・生け垣・粒）を描かない。水面では見分けられず、描く量だけが増えるので
+    if (!G.noRefl) {
+      G.noRefl = [];
+      scene.traverse((o) => {
+        if (o.isPoints) return G.noRefl.push(o);
+        if (!o.isInstancedMesh) return;
+        if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+        if (o.geometry.boundingSphere.radius < 1.3) G.noRefl.push(o);
+      });
+    }
+    const nrVis = G.noRefl.map((o) => o.visible);
+    for (const o of G.noRefl) o.visible = false;
     const cc = renderer.getClearColor(new THREE.Color()),
       ca = renderer.getClearAlpha();
     renderer.setClearColor(0, 0);
@@ -131,6 +143,7 @@ c+=gr*(.022-.01*l);
     water.visible = vis[0];
     skyDome.visible = vis[1];
     (G.innerMeshes || []).forEach((m, i) => (m.visible = inner[i]));
+    G.noRefl.forEach((o, i) => (o.visible = nrVis[i]));
     waterU.uRefl.value = G.rf.texture;
     waterU.uWy.value = wy;
     waterU.uRes.value.set(w, h);

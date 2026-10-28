@@ -3,7 +3,7 @@
   const walls_ = [],
     boats_ = [],
     R = rnd(612);
-  for (const p of [...Object.values(PORT), ...LAKE.ports.map((q) => [q[0], q[1]])]) {
+  for (const p of PORT_SITES) {
     let a = 0,
       bd = -1;
     for (let k = 0; k < 6.28; k += 0.2) {
@@ -101,6 +101,7 @@
           a,
         ]);
       crane.push([ox - Math.cos(a) * 15, oy - Math.sin(a) * 15, a]);
+      placeLog("荷揚げの架台", "shore", [crane.at(-1)]);
     }
     const T = new THREE.InstancedMesh(
       new THREE.DodecahedronGeometry(1.4, 0),
@@ -159,6 +160,7 @@
       g.rotation.y = -a;
       cg.add(g);
     });
+    mergeStatic(cg); // 荷揚げの架台を束ねる
     scene.add(cg);
   }
   G.harb = walls_;

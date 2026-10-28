@@ -149,6 +149,7 @@ G.life = (() => {
       }
     }
     const ok = pts.reverse().filter(([x, y]) => !inLake(x, y)).slice(0, MOBILE ? 8000 : 22000);
+    placeLog("ススキ", "land", ok);
     const im = new THREE.InstancedMesh(gm, mat, Math.max(1, ok.length)),
       M2 = new THREE.Matrix4(),
       Q2 = new THREE.Quaternion(),
@@ -220,7 +221,7 @@ G.life = (() => {
       [135.972, 35.284, 900],
       [136.043, 35.334, 900],
       [136.082, 35.172, 800],
-    ].map(([lo, la, r]) => [...ll(lo, la), r]);
+    ].map(([lo, la, r]) => [...shoreSnap(...ll(lo, la)), r]); // 湖岸線の上の点に寄せる
     const P = [];
     for (let i = 0; i < outer.length - 1; i++) {
       const [x1, y1] = outer[i],
@@ -240,6 +241,7 @@ G.life = (() => {
         }
     }
     if (P.length) cardForest("pine", P, 11, 7, 60, 3500, QUALITY.treeShadow);
+    placeLog("松並木", "land", P);
   }
   function update(dt, t, c, day, wxNow) {
     const cx = camera.position.x,

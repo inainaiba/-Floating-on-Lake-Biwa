@@ -22,6 +22,24 @@ function distShore(x, y) {
   }
   return Math.sqrt(m);
 }
+// いちばん近い岸の点（湖岸・島の輪郭の上）
+function shoreSnap(x, y) {
+  let m = 1e12,
+    best = [x, y];
+  for (let i = 0; i < segs.length; i += 2) {
+    const a = segs[i],
+      b = segs[i + 1],
+      dx = b[0] - a[0],
+      dy = b[1] - a[1];
+    let t = ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy || 1);
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const px = a[0] + t * dx,
+      py = a[1] + t * dy,
+      d = (px - x) ** 2 + (py - y) ** 2;
+    if (d < m) (m = d), (best = [px, py]);
+  }
+  return best;
+}
 const pockets = [
   [...ll(136.1, 35.38), 9000, 22],
   [...ll(136.0, 35.24), 6000, 10],

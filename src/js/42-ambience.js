@@ -25,6 +25,7 @@ G.ambience = (() => {
     rod.rotation.z = -1.0;
     g.add(rod);
     g.visible = false;
+    mergeStatic(g); // 舟の部品を材質ごとに束ねる
     scene.add(g);
     return { g, a: R() * 6.28, r: 0, cx: 0, cz: 0, sp: 0.004 + R() * 0.004, on: false };
   };

@@ -139,6 +139,7 @@ scene.add(brk);
       }
     }
   }
+  placeLog("岸の松", "land", tr);
   cardForest(
     "pine",
     tr.map(([x, y, s], i) => [x, y, landY(x, y), s * 1.1, i * 0.71]),
@@ -211,7 +212,7 @@ scene.add(brk);
 }
 // 浮御堂（堅田）：湖に張り出した宝形造の小堂と橋
 {
-  const [x, y] = ll(135.917, 35.115),
+  const [x, y] = shoreSnap(...ll(135.917, 35.115)), // 堅田の岸の点
     g = new THREE.Group(),
     dk = new THREE.MeshLambertMaterial({ color: 0x5a5650 }),
     wd = new THREE.MeshLambertMaterial({ color: 0x7a5a3a });
@@ -246,7 +247,12 @@ scene.add(brk);
       ang = t;
     }
   }
-  g.position.set((x + Math.cos(ang) * 30) * S, 0, (y + Math.sin(ang) * 30) * S);
+  // 岸から沖へ、水の上に出てさらに30m（実寸）の所に建てる（橋で岸とつながる）
+  let off = 30;
+  while (off < 600 && !inLake(x + Math.cos(ang) * off, y + Math.sin(ang) * off)) off += 10;
+  off += 30;
+  g.position.set((x + Math.cos(ang) * off) * S, 0, (y + Math.sin(ang) * off) * S);
+  placeLog("浮御堂", "water", [[x + Math.cos(ang) * off, y + Math.sin(ang) * off]]);
   g.rotation.y = -ang - Math.PI / 2;
   scene.add(g);
 }
@@ -255,28 +261,33 @@ scene.add(brk);
 {
   const M = new THREE.Matrix4(),
     js = [];
-  for (const p of [...Object.values(PORT), ...LAKE.ports.map((q) => [q[0], q[1]])]) {
+  for (const p of PORT_SITES) {
     let a = 0,
       bd = -1;
     for (let k = 0; k < 6.28; k += 0.2) {
-      const d = depth(p[0] + Math.cos(k) * 250, p[1] + Math.sin(k) * 250);
+      const d = inLake(p[0] + Math.cos(k) * 80, p[1] + Math.sin(k) * 80) ? depth(p[0] + Math.cos(k) * 250, p[1] + Math.sin(k) * 250) : -1; // すぐ前が水で、沖が深い向き
       if (d > bd) {
         bd = d;
         a = k;
       }
     }
-    js.push([p[0], p[1], a]);
+    // 長さ：先が水の上に収まる長さまで縮める（狭い入江で向こう岸に届かないように）
+    let len = 40;
+    while (len > 8 && !inLake(p[0] + (Math.cos(a) * len) / S, p[1] + (Math.sin(a) * len) / S)) len -= 4;
+    js.push([p[0], p[1], a, len]);
+    placeLog("桟橋の根元", "shore", [[p[0], p[1]]]);
+    placeLog("桟橋の先", "water", [[p[0] + (Math.cos(a) * len) / S, p[1] + (Math.sin(a) * len) / S]]);
   }
   const J = new THREE.InstancedMesh(
     new THREE.BoxGeometry(1, 0.5, 2.2).translate(0.5, 0, 0),
     new THREE.MeshLambertMaterial({ color: 0x8a8478 }),
     js.length,
   );
-  js.forEach(([x, y, a], i) => {
+  js.forEach(([x, y, a, len], i) => {
     M.compose(
       new THREE.Vector3(x * S, 0.9, y * S),
       new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -a, 0)),
-      new THREE.Vector3(40, 1, 1),
+      new THREE.Vector3(len, 1, 1),
     );
     J.setMatrixAt(i, M);
   });

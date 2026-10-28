@@ -191,6 +191,7 @@ const houses = [],
       }
     }
     breaks.push({ x: p[0] + Math.cos(a) * 120, y: p[1] + Math.sin(a) * 120, rot: a + Math.PI / 2 });
+    placeLog("防波堤", "water", [[breaks.at(-1).x, breaks.at(-1).y]]);
   }
 }
 const ROOF_COLS = [0x3c4046, 0x474b51, 0x707479, 0x969ba0, 0x51606e, 0x7a4038, 0x4f7ea8, 0x5a9590];

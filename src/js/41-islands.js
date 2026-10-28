@@ -202,6 +202,7 @@ G.okishima = (() => {
         bg.add(t);
       }
       bg.position.set(wx, 0, wz);
+      placeLog("沖島の漁船", "water", [[wx / S, wz / S]]);
       bg.rotation.y = rot + (R() < 0.5 ? 0 : Math.PI);
       bg.userData.ph = R() * 6.28;
       g.add(bg);

@@ -31,6 +31,7 @@ G.buoys = (() => {
       x = x0 + Math.cos(a) * r;
       y = y0 + Math.sin(a) * r;
     }
+    placeLog("ブイ", "water", [[x, y]]);
     const g = new THREE.Group(),
       ball = new THREE.Mesh(new THREE.SphereGeometry(0.8, 24, 16), red);
     ball.position.y = 0.45;

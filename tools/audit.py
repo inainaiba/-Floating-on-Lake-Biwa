@@ -38,6 +38,10 @@ OVERLAP = r"""()=>{
  const K=G.kosei;if(K){let gaps=0,under=0;for(let i=0;i<K.pts.length-1;i++){const a=K.pts[i],b=K.pts[i+1];if(Math.hypot(b[0]-a[0],b[1]-a[1])*S<0.01)continue;
   for(const u of [.25,.5,.75]){const x=a[0]+(b[0]-a[0])*u,y=a[1]+(b[1]-a[1])*u,h=K.ht[i]+(K.ht[i+1]-K.ht[i])*u;if(D.landY(x,y)>h-1.2)under++;}}
   out.kosei=[K.pts.length,under,['桁が地面にめり込む所 '+under]];}
+ // 湖岸の景物：記録した位置が、それぞれの決まり（湖の上・陸・岸の近く）を守っているか
+ const ok={water:(x,y)=>D.inLake(x,y),land:(x,y)=>!D.inLake(x,y)||D.isleH(x,y)!==null,shore:(x,y)=>D.distShore(x,y)<250};
+ const agg={};for(const L of D.PLACE_LOG){const a=agg[L.name]||(agg[L.name]={n:0,bad:[],rule:L.rule});for(const p of L.pts){a.n++;if(!ok[L.rule](p[0],p[1]))a.bad.push([+p[0].toFixed(0),+p[1].toFixed(0)]);}}
+ for(const [k,a] of Object.entries(agg))out[k+'（'+({water:'湖の上',land:'陸',shore:'岸の近く'})[a.rule]+'）']=[a.n,a.bad.length,a.bad.slice(0,5)];
  return out;}"""
 
 

@@ -362,7 +362,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
     }
   }
   const H = new THREE.InstancedMesh(
-    lumpy(1, rnd(12), 2, 0.12).scale(1.8, 0.6, 0.7).translate(0, 0.5, 0),
+    lumpy(1, rnd(12), 1, 0.12).scale(1.8, 0.6, 0.7).translate(0, 0.5, 0), // 生け垣：細かさを1段落とす（数が多いので）
     NEAR_TREE_MAT(),
     hd.length,
   );
