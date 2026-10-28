@@ -1,5 +1,6 @@
 /* ---------- 毎フレーム④：カメラ（水平を保って建物を追う） ---------- */
 function updateCamera(dt, t, hx, hz) {
+  idleLook(dt);
   // カメラ：水平を保って建物を追う
   if (
     STATE === "lake" &&

@@ -70,6 +70,9 @@ function updateSkyLight(dt, t, c, W) {
       G.lt = (G.lt || 0) * 0.85;
       skyU.uLt.value = G.lt * (Math.random() < 0.7 ? 1 : 0.3);
     }
+    skyU.uStar.value = SEASON.stars[c.month] * (1 - wxNow.gray * 0.8);
+    skyU.uHzS.value = SEASON.springHaze[c.month] * Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3.5);
+    waterU.uLowSun.value = (c.month >= 8 && c.month <= 11 ? 1 : 0.4) * Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3) * (day > 0 ? 1 : 0) * (1 - wxNow.gray);
     skyU.uMp.value = (((Math.floor(c.t / DAY) % 8) + 8) % 8) / 8 + 0.0625;
     skyU.uCu.value = SEASON.cumulus[c.month] * (1 - wxNow.gray * 0.8) * (wxNow.rain > 0.3 ? 0 : 1);
     skyU.uDark.value = wxNow.dark;

@@ -14,6 +14,8 @@ const skyU = {
   uLt: { value: 0 },
   uLd: { value: new THREE.Vector3(1, 0, 0) },
   uRb: { value: 0 },
+  uStar: { value: 1 },
+  uHzS: { value: 0 },
 };
 const skyDome = new THREE.Mesh(
   new THREE.SphereGeometry(9000, 32, 16),
@@ -24,7 +26,7 @@ const skyDome = new THREE.Mesh(
     fog: false,
     vertexShader: `varying vec3 vD;void main(){vD=normalize(position);vec4 p=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*p;gl_Position.z=gl_Position.w*.9999;}`,
     fragmentShader: `uniform vec3 uTop,uHor,uSunD,uSunC2;
-uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb;
+uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS;
 uniform vec3 uLd;
 varying vec3 vD;
  float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);
@@ -55,7 +57,7 @@ float lit=uMp<.5?disc*(1.-occ*step(.03,abs(uMp-.5))):disc*(1.-occ*step(.03,abs(u
 float fullness=1.-abs(uMp-.5)*2.;
 c+=vec3(.95,.95,.88)*max(lit,disc*.06)*smoothstep(.05,-.1,uSunD.y);
 c+=vec3(.5,.55,.7)*pow(max(a0,0.),300.)*.25*fullness*smoothstep(.05,-.1,uSunD.y);
-}c+=uSunC2*(pow(sd,1500.)*3.5+pow(sd,40.)*.2+pow(sd,6.)*.08+pow(sd,14.)*.22*uCloud);
+}c+=uSunC2*(mix(pow(sd,1500.)*3.5,pow(sd,380.)*1.6,uHzS)+vec3(.35,-.15,-.3)*pow(sd,380.)*uHzS*.8+pow(sd,40.)*.2+pow(sd,6.)*.08+pow(sd,14.)*.22*uCloud);
 c+=vec3(1.,.55,.3)*pow(max(dot(normalize(vec3(vD.x,0.,vD.z)),normalize(vec3(uSunD.x,0.,uSunD.z))),0.),6.)*smoothstep(.35,0.,y)*smoothstep(.35,0.,abs(uSunD.y))*.6;
  vec2 cp=vD.xz/(vD.y+.08)*1.4+vec2(uT*.004,uT*.002);
 cp+=vec2(fbm(cp*.35+1.3),fbm(cp*.35+7.1))*1.1-.55;
@@ -106,7 +108,7 @@ c+=vec3(.55,.6,.8)*mw*.06*nt*(1.-uDark);
  c=mix(c,mix(vec3(.08,.14,.32),vec3(.01,.02,.08),pow(y,.6)),nt*.9);
 c+=mw*nt*vec3(.05,.055,.08)*(1.-uDark);
  c+=vec3(.22,.2,.28)*mw*nt*smoothstep(.05,.35,y)*(1.-cl*.8);
- c+=mix(vec3(1.,.85,.7),vec3(.75,.85,1.),fract(h1*37.+h2*11.))*st*3.2*smoothstep(.04,.3,y)*nt*(1.-cl*.7);
+ c+=mix(vec3(1.,.85,.7),vec3(.75,.85,1.),fract(h1*37.+h2*11.))*st*3.2*uStar*smoothstep(.04,.3,y)*nt*(1.-cl*.7);
  c+=vec3(1.,.62,.35)*exp(-y*9.)*nt*.45;
 c=mix(c,uHor,smoothstep(.2,0.,y)*.75);
 gl_FragColor=vec4(c,1.);

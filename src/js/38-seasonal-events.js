@@ -281,6 +281,27 @@ G.EV = (() => {
   duck.visible = false;
   duck.frustumCulled = false;
   g.add(duck);
+  // 泳ぐ鴨の後ろに残るV字の小さな波（3羽に1羽）
+  const vGeo = (() => {
+    const p = [],
+      L = 2.6,
+      w = 0.07,
+      sp = 0.42;
+    for (const s of [-1, 1]) {
+      const ex = -L * Math.cos(sp),
+        ez = s * L * Math.sin(sp),
+        nx = -ez / L,
+        nz = ex / L;
+      p.push(0, 0, 0, ex, 0, ez, ex + nx * w, 0, ez + nz * w, 0, 0, 0, ex + nx * w, 0, ez + nz * w, nx * w, 0, nz * w);
+    }
+    const gg = new THREE.BufferGeometry();
+    gg.setAttribute("position", new THREE.Float32BufferAttribute(p, 3));
+    return gg;
+  })();
+  const vw = new THREE.InstancedMesh(vGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide }), Math.ceil(ND / 3));
+  vw.visible = false;
+  vw.frustumCulled = false;
+  g.add(vw);
   let dAt = null;
   const dp = [];
   const up0 = update;
@@ -288,7 +309,7 @@ G.EV = (() => {
     up0(dt, c, day, t, W);
     sakI.visible = trI.visible = c.month === 3;
     const dk = (c.month >= 10 || c.month <= 1) && day > 0.05;
-    duck.visible = dk;
+    duck.visible = vw.visible = dk;
     if (dk) {
       const cx = camera.position.x,
         cz = camera.position.z;
@@ -323,12 +344,18 @@ G.EV = (() => {
           return;
         }
         const xx = x + Math.sin(t * 0.05 + ph) * 3,
-          zz = z + Math.cos(t * 0.04 + ph) * 3;
-        Qt.setFromAxisAngle(V.set(0, 1, 0), ph + t * 0.03);
-        M.compose(V.set(xx, waveH(xx, zz, t) + 0.08, zz), Qt, Sc.set(0.26, 0.12, 0.14));
+          zz = z + Math.cos(t * 0.04 + ph) * 3,
+          hd = Math.atan2(-Math.sin(t * 0.04 + ph) * 0.12, Math.cos(t * 0.05 + ph) * 0.15);
+        Qt.setFromAxisAngle(V.set(0, 1, 0), -hd);
+        const wy = waveH(xx, zz, t);
+        M.compose(V.set(xx, wy + 0.08, zz), Qt, Sc.set(0.26, 0.12, 0.14));
         duck.setMatrixAt(i, M);
+        if (i % 3 === 0) {
+          M.compose(V.set(xx, wy + 0.03, zz), Qt, Sc.set(1, 1, 1));
+          vw.setMatrixAt(i / 3, M);
+        }
       });
-      duck.instanceMatrix.needsUpdate = true;
+      duck.instanceMatrix.needsUpdate = vw.instanceMatrix.needsUpdate = true;
     }
   }
   return { update: update2, sites };

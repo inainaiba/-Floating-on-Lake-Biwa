@@ -86,6 +86,7 @@ const waterU = {
   uCalm: { value: 1 },
   uSD: { value: 0 },
   uMist: { value: 0 },
+  uLowSun: { value: 0 },
   uMp2: { value: 0.5 },
   uCSh: { value: 1 },
   uTr: { value: Array.from({ length: 40 }, () => new THREE.Vector4(0, 0, 99, 0)) },
@@ -145,7 +146,7 @@ uniform sampler2D uRefl;
 uniform vec2 uRes;
 uniform float uCalm;
 uniform float uSD;
-uniform float uMist;
+uniform float uMist;uniform float uLowSun;
 uniform float uMp2;
 uniform float uCSh;
 uniform mat4 uTM;
@@ -249,6 +250,7 @@ vec2 hso=uHouse.xy-normalize(uSun.xz+1e-4)*uHouse.z*.9/max(uSun.y,.25)*.6;
 float hs=smoothstep(uHouse.z*1.,uHouse.z*.4,length(vP.xz-hso));
 // 喫水の陰 × 波の斜面の陰影 × 建物の影 を一度に掛ける
 body*=(1.-.38*smoothstep(uHouse.z*1.15,uHouse.z*.3,ub))*(.9+.22*clamp(dot(N,normalize(vec3(uSun.x,1.2,uSun.z))),0.,1.))*(1.-hs*.28*clamp(uSun.y*3.,0.,1.));
+{float msh=0.;vec2 sdir=normalize(uSun.xz+1e-4);for(int k=1;k<=6;k++){vec2 q=(vP.xz+sdir*float(k)*55.-uBox.xy)/uBox.zw;float d2=texture2D(uDepth,q).r;msh=max(msh,step(d2,.002)*(1.-float(k)/7.));}body*=1.-msh*.4*uLowSun;}
 float wlf=exp(-pow((ub-uHouse.z*.92)/(.6+uHouse.z*.05),2.))*(.55+.45*sin(atan(vP.z-uHouse.y,vP.x-uHouse.x)*9.+uT2*1.3))*(.5+.5*fract(sin(dot(floor(vP0.xz*3.),vec2(3.7,8.1)))*91.));
 skyR=mix(skyR,vec3(.18,.26,.2),lowR*.65);
 // ── 泡：白波・岸の波打ち際・雨の波紋・遠くの白波 ──

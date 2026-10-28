@@ -391,7 +391,22 @@
   - 17-trees.js：`cardForest`
   - 20-villages-layout.js：`terrainAt`
 
-## 42-city.js
+## 42-ambience.js
+- 作る：`idleLook`
+- 使う：
+  - 00-head.js：`G`
+  - 01-settings.js：`S`
+  - 06-inner-lakes.js：`inLake`
+  - 07-depth.js：`depth`
+  - 10-start.js：`rnd`
+  - 11-state.js：`STATE`
+  - 12-renderer.js：`QUALITY`、`camera`、`scene`
+  - 14-water.js：`waveH`
+  - 16-terrain.js：`VEX`
+  - 20-villages-layout.js：`paddies`、`terrainAt`
+  - 29-controls.js：`isFar`、`yawT`
+
+## 43-city.js
 - 作る：（なし）
 - 使う：
   - 00-head.js：`G`
@@ -403,7 +418,7 @@
   - 16-terrain.js：`VEX`
   - 20-villages-layout.js：`cvTex`、`terrainAt`
 
-## 43-frame-move.js
+## 44-frame-move.js
 - 作る：`moveHouse`
 - 使う：
   - 00-head.js：`G`
@@ -417,7 +432,7 @@
   - 29-controls.js：`joyId`、`kIn`、`keys`、`yaw`
   - 31-ui.js：`restBtn`
 
-## 44-frame-sky-light.js
+## 45-frame-sky-light.js
 - 作る：`updateSkyLight`
 - 使う：
   - 00-head.js：`G`
@@ -439,7 +454,7 @@
   - 27-sky-day.js：`skyAt`
   - 29-controls.js：`isFar`
 
-## 45-frame-float.js
+## 46-frame-float.js
 - 作る：`floatHouse`
 - 使う：
   - 00-head.js：`G`
@@ -452,7 +467,7 @@
   - 18-buildings.js：`BP`、`house`
   - 19-boats.js：`WAKE_N`、`wakeBob`、`wakeI`、`wakeP`
 
-## 46-frame-camera.js
+## 47-frame-camera.js
 - 作る：`updateCamera`
 - 使う：
   - 00-head.js：`G`
@@ -465,8 +480,9 @@
   - 18-buildings.js：`house`
   - 20-villages-layout.js：`terrainAt`
   - 29-controls.js：`dist`、`distT`、`pitch`、`ptrs`、`yaw`、`yawT`
+  - 42-ambience.js：`idleLook`
 
-## 47-frame-render.js
+## 48-frame-render.js
 - 作る：`renderFrame`
 - 使う：
   - 00-head.js：`G`
@@ -475,7 +491,7 @@
   - 13-sky-dome.js：`skyDome`
   - 14-water.js：`water`、`waterU`
 
-## 48-frame.js
+## 49-frame.js
 - 作る：`frame`
 - 使う：
   - 00-head.js：`G`
@@ -495,15 +511,15 @@
   - 33-resize.js：`resize`
   - 34-frame-state.js：`fpsN`、`fpsT`、`last`、`trailT`
   - 36-fireworks.js：`FW`
-  - 43-frame-move.js：`moveHouse`
-  - 44-frame-sky-light.js：`updateSkyLight`
-  - 45-frame-float.js：`floatHouse`
-  - 46-frame-camera.js：`updateCamera`
-  - 47-frame-render.js：`renderFrame`
+  - 44-frame-move.js：`moveHouse`
+  - 45-frame-sky-light.js：`updateSkyLight`
+  - 46-frame-float.js：`floatHouse`
+  - 47-frame-camera.js：`updateCamera`
+  - 48-frame-render.js：`renderFrame`
 
 ## 共有の値（window.__xxx）
 
 - `__floating`：00-head.js
-- `__scene`：48-frame.js
-- `__set`：48-frame.js
-- `__setH`：48-frame.js
+- `__scene`：49-frame.js
+- `__set`：49-frame.js
+- `__setH`：49-frame.js
