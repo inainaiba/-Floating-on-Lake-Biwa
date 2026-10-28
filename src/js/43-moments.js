@@ -28,7 +28,23 @@ G.moments = (() => {
     geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
   geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
-  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 1.1, map: G.dotTex, vertexColors: true, transparent: true, opacity: 0.95, depthWrite: false }));
+  // 葉・花びらの形：水面に平たく寝た小さな面。光を受けるので、夜は暗い湖面に溶け込む
+  const leafG = (() => {
+    const sh = new THREE.Shape();
+    sh.moveTo(0, -0.5);
+    sh.quadraticCurveTo(0.42, -0.1, 0, 0.5);
+    sh.quadraticCurveTo(-0.42, -0.1, 0, -0.5);
+    return new THREE.ShapeGeometry(sh, 4).rotateX(-Math.PI / 2);
+  })();
+  const pts = new THREE.InstancedMesh(leafG, new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide }), NP);
+  const lM = new THREE.Matrix4(),
+    lQ = new THREE.Quaternion(),
+    lE = new THREE.Euler(),
+    lV = new THREE.Vector3(),
+    lS = new THREE.Vector3(),
+    lC = new THREE.Color(),
+    lRot = Float32Array.from({ length: NP }, () => Math.random() * 6.28),
+    lSz = Float32Array.from({ length: NP }, () => 0.25 + Math.random() * 0.25);
   pts.frustumCulled = false;
   pts.visible = false;
   scene.add(pts);
@@ -43,8 +59,9 @@ G.moments = (() => {
       pos[i * 3 + 2] = cz + Math.sin(a) * r;
       const c = kindNow === 3 ? [1, 0.78 + Math.random() * 0.12, 0.84 + Math.random() * 0.1] : [0.75 + Math.random() * 0.2, 0.32 + Math.random() * 0.3, 0.1];
       col.set(c, i * 3);
+      pts.setColorAt(i, lC.setRGB(c[0] * 0.8, c[1] * 0.8, c[2] * 0.8));
     }
-    geo.attributes.color.needsUpdate = true;
+    pts.instanceColor.needsUpdate = true;
   };
 
   // 刈ったヨシの束（12〜2月）：ヨシ原のそばの岸に立てかける
@@ -108,7 +125,8 @@ G.moments = (() => {
 
   function update(dt, t, c, W) {
     const kind = c.month === 3 ? 3 : c.month === 10 ? 10 : -1;
-    pts.visible = kind >= 0 && !isFar;
+    // 雪の日は出さない
+    pts.visible = kind >= 0 && !isFar && !(G.wxNow && G.wxNow.snow > 0.05);
     if (kind >= 0) {
       if (kind !== kindNow || Math.hypot(pos[0] - camera.position.x, pos[2] - camera.position.z) > 260) {
         kindNow = kind;
@@ -117,9 +135,13 @@ G.moments = (() => {
       for (let i = 0; i < NP; i++) {
         const x = (pos[i * 3] += W.x * dt * 0.06 + Math.sin(t * 0.3 + i) * dt * 0.05),
           z = (pos[i * 3 + 2] += W.y * dt * 0.06 + Math.cos(t * 0.27 + i) * dt * 0.05);
-        pos[i * 3 + 1] = inLake(x / S, z / S) ? waveH(x, z, t) + 0.04 : -50;
+        const y = (pos[i * 3 + 1] = inLake(x / S, z / S) ? waveH(x, z, t) + 0.04 : -50);
+        lE.set(Math.sin(t * 0.9 + i) * 0.08, lRot[i] + Math.sin(t * 0.1 + i) * 0.3, Math.cos(t * 0.8 + i) * 0.08);
+        const s = lSz[i] * (kindNow === 3 ? 0.7 : 1);
+        lM.compose(lV.set(x, y, z), lQ.setFromEuler(lE), lS.set(s, s, s * (kindNow === 3 ? 0.8 : 1.3)));
+        pts.setMatrixAt(i, lM);
       }
-      geo.attributes.position.needsUpdate = true;
+      pts.instanceMatrix.needsUpdate = true;
     }
     bI.visible = c.month === 11 || c.month <= 1;
     const dayNo = Math.floor(c.t / DAY);

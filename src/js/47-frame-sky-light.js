@@ -9,6 +9,7 @@ function updateSkyLight(dt, t, c, W) {
   });
   waterU.uT.value = t;
   const wxNow = W.wx;
+  G.wxNow = wxNow;
   const sunAngle = (c.phase - 0.25) * 2 * Math.PI,
     day = Math.max(0, Math.sin(sunAngle));
   const sunHeight = SEASON.sunHeight[c.month];
