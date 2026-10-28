@@ -274,7 +274,7 @@ float wlf=exp(-pow((ub-uHouse.z*.92)/(.6+uHouse.z*.05),2.))*(.55+.45*sin(atan(vP
 skyR=mix(skyR,vec3(.18,.26,.2),lowR*.65);
 skyR*=1.-cpw*.3;
 // 水面に映る雲：凪の日ほどはっきり
-{vec2 cp=R.xz/(max(R.y,0.)+.08)*1.4+vec2(uT2*.004,uT2*.002);cp+=vec2(wf_(cp*.35+1.3),wf_(cp*.35+7.1))*1.1-.55;float clr=smoothstep(.5-uCl*.3,1.,wf_(cp))*smoothstep(0.,.12,R.y);skyR=mix(skyR,mix(vec3(1.),uSky*1.3,.3)*(.4+.6*clamp(uSun.y*3.,0.,1.)),clr*.55*(.4+.6*uCalm));}
+{vec2 cp=R.xz/(max(R.y,0.)+.08)*1.4+vec2(uT2*.004,uT2*.002);cp+=vec2(wf_(cp*.35+1.3),wf_(cp*.35+7.1))*1.1-.55;float clr=smoothstep(.5-uCl*.3,1.,wf_(cp))*smoothstep(0.,.12,R.y);vec3 cc_=mix(mix(vec3(1.),uSky*1.3,.3),uSunC*1.15+vec3(.08,.05,.1),smoothstep(.35,.02,uSun.y))*(.35+.65*clamp(uSun.y*3.+.25,0.,1.));skyR=mix(skyR,cc_,clr*mix(.4,.85,uCalm));}
 // ── 泡：白波・岸の波打ち際・雨の波紋・遠くの白波 ──
 float wfoam=smoothstep(.12,.8,wf)*(.35+.65*fract(sin(dot(floor(vP0.xz*5.),vec2(7.,3.)))*91.));
 float foam=wfoam*.55+uFoam*smoothstep(.12,.3,1.-N.y)*.8+smoothstep(.06,.12,1.-N.y)*uFoam*.25;
@@ -340,6 +340,8 @@ skyR+=uFWc[i]*uFW[i].w*(pow(dd,180.)*1.6+pow(dd,30.)*.25);
  vec3 c=mix(body,skyR*mix(vec3(.9,.95,1.),vec3(1.05),graz),min(1.,fr*(1.05-uRainR*.3)+.03))+uSunC*sp+foam+uSunC*.04*pow(max(dot(-V,uSun),0.),2.);
 float ws_=smoothstep(.6,1.,sin(dot(vP0.xz,vec2(.011,.017))+sin(vP0.x*.004)*3.)*.5+.5)*.04*(1.-smoothstep(300.,1500.,dc));
 c+=ws_;
+// 写真のような落ち着いた湖の色：鮮やかすぎる青緑を少し鎮める
+c=mix(c,vec3(dot(c,vec3(.3,.59,.11)))*vec3(.92,.97,1.06),.2);
 // 真昼の水面に流れる細かな光の網目
 {vec2 cq=vP0.xz*.35;float ca=abs(sin(cq.x+sin(cq.y*1.3+uT2*.7)*1.6+uT2*.5)*sin(cq.y*1.1+sin(cq.x*1.4-uT2*.6)*1.5-uT2*.4));c+=uSunC*pow(1.-ca,10.)*.05*smoothstep(.45,.8,uSun.y)*smoothstep(250.,20.,dc)*(.4+.6*uCalm);}
 c*=.97+.06*sin(vP.x*.002+sin(vP.z*.0017)*2.);

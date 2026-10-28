@@ -87,7 +87,7 @@ float hgt=fbm(vec2(q.x*1.3,1.7))*.55+.12;
 float base=.035;
 float m_=smoothstep(.0,.04,vD.y-base)*smoothstep(hgt+.02,hgt-.06,vD.y)*smoothstep(.42,.62,fbm(q*vec2(1.6,1.)+5.));
 float sh_=smoothstep(base+.2,base,vD.y)*.55+(1.-smoothstep(.0,.5,fbm(q*2.3+2.)))*.3-smoothstep(.45,.9,fbm(q*1.7+vec2(uSunD.x,uSunD.z)*2.))*.2;
-vec3 cu=mix(vec3(1.),vec3(.72,.76,.84),sh_);
+vec3 cu=mix(vec3(1.),vec3(.52,.57,.68),sh_);
 {float hv=clamp((vD.y-base)/max(hgt-base,.02),0.,1.);float dusk=smoothstep(.35,.0,uSunD.y)*smoothstep(-.14,-.02,uSunD.y+.0)*1.;vec3 top=mix(vec3(1.,.55,.42),vec3(1.,.74,.5),smoothstep(-.05,.1,uSunD.y));vec3 bot=vec3(.62,.56,.74);vec3 dc=mix(bot,top,smoothstep(.15,.85,hv))*(1.+.25*pow(max(dot(normalize(vec3(vD.x,0.,vD.z)),normalize(vec3(uSunD.x,0.,uSunD.z))),0.),2.));cu=mix(cu,dc,max(dusk,smoothstep(.35,.0,uSunD.y)*.85));cu*=1.-uDark*.6;}
 c=mix(c,cu,m_*uCu);
 }
