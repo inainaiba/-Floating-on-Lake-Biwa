@@ -79,6 +79,7 @@ const LOOK = {
     floatingLeaves: true, // 水に浮かぶ花びら・落ち葉
     fireflies: true, // 蛍
     debussy: true, // 自然音によるドビュッシー的な響き（水滴・風の鳴り・光のきらめき）
+    debussyDrops: false, // その中の水滴の「ぽつ」という音（ふだんの水滴・動機・きらめき）
   },
   debussyVol: 0.6, // ドビュッシー的な響きの層の音量
   months: {

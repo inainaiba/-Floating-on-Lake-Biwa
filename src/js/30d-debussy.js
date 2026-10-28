@@ -80,6 +80,7 @@ G.deb = (() => {
   // ⑥ 水滴：小さな泡の共鳴（音の高さが少し上がる正弦波）と、ごく短い水音
   // at：鳴らす時刻（音の時計で指定。描画が重くても音の時刻はずれない）
   function drop(f, vol, pn, len = 0.22, at = 0) {
+    if (!LOOK.show.debussyDrops) return; // 水滴の音は止めている（LOOK.show.debussyDrops）
     const ac = S_.ac,
       t = Math.max(ac.currentTime + 0.06, at);
     const o = ac.createOscillator(),
