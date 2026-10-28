@@ -860,12 +860,13 @@ const MOBILE = matchMedia("(pointer:coarse)").matches;
 /* 画質の表：高（high）・中（mid）・低（low）で何を省くか。重いときはここを調整する
    ?q=high / mid / low で強制できる。中と低はスマホ（MOBILE）だと水面の網目をさらに粗くする */
 const QUALITY_TABLE = {
-  high: { resStart: 1, resMax: 1, pixelMax: 2.5, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], reflection: 1, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1, msaa: 4 },
-  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1, msaa: 2 },
-  low: { resStart: 0.6, resMax: 0.9, pixelMax: 2, shadowMap: 512, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 3500, fireworkBurst: 0.55, msaa: 0 },
+  high: { resStart: 1, resMax: 1, pixelMax: 2.5, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], reflection: 1, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1, msaa: 4, cloudSteps: 32 },
+  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1, msaa: 2, cloudSteps: 16 },
+  low: { resStart: 0.6, resMax: 0.9, pixelMax: 2, shadowMap: 512, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 3500, fireworkBurst: 0.55, msaa: 0, cloudSteps: 0 },
 };
 const QUALITY = { ...(QUALITY_TABLE[QUAL] || QUALITY_TABLE.mid) };
 if (!HQ && MOBILE) QUALITY.waterGrid = 180;
+if (!HQ && MOBILE) QUALITY.cloudSteps = 0; // スマートフォンは、立体的な雲をやめて動きの滑らかさを保つ
 let resScale = QUALITY.resStart;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.08;
@@ -955,7 +956,7 @@ c=mix(c,cc,cl*.85);
 {float edge=smoothstep(.0,.25,cl)*smoothstep(.75,.2,cl);c+=uSunC2*edge*(pow(sd,10.)*1.4+pow(sd,60.)*1.2)*smoothstep(-.02,.1,uSunD.y)*(1.-uDark*.8);}
 `;
 // 積雲（入道雲）
-const SKY_FS_CUMULUS = `if(uCu>.01){
+const SKY_FS_CUMULUS_FLAT = `if(uCu>.01){
 // 方位角は真西で +π と -π が入れ替わるので、そのあたりでは反対側の値と混ぜて継ぎ目を消す
 float az=atan(vD.z,vD.x),az2=az-sign(az)*6.2832,ww=smoothstep(2.5,3.1416,abs(az))*.5;
 vec2 q=vec2(az*3.2+uT*.0015,vD.y*9.),q2=vec2(az2*3.2+uT*.0015,vD.y*9.);
@@ -968,6 +969,40 @@ vec3 cu=mix(vec3(1.),vec3(.52,.57,.68),sh_);
 c=mix(c,cu,m_*uCu);
 }
 `;
+// 立体的な入道雲：空の中の雲の層（高さ1〜2.6）を視線に沿って何段か進み、雲の濃さと、
+// 太陽へ向けた数段で光の届き方を求めて重ねる。段数は画質で変える（QUALITY.cloudSteps）
+const SKY_FS_CUMULUS_VOL = `if(uCu>.01&&vD.y>.012){
+const int CS=${Math.max(1, QUALITY.cloudSteps)};
+float H0=1.,H1=2.6,t0=H0/vD.y,t1=min(H1/vD.y,t0+14.);
+float dtt=(t1-t0)/float(CS),T=1.;vec3 acc=vec3(0.);
+float cov=1.-uCu*.5;
+vec2 wnd=vec2(uT*.004,uT*.0015);
+vec3 sD=normalize(vec3(uSunD.x,max(uSunD.y,.03),uSunD.z));
+float jit=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));/* 画面の位置から決まる細かいずらし（縞を消し、ざらつきも目立たない） */
+vec3 sunCol=mix(vec3(1.,.62,.42),vec3(1.,.97,.92),smoothstep(.0,.35,uSunD.y))*smoothstep(-.12,.02,uSunD.y)*(1.-uDark*.7);
+for(int i=0;i<CS;i++){
+ float tt=t0+dtt*(float(i)+jit);vec3 p=vD*tt;
+ float hy=(p.y-H0)/(H1-H0);vec2 q=p.xz*.28+wnd;
+ q+=vec2(nzN(q*1.3+7.),nzN(q*1.3+1.7))*.35;
+ float top=.25+.75*nzN(q*.55+3.1);
+ // 高いところほど雲が細り、頭が丸くなる。底は平ら
+ float th=cov+hy*hy*.32+max(0.,hy-top)*1.5;
+ float d=smoothstep(th,th+.07,nzF4(q))*smoothstep(.0,.04,hy);
+ if(d<.01)continue;
+ d*=.75+.25*nzN(p.xz*2.3+vec2(hy*5.)+wnd*2.);
+ float ld=0.;for(int k=1;k<=3;k++){vec3 lp=p+sD*(float(k)*.22);ld+=smoothstep(cov,cov+.1,nzN(lp.xz*.28+wnd)*.92+.04)*step((lp.y-H0)/(H1-H0),.95);}
+ float Ls=exp(-ld*1.2),pw=1.-exp(-d*5.);
+ vec3 amb=mix(uHor*.85,uTop*1.15+.06,hy)*(1.-uDark*.6);
+ vec3 col=sunCol*Ls*pw*1.7+amb*(.3+.7*smoothstep(.0,.6,hy));/* 底は暗く、日の当たる頭は明るく */
+ float a=d*dtt*4.;acc+=T*col*a;T*=exp(-a);
+ if(T<.03)break;
+}
+float fade=smoothstep(.012,.07,vD.y)*smoothstep(70.,22.,t0);
+c=mix(c,acc/max(1.-T,1e-3),(1.-T)*fade*min(1.,uCu*1.6));
+}
+`;
+// 画質で、立体的な雲かこれまでの雲かを選ぶ
+const SKY_FS_CUMULUS = QUALITY.cloudSteps > 0 ? SKY_FS_CUMULUS_VOL : SKY_FS_CUMULUS_FLAT;
 // 光芒：反薄明光線・薄明光線・稲光
 const SKY_FS_RAYS = ` // 反薄明光線：夕方、太陽の反対側の空へ影の筋が集まる
  {float lw2=smoothstep(.18,.0,abs(uSunD.y+.02))*(1.-uDark)*clamp(uCu*1.5+uCloud*.6,0.,1.);if(lw2>.01){vec3 an_=-uSunD;vec3 sp2=normalize(vD-an_*dot(vD,an_));float a2=atan(dot(sp2,normalize(cross(an_,vec3(0.,1.,0.)))),sp2.y);float st2=smoothstep(.45,.75,nzF5(vec2(a2*7.,uT*.008)));c=mix(c,c*vec3(.8,.78,.88),st2*lw2*.35*smoothstep(.0,.08,vD.y)*smoothstep(.7,.1,vD.y));}}
