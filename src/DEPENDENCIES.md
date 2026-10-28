@@ -448,6 +448,7 @@
   - 01-settings.js：`S`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inInner`、`inLake`
+  - 07-depth.js：`distShore`
   - 10-start.js：`rnd`
   - 12-renderer.js：`scene`
   - 16-terrain.js：`VEX`

@@ -9270,12 +9270,15 @@ G.city = (() => {
         const off = 60 + k * 90 + R() * 60,
           x = x1 + (x2 - x1) * u + nx * off + (R() - 0.5) * 30,
           y = y1 + (y2 - y1) * u + ny * off + (R() - 0.5) * 30;
-        if (inLake(x, y) || inInner(x, y) || bl.some((b) => Math.hypot(b[0] - x, b[1] - y) < 38)) continue;
+        const bw = 14 + R() * 14,
+          bd = 10 + R() * 12;
+        // 建物の角まで陸に収まるように：岸からの距離が建物の半分の対角より大きい所だけ
+        if (inLake(x, y) || inInner(x, y) || distShore(x, y) * S < Math.hypot(bw, bd) * 0.5 + 3 || bl.some((b) => Math.hypot(b[0] - x, b[1] - y) < 38)) continue;
         bl.push([
           x,
           y,
-          14 + R() * 14,
-          10 + R() * 12,
+          bw,
+          bd,
           10 + R() * 26 * (k ? 1 : 0.6),
           Math.atan2(y2 - y1, x2 - x1),
         ]);
