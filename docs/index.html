@@ -163,6 +163,70 @@ float nzN(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(nzH(
 float nzF4(vec2 p){float s=0.,a=.5;for(int i=0;i<4;i++){s+=a*nzN(p);p*=2.03;a*=.5;}return s;}
 float nzF5(vec2 p){float s=0.,a=.5;for(int i=0;i<5;i++){s+=a*nzN(p);p*=2.03;a*=.5;}return s;}`;
 
+// 動かない部品の束ね：グループの中の普通のメッシュを、同じ材質ごとに1つのメッシュへまとめる。
+// 見た目は変えずに描画の回数を減らす（沖島の家並み・水上建築のように細かい部品の多いもの）。
+// 戻り値：まとめた後のメッシュの数
+function mergeStatic(root) {
+  root.updateMatrixWorld(true);
+  const inv = root.matrixWorld.clone().invert(),
+    byMat = new Map(),
+    olds = [];
+  root.traverse((o) => {
+    if (!o.isMesh || o.isInstancedMesh || Array.isArray(o.material) || o === root) return;
+    if (o.userData.keep) return; // 動かす部品は束ねない
+    olds.push(o);
+    const k = o.material;
+    if (!byMat.has(k)) byMat.set(k, []);
+    byMat.get(k).push(o);
+  });
+  for (const o of olds) o.parent.remove(o);
+  const out = [];
+  const M = new THREE.Matrix4(),
+    N = new THREE.Matrix3(),
+    v = new THREE.Vector3();
+  for (const [mat, list] of byMat) {
+    let n = 0;
+    const gs = list.map((o) => {
+      const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry;
+      n += g.attributes.position.count;
+      return [o, g];
+    });
+    const P = new Float32Array(n * 3),
+      Nn = new Float32Array(n * 3),
+      U = new Float32Array(n * 2);
+    let i = 0,
+      noShadow = false;
+    for (const [o, g] of gs) {
+      M.multiplyMatrices(inv, o.matrixWorld);
+      N.getNormalMatrix(M);
+      const p = g.attributes.position,
+        nm = g.attributes.normal,
+        uv = g.attributes.uv;
+      for (let k = 0; k < p.count; k++, i++) {
+        v.fromBufferAttribute(p, k).applyMatrix4(M);
+        P.set([v.x, v.y, v.z], i * 3);
+        if (nm) {
+          v.fromBufferAttribute(nm, k).applyMatrix3(N).normalize();
+          Nn.set([v.x, v.y, v.z], i * 3);
+        }
+        if (uv) U.set([uv.getX(k), uv.getY(k)], i * 2);
+      }
+      if (o.userData.noShadow) noShadow = true;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(P, 3));
+    geo.setAttribute("normal", new THREE.BufferAttribute(Nn, 3));
+    geo.setAttribute("uv", new THREE.BufferAttribute(U, 2));
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = !noShadow;
+    m.receiveShadow = true;
+    m.userData.noShadow = noShadow;
+    root.add(m);
+    out.push(m);
+  }
+  return out.length;
+}
+
 // ==== 01-settings.js ====
 /* ---------- 設定（試作用の調整値：URLの ?scale=10&speed=20 で変更） ---------- */
 const Q = new URLSearchParams(location.search);
@@ -839,11 +903,14 @@ c=mix(c,cc,cl*.85);
 {float edge=smoothstep(.0,.25,cl)*smoothstep(.75,.2,cl);c+=uSunC2*edge*(pow(sd,10.)*1.4+pow(sd,60.)*1.2)*smoothstep(-.02,.1,uSunD.y)*(1.-uDark*.8);}
 `;
 // 積雲（入道雲）
-const SKY_FS_CUMULUS = `if(uCu>.01){vec2 q=vec2(atan(vD.z,vD.x)*3.2+uT*.0015,vD.y*9.);
-float hgt=nzF5(vec2(q.x*1.3,1.7))*.55+.12;
+const SKY_FS_CUMULUS = `if(uCu>.01){
+// 方位角は真西で +π と -π が入れ替わるので、そのあたりでは反対側の値と混ぜて継ぎ目を消す
+float az=atan(vD.z,vD.x),az2=az-sign(az)*6.2832,ww=smoothstep(2.5,3.1416,abs(az))*.5;
+vec2 q=vec2(az*3.2+uT*.0015,vD.y*9.),q2=vec2(az2*3.2+uT*.0015,vD.y*9.);
+float hgt=mix(nzF5(vec2(q.x*1.3,1.7)),nzF5(vec2(q2.x*1.3,1.7)),ww)*.55+.12;
 float base=.035;
-float m_=smoothstep(.0,.04,vD.y-base)*smoothstep(hgt+.02,hgt-.06,vD.y)*smoothstep(.42,.62,nzF5(q*vec2(1.6,1.)+5.));
-float sh_=smoothstep(base+.2,base,vD.y)*.55+(1.-smoothstep(.0,.5,nzF5(q*2.3+2.)))*.3-smoothstep(.45,.9,nzF5(q*1.7+vec2(uSunD.x,uSunD.z)*2.))*.2;
+float m_=smoothstep(.0,.04,vD.y-base)*smoothstep(hgt+.02,hgt-.06,vD.y)*smoothstep(.42,.62,mix(nzF5(q*vec2(1.6,1.)+5.),nzF5(q2*vec2(1.6,1.)+5.),ww));
+float sh_=smoothstep(base+.2,base,vD.y)*.55+(1.-smoothstep(.0,.5,mix(nzF5(q*2.3+2.),nzF5(q2*2.3+2.),ww)))*.3-smoothstep(.45,.9,mix(nzF5(q*1.7+vec2(uSunD.x,uSunD.z)*2.),nzF5(q2*1.7+vec2(uSunD.x,uSunD.z)*2.),ww))*.2;
 vec3 cu=mix(vec3(1.),vec3(.52,.57,.68),sh_);
 {float hv=clamp((vD.y-base)/max(hgt-base,.02),0.,1.);float dusk=smoothstep(.35,.0,uSunD.y)*smoothstep(-.14,-.02,uSunD.y+.0)*1.;vec3 top=mix(vec3(1.,.55,.42),vec3(1.,.74,.5),smoothstep(-.05,.1,uSunD.y));vec3 bot=vec3(.62,.56,.74);vec3 dc=mix(bot,top,smoothstep(.15,.85,hv))*(1.+.25*pow(max(dot(normalize(vec3(vD.x,0.,vD.z)),normalize(vec3(uSunD.x,0.,uSunD.z))),0.),2.));cu=mix(cu,dc,max(dusk,smoothstep(.35,.0,uSunD.y)*.85));cu*=1.-uDark*.6;}
 c=mix(c,cu,m_*uCu);
@@ -883,8 +950,8 @@ c=mix(c,ly*mix(1.,.8,smoothstep(.0,.3,y)),lw*.45*smoothstep(.45,.0,y));
  c+=vec3(.1,.1,.09)*exp(-y*16.)*smoothstep(-.1,.2,uSunD.y)*(1.-uDark);
 `;
 // 雪雲・雨の柱
-const SKY_FS_WEATHER = ` if(uSnowCap>.01){float west=smoothstep(-.15,-.75,vD.x);float sc=smoothstep(.45,.7,nzF5(vec2(atan(vD.z,vD.x)*5.+uT*.003,vD.y*14.)))*smoothstep(.03,.07,vD.y)*smoothstep(.26,.1,vD.y);c=mix(c,vec3(.58,.61,.66)*(1.-uDark*.7),clamp(sc*west*1.8,0.,.95)*uSnowCap);c=mix(c,vec3(.68,.7,.74)*(1.-uDark*.7),uSnowCap*.35*smoothstep(.5,.0,y));}
- if(uShaft>.01){float az=atan(vD.z,vD.x);float sh_=smoothstep(.55,.85,nzF5(vec2(az*2.2,uT*.002)))*smoothstep(.62,.9,nzF5(vec2(az*9.,vD.y*3.+uT*.01)))*smoothstep(.0,.03,vD.y)*smoothstep(.2,.05,vD.y);c=mix(c,vec3(.48,.52,.58)*(1.-uDark*.5),sh_*uShaft*.7);}
+const SKY_FS_WEATHER = ` if(uSnowCap>.01){float west=smoothstep(-.15,-.75,vD.x);float az=atan(vD.z,vD.x),az2=az-sign(az)*6.2832,ww=smoothstep(2.5,3.1416,abs(az))*.5;float sc=smoothstep(.45,.7,mix(nzF5(vec2(az*5.+uT*.003,vD.y*14.)),nzF5(vec2(az2*5.+uT*.003,vD.y*14.)),ww))*smoothstep(.03,.07,vD.y)*smoothstep(.26,.1,vD.y);c=mix(c,vec3(.58,.61,.66)*(1.-uDark*.7),clamp(sc*west*1.8,0.,.95)*uSnowCap);c=mix(c,vec3(.68,.7,.74)*(1.-uDark*.7),uSnowCap*.35*smoothstep(.5,.0,y));}
+ if(uShaft>.01){float az=atan(vD.z,vD.x),az2=az-sign(az)*6.2832,ww=smoothstep(2.5,3.1416,abs(az))*.5;float sh_=smoothstep(.55,.85,mix(nzF5(vec2(az*2.2,uT*.002)),nzF5(vec2(az2*2.2,uT*.002)),ww))*smoothstep(.62,.9,mix(nzF5(vec2(az*9.,vD.y*3.+uT*.01)),nzF5(vec2(az2*9.,vD.y*3.+uT*.01)),ww))*smoothstep(.0,.03,vD.y)*smoothstep(.2,.05,vD.y);c=mix(c,vec3(.48,.52,.58)*(1.-uDark*.5),sh_*uShaft*.7);}
 `;
 // 飛行機雲・金星
 const SKY_FS_OBJECTS = ` if(uCon.w>.01){float az=uCon.x,el=uCon.y;vec3 a=normalize(vec3(cos(az)*cos(el),sin(el),sin(az)*cos(el)));vec3 b=normalize(vec3(cos(az+1.1)*cos(el+.08),sin(el+.08),sin(az+1.1)*cos(el+.08)));vec3 hd=normalize(mix(a,b,uCon.z));vec3 n2=normalize(cross(a,b));float dl=abs(dot(vD,n2));float on_=dot(cross(a,vD),n2)>0.&&dot(cross(vD,hd),n2)>0.?1.:0.;float age=1.-clamp(acos(clamp(dot(vD,hd),-1.,1.))/(1.2*uCon.z+.001),0.,1.);float wid=mix(.0012,.006,1.-age);c=mix(c,vec3(1.),smoothstep(wid,0.,dl)*on_*(.25+.55*age)*uCon.w*(1.-uDark));}
@@ -3033,6 +3100,7 @@ function buildHouse() {
   glassMats = [m.glass, m.glow];
   G.glowMat = m.glow;
   const g = Bd.make(m);
+  mergeStatic(g); // 細い部材を材質ごとに束ねて、描画の回数を減らす
   {
     const bb = new THREE.Box3().setFromObject(g),
       sz = bb.getSize(new THREE.Vector3());
@@ -3824,7 +3892,7 @@ const houses = [],
       if (R() < 0.07) continue;
       const north = (y - minY) / (maxY - minY) < 0.45,
         south = (y - minY) / (maxY - minY) > 0.75;
-      houses.push({
+      const hs = {
         x,
         y,
         north,
@@ -3835,7 +3903,16 @@ const houses = [],
         h: 3.1 + (R() < (south ? 0.65 : north ? 0.25 : 0.4) ? 2.7 : 0) + R() * 0.5,
         roof: R(),
         ground: th,
-      });
+      };
+      // 家の四隅（と少しの余白）まで陸に収まるときだけ建てる（内湖や湖にはみ出さない）
+      {
+        const c = Math.cos(hs.rot),
+          sn = Math.sin(hs.rot),
+          hw = (hs.w / 2 + 1) / S,
+          hd = (hs.d / 2 + 1) / S;
+        if ([[-1, -1], [1, -1], [1, 1], [-1, 1]].some(([u, v]) => inLake(x + u * hw * c - v * hd * sn, y + u * hw * sn + v * hd * c))) continue;
+      }
+      houses.push(hs);
     }
     // 岸沿いの道
     for (let k = -8; k < 8; k++) {
@@ -4853,40 +4930,85 @@ scene.add(brk);
     [136.04, 35.42],
     [136.07, 35.47],
   ].map((p) => ll(...p));
-  const deck = [],
-    piers = [];
+  // 線路を約120mごとの点にする。湖の上に出た点は、いちばん近い陸へ寄せる
+  const pts = [];
   for (let i = 0; i < L.length - 1; i++) {
     const [a, b] = [L[i], L[i + 1]],
       len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    for (let s = 0; s < len; s += 250) {
+    for (let s = 0; s < len; s += 120) {
       const u = s / len;
       let x = a[0] + (b[0] - a[0]) * u,
         y = a[1] + (b[1] - a[1]) * u;
-      if (inLake(x, y)) continue;
-      const h = terrainAt(x, y);
-      deck.push([x, y, Math.atan2(b[1] - a[1], b[0] - a[0]), h]);
+      if (inLake(x, y)) {
+        let best = null;
+        for (let r = 60; r <= 2400 && !best; r += 60)
+          for (let k = 0; k < 24 && !best; k++) {
+            const q = (k / 24) * Math.PI * 2,
+              px = x + Math.cos(q) * r,
+              py = y + Math.sin(q) * r;
+            if (!inLake(px, py) && distShore(px, py) > 80) best = [px, py];
+          }
+        if (!best) continue;
+        [x, y] = best;
+      }
+      pts.push([x, y]);
     }
   }
+  // 高さ：地面の高さ＋約9。前後でならして、なめらかに上り下りする
+  const gh = pts.map(([x, y]) => landY(x, y));
+  const top = gh.map((_, i) => {
+    let m = -1e9;
+    for (let k = -3; k <= 3; k++) m = Math.max(m, gh[Math.min(gh.length - 1, Math.max(0, i + k))]);
+    return m + 9;
+  });
+  const ht = top.map((_, i) => {
+    let s = 0,
+      n = 0;
+    for (let k = -4; k <= 4; k++) {
+      const j = Math.min(top.length - 1, Math.max(0, i + k));
+      s += top[j];
+      n++;
+    }
+    return Math.max(s / n, gh[i] + 6);
+  });
+  // 橋桁：隣り合う点どうしを、すき間なくつなぐ（向きと傾きを合わせる）
   const D = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(25.5, 0.9, 4),
+      new THREE.BoxGeometry(1, 0.9, 4),
       new THREE.MeshLambertMaterial({ color: 0xa9aaa5 }),
-      deck.length,
+      Math.max(1, pts.length - 1),
     ),
     Pm = new THREE.InstancedMesh(
       new THREE.BoxGeometry(1.4, 1, 2.6).translate(0, 0.5, 0),
       new THREE.MeshLambertMaterial({ color: 0xb0b0aa }),
-      deck.length,
+      Math.max(1, pts.length),
     );
-  const M = new THREE.Matrix4();
-  deck.forEach(([x, y, r, h], i) => {
-    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -r, 0)),
-      gy = 0.6 + h * S * VEX;
-    M.compose(new THREE.Vector3(x * S, gy + 9, y * S), q, new THREE.Vector3(1, 1, 1));
-    D.setMatrixAt(i, M);
-    M.compose(new THREE.Vector3(x * S, gy, y * S), q, new THREE.Vector3(1, 9, 1));
-    Pm.setMatrixAt(i, M);
+  const M = new THREE.Matrix4(),
+    A = new THREE.Vector3(),
+    Bv = new THREE.Vector3(),
+    Q = new THREE.Quaternion(),
+    X = new THREE.Vector3(1, 0, 0);
+  let nd = 0,
+    np = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    A.set(pts[i][0] * S, ht[i], pts[i][1] * S);
+    Bv.set(pts[i + 1][0] * S, ht[i + 1], pts[i + 1][1] * S);
+    const len = A.distanceTo(Bv);
+    if (len < 0.01) continue; // 湖を避けて寄せた点が重なった所（水の上を渡る所も、そのまま橋桁でつなぐ）
+    Q.setFromUnitVectors(X, Bv.clone().sub(A).normalize());
+    M.compose(A.clone().add(Bv).multiplyScalar(0.5), Q, new THREE.Vector3(len + 0.3, 1, 1));
+    D.setMatrixAt(nd++, M);
+  }
+  // 橋脚：陸の上だけ、地面から桁の下まで
+  pts.forEach(([x, y], i) => {
+    if (inLake(x, y) || i % 2) return;
+    const yaw = i < pts.length - 1 ? Math.atan2(pts[i + 1][1] - y, pts[i + 1][0] - x) : 0;
+    M.compose(new THREE.Vector3(x * S, gh[i] - 0.5, y * S), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -yaw, 0)), new THREE.Vector3(1, ht[i] - gh[i], 1));
+    Pm.setMatrixAt(np++, M);
   });
+  D.count = nd;
+  Pm.count = np;
   scene.add(D, Pm);
+  G.kosei = { pts, ht, gh }; // 確認用（高架のつながりの検査）
 }
 // 岸の松並木と砂浜
 {
@@ -8042,6 +8164,7 @@ G.kaizu = (() => {
     ri.setColorAt(i, c.setRGB(0.42 + R() * 0.14, 0.41 + R() * 0.13, 0.39 + R() * 0.11));
   });
   g.add(ri);
+  mergeStatic(g); // 石垣の部品を材質ごとに束ねる
   return { g, n: rocks.length };
 })();
 
@@ -8219,6 +8342,7 @@ G.okishima = (() => {
     return o;
   };
   let houses = 0;
+  const foot = []; // 家の足元（確認用：中心・幅・奥行き・向き、作品内の座標）
   for (const s of segs) {
     const tx = (s.x2 - s.x1) / s.L,
       ty = (s.y2 - s.y1) / s.L,
@@ -8245,6 +8369,8 @@ G.okishima = (() => {
           floors = R() < 0.75 ? 2 : 1,
           h = floors * 2.9,
           wm = wallMs[Math.floor(R() * wallMs.length)];
+        // 家の四隅まで島の上に収まるときだけ建てる
+        if ([[-1, -1], [1, -1], [1, 1], [-1, 1]].some(([u, v]) => isleH((wx + (u * w * 0.5 * Math.cos(rot) - v * d * 0.5 * Math.sin(rot)) * 1.05) / S, (wz + (-u * w * 0.5 * Math.sin(rot) - v * d * 0.5 * Math.cos(rot)) * 1.05) / S) === null)) continue;
         // 斜面に建つので、石の基礎で地面まで下ろす
         add(new THREE.Mesh(new THREE.BoxGeometry(w, 4, d), baseM), wx, gy - 2, wz, rot);
         add(new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wm), wx, gy + h / 2, wz, rot);
@@ -8255,6 +8381,7 @@ G.okishima = (() => {
         add(new THREE.Mesh(new THREE.BoxGeometry(w, 0.12, 1.1), roofM), wx + s.nx * (d / 2 + 0.5), gy + 2.6, wz + s.ny * (d / 2 + 0.5), rot);
         // 瓦屋根（切妻、棟は岸と平行）
         add(gable(w + 0.9, d + 1.2, 1.7 + R() * 0.5, roofM), wx, gy + h, wz, rot);
+        foot.push([wx, wz, w, d, rot]);
         houses++;
       }
     // 電柱：道に沿って
@@ -8306,7 +8433,8 @@ G.okishima = (() => {
       bz = s.y1 * S + s.ny * 22 + ty * 20;
     add(new THREE.Mesh(new THREE.BoxGeometry(60, 2.2, 3), baseM), bx, 0.1, bz, -Math.atan2(ty, tx));
   }
-  return { g, houses };
+  mergeStatic(g); // 家並み・護岸・漁船・電柱を材質ごとに束ねる
+  return { g, houses, foot };
 })();
 
 // ==== 42-ambience.js ====
@@ -9296,6 +9424,7 @@ G.city = (() => {
   I.receiveShadow = false;
   I.material.emissive = new THREE.Color(0x3a3834);
   scene.add(I);
+  I.userData.bl = bl; // 確認用（はみ出しの検査）
   return I;
 })();
 
@@ -10103,6 +10232,12 @@ function frame(now) {
     fpsN = 0;
     fpsT = 0;
   }
+  const p0 = performance.now(),
+    prof = G.prof;
+  if (prof) {
+    renderer.info.autoReset = false; // 確認用：1フレーム分（映り込み・本描画・仕上げ）を合計して数える
+    renderer.info.reset();
+  } // 確認用：処理時間の内訳（?debug のときだけ G.prof がある）
   const c = clock(),
     W = wind(c),
     t = now / 1000;
@@ -10130,7 +10265,9 @@ function frame(now) {
     return;
   }
 
+  const pA = performance.now();
   const { wxNow, day, night, sunAngle } = updateSkyLight(dt, t, c, W);
+  const pB = performance.now();
   const { hx, hz } = floatHouse(dt, t, W, day);
   updateBoats(boats, dt, t, night);
   if (FW) FW.update(dt, c, day);
@@ -10142,7 +10279,18 @@ function frame(now) {
   if (G.boats) G.boats.update(dt, t, c, day, wxNow);
   if (G.shore) G.shore.update(dt, t, c, day, wxNow);
   updateCamera(dt, t, hx, hz);
+  const pC = performance.now();
   renderFrame(c, W, wxNow, day, sunAngle);
+  if (prof) {
+    const pD = performance.now(),
+      add = (k, v) => (prof[k] = (prof[k] || 0) * 0.9 + v * 0.1);
+    add("move", pA - p0);
+    add("skyLight", pB - pA);
+    add("elements", pC - pB);
+    add("render", pD - pC);
+    prof.calls = renderer.info.render.calls;
+    prof.triangles = renderer.info.render.triangles;
+  }
   requestAnimationFrame(frame);
 }
 // 確認用：URLに ?debug を付けたときだけ、撮影スクリプトから視点を動かせるようにする
@@ -10151,6 +10299,9 @@ if (Q.has("debug")) {
   G.camera = camera;
   G.groundH = groundH;
   G.S = S;
+  G.prof = {};
+  G.scene = scene;
+  G.dbg = { houses, inLake, inMain, isleH, terrainAt, distShore, landY };
   window.__setH = (k, yw, pt, ds) => {
     const h = houses[k];
     B.x = h.x; B.y = h.y; camX = h.x * S; camZ = h.y * S;

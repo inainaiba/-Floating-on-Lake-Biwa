@@ -74,11 +74,14 @@ c=mix(c,cc,cl*.85);
 {float edge=smoothstep(.0,.25,cl)*smoothstep(.75,.2,cl);c+=uSunC2*edge*(pow(sd,10.)*1.4+pow(sd,60.)*1.2)*smoothstep(-.02,.1,uSunD.y)*(1.-uDark*.8);}
 `;
 // 積雲（入道雲）
-const SKY_FS_CUMULUS = `if(uCu>.01){vec2 q=vec2(atan(vD.z,vD.x)*3.2+uT*.0015,vD.y*9.);
-float hgt=nzF5(vec2(q.x*1.3,1.7))*.55+.12;
+const SKY_FS_CUMULUS = `if(uCu>.01){
+// 方位角は真西で +π と -π が入れ替わるので、そのあたりでは反対側の値と混ぜて継ぎ目を消す
+float az=atan(vD.z,vD.x),az2=az-sign(az)*6.2832,ww=smoothstep(2.5,3.1416,abs(az))*.5;
+vec2 q=vec2(az*3.2+uT*.0015,vD.y*9.),q2=vec2(az2*3.2+uT*.0015,vD.y*9.);
+float hgt=mix(nzF5(vec2(q.x*1.3,1.7)),nzF5(vec2(q2.x*1.3,1.7)),ww)*.55+.12;
 float base=.035;
-float m_=smoothstep(.0,.04,vD.y-base)*smoothstep(hgt+.02,hgt-.06,vD.y)*smoothstep(.42,.62,nzF5(q*vec2(1.6,1.)+5.));
-float sh_=smoothstep(base+.2,base,vD.y)*.55+(1.-smoothstep(.0,.5,nzF5(q*2.3+2.)))*.3-smoothstep(.45,.9,nzF5(q*1.7+vec2(uSunD.x,uSunD.z)*2.))*.2;
+float m_=smoothstep(.0,.04,vD.y-base)*smoothstep(hgt+.02,hgt-.06,vD.y)*smoothstep(.42,.62,mix(nzF5(q*vec2(1.6,1.)+5.),nzF5(q2*vec2(1.6,1.)+5.),ww));
+float sh_=smoothstep(base+.2,base,vD.y)*.55+(1.-smoothstep(.0,.5,mix(nzF5(q*2.3+2.),nzF5(q2*2.3+2.),ww)))*.3-smoothstep(.45,.9,mix(nzF5(q*1.7+vec2(uSunD.x,uSunD.z)*2.),nzF5(q2*1.7+vec2(uSunD.x,uSunD.z)*2.),ww))*.2;
 vec3 cu=mix(vec3(1.),vec3(.52,.57,.68),sh_);
 {float hv=clamp((vD.y-base)/max(hgt-base,.02),0.,1.);float dusk=smoothstep(.35,.0,uSunD.y)*smoothstep(-.14,-.02,uSunD.y+.0)*1.;vec3 top=mix(vec3(1.,.55,.42),vec3(1.,.74,.5),smoothstep(-.05,.1,uSunD.y));vec3 bot=vec3(.62,.56,.74);vec3 dc=mix(bot,top,smoothstep(.15,.85,hv))*(1.+.25*pow(max(dot(normalize(vec3(vD.x,0.,vD.z)),normalize(vec3(uSunD.x,0.,uSunD.z))),0.),2.));cu=mix(cu,dc,max(dusk,smoothstep(.35,.0,uSunD.y)*.85));cu*=1.-uDark*.6;}
 c=mix(c,cu,m_*uCu);
@@ -118,8 +121,8 @@ c=mix(c,ly*mix(1.,.8,smoothstep(.0,.3,y)),lw*.45*smoothstep(.45,.0,y));
  c+=vec3(.1,.1,.09)*exp(-y*16.)*smoothstep(-.1,.2,uSunD.y)*(1.-uDark);
 `;
 // 雪雲・雨の柱
-const SKY_FS_WEATHER = ` if(uSnowCap>.01){float west=smoothstep(-.15,-.75,vD.x);float sc=smoothstep(.45,.7,nzF5(vec2(atan(vD.z,vD.x)*5.+uT*.003,vD.y*14.)))*smoothstep(.03,.07,vD.y)*smoothstep(.26,.1,vD.y);c=mix(c,vec3(.58,.61,.66)*(1.-uDark*.7),clamp(sc*west*1.8,0.,.95)*uSnowCap);c=mix(c,vec3(.68,.7,.74)*(1.-uDark*.7),uSnowCap*.35*smoothstep(.5,.0,y));}
- if(uShaft>.01){float az=atan(vD.z,vD.x);float sh_=smoothstep(.55,.85,nzF5(vec2(az*2.2,uT*.002)))*smoothstep(.62,.9,nzF5(vec2(az*9.,vD.y*3.+uT*.01)))*smoothstep(.0,.03,vD.y)*smoothstep(.2,.05,vD.y);c=mix(c,vec3(.48,.52,.58)*(1.-uDark*.5),sh_*uShaft*.7);}
+const SKY_FS_WEATHER = ` if(uSnowCap>.01){float west=smoothstep(-.15,-.75,vD.x);float az=atan(vD.z,vD.x),az2=az-sign(az)*6.2832,ww=smoothstep(2.5,3.1416,abs(az))*.5;float sc=smoothstep(.45,.7,mix(nzF5(vec2(az*5.+uT*.003,vD.y*14.)),nzF5(vec2(az2*5.+uT*.003,vD.y*14.)),ww))*smoothstep(.03,.07,vD.y)*smoothstep(.26,.1,vD.y);c=mix(c,vec3(.58,.61,.66)*(1.-uDark*.7),clamp(sc*west*1.8,0.,.95)*uSnowCap);c=mix(c,vec3(.68,.7,.74)*(1.-uDark*.7),uSnowCap*.35*smoothstep(.5,.0,y));}
+ if(uShaft>.01){float az=atan(vD.z,vD.x),az2=az-sign(az)*6.2832,ww=smoothstep(2.5,3.1416,abs(az))*.5;float sh_=smoothstep(.55,.85,mix(nzF5(vec2(az*2.2,uT*.002)),nzF5(vec2(az2*2.2,uT*.002)),ww))*smoothstep(.62,.9,mix(nzF5(vec2(az*9.,vD.y*3.+uT*.01)),nzF5(vec2(az2*9.,vD.y*3.+uT*.01)),ww))*smoothstep(.0,.03,vD.y)*smoothstep(.2,.05,vD.y);c=mix(c,vec3(.48,.52,.58)*(1.-uDark*.5),sh_*uShaft*.7);}
 `;
 // 飛行機雲・金星
 const SKY_FS_OBJECTS = ` if(uCon.w>.01){float az=uCon.x,el=uCon.y;vec3 a=normalize(vec3(cos(az)*cos(el),sin(el),sin(az)*cos(el)));vec3 b=normalize(vec3(cos(az+1.1)*cos(el+.08),sin(el+.08),sin(az+1.1)*cos(el+.08)));vec3 hd=normalize(mix(a,b,uCon.z));vec3 n2=normalize(cross(a,b));float dl=abs(dot(vD,n2));float on_=dot(cross(a,vD),n2)>0.&&dot(cross(vD,hd),n2)>0.?1.:0.;float age=1.-clamp(acos(clamp(dot(vD,hd),-1.,1.))/(1.2*uCon.z+.001),0.,1.);float wid=mix(.0012,.006,1.-age);c=mix(c,vec3(1.),smoothstep(wid,0.,dl)*on_*(.25+.55*age)*uCon.w*(1.-uDark));}

@@ -95,5 +95,6 @@ G.kaizu = (() => {
     ri.setColorAt(i, c.setRGB(0.42 + R() * 0.14, 0.41 + R() * 0.13, 0.39 + R() * 0.11));
   });
   g.add(ri);
+  mergeStatic(g); // 石垣の部品を材質ごとに束ねる
   return { g, n: rocks.length };
 })();

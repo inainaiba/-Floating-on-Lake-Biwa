@@ -18,6 +18,12 @@ function frame(now) {
     fpsN = 0;
     fpsT = 0;
   }
+  const p0 = performance.now(),
+    prof = G.prof;
+  if (prof) {
+    renderer.info.autoReset = false; // 確認用：1フレーム分（映り込み・本描画・仕上げ）を合計して数える
+    renderer.info.reset();
+  } // 確認用：処理時間の内訳（?debug のときだけ G.prof がある）
   const c = clock(),
     W = wind(c),
     t = now / 1000;
@@ -45,7 +51,9 @@ function frame(now) {
     return;
   }
 
+  const pA = performance.now();
   const { wxNow, day, night, sunAngle } = updateSkyLight(dt, t, c, W);
+  const pB = performance.now();
   const { hx, hz } = floatHouse(dt, t, W, day);
   updateBoats(boats, dt, t, night);
   if (FW) FW.update(dt, c, day);
@@ -57,7 +65,18 @@ function frame(now) {
   if (G.boats) G.boats.update(dt, t, c, day, wxNow);
   if (G.shore) G.shore.update(dt, t, c, day, wxNow);
   updateCamera(dt, t, hx, hz);
+  const pC = performance.now();
   renderFrame(c, W, wxNow, day, sunAngle);
+  if (prof) {
+    const pD = performance.now(),
+      add = (k, v) => (prof[k] = (prof[k] || 0) * 0.9 + v * 0.1);
+    add("move", pA - p0);
+    add("skyLight", pB - pA);
+    add("elements", pC - pB);
+    add("render", pD - pC);
+    prof.calls = renderer.info.render.calls;
+    prof.triangles = renderer.info.render.triangles;
+  }
   requestAnimationFrame(frame);
 }
 // 確認用：URLに ?debug を付けたときだけ、撮影スクリプトから視点を動かせるようにする
@@ -66,6 +85,9 @@ if (Q.has("debug")) {
   G.camera = camera;
   G.groundH = groundH;
   G.S = S;
+  G.prof = {};
+  G.scene = scene;
+  G.dbg = { houses, inLake, inMain, isleH, terrainAt, distShore, landY };
   window.__setH = (k, yw, pt, ds) => {
     const h = houses[k];
     B.x = h.x; B.y = h.y; camX = h.x * S; camZ = h.y * S;

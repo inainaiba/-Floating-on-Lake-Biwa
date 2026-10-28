@@ -73,3 +73,67 @@ const GLSL_NOISE = `float nzH(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))
 float nzN(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(nzH(i),nzH(i+vec2(1,0)),f.x),mix(nzH(i+vec2(0,1)),nzH(i+1.),f.x),f.y);}
 float nzF4(vec2 p){float s=0.,a=.5;for(int i=0;i<4;i++){s+=a*nzN(p);p*=2.03;a*=.5;}return s;}
 float nzF5(vec2 p){float s=0.,a=.5;for(int i=0;i<5;i++){s+=a*nzN(p);p*=2.03;a*=.5;}return s;}`;
+
+// 動かない部品の束ね：グループの中の普通のメッシュを、同じ材質ごとに1つのメッシュへまとめる。
+// 見た目は変えずに描画の回数を減らす（沖島の家並み・水上建築のように細かい部品の多いもの）。
+// 戻り値：まとめた後のメッシュの数
+function mergeStatic(root) {
+  root.updateMatrixWorld(true);
+  const inv = root.matrixWorld.clone().invert(),
+    byMat = new Map(),
+    olds = [];
+  root.traverse((o) => {
+    if (!o.isMesh || o.isInstancedMesh || Array.isArray(o.material) || o === root) return;
+    if (o.userData.keep) return; // 動かす部品は束ねない
+    olds.push(o);
+    const k = o.material;
+    if (!byMat.has(k)) byMat.set(k, []);
+    byMat.get(k).push(o);
+  });
+  for (const o of olds) o.parent.remove(o);
+  const out = [];
+  const M = new THREE.Matrix4(),
+    N = new THREE.Matrix3(),
+    v = new THREE.Vector3();
+  for (const [mat, list] of byMat) {
+    let n = 0;
+    const gs = list.map((o) => {
+      const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry;
+      n += g.attributes.position.count;
+      return [o, g];
+    });
+    const P = new Float32Array(n * 3),
+      Nn = new Float32Array(n * 3),
+      U = new Float32Array(n * 2);
+    let i = 0,
+      noShadow = false;
+    for (const [o, g] of gs) {
+      M.multiplyMatrices(inv, o.matrixWorld);
+      N.getNormalMatrix(M);
+      const p = g.attributes.position,
+        nm = g.attributes.normal,
+        uv = g.attributes.uv;
+      for (let k = 0; k < p.count; k++, i++) {
+        v.fromBufferAttribute(p, k).applyMatrix4(M);
+        P.set([v.x, v.y, v.z], i * 3);
+        if (nm) {
+          v.fromBufferAttribute(nm, k).applyMatrix3(N).normalize();
+          Nn.set([v.x, v.y, v.z], i * 3);
+        }
+        if (uv) U.set([uv.getX(k), uv.getY(k)], i * 2);
+      }
+      if (o.userData.noShadow) noShadow = true;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(P, 3));
+    geo.setAttribute("normal", new THREE.BufferAttribute(Nn, 3));
+    geo.setAttribute("uv", new THREE.BufferAttribute(U, 2));
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = !noShadow;
+    m.receiveShadow = true;
+    m.userData.noShadow = noShadow;
+    root.add(m);
+    out.push(m);
+  }
+  return out.length;
+}

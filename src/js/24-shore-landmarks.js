@@ -31,40 +31,85 @@ scene.add(brk);
     [136.04, 35.42],
     [136.07, 35.47],
   ].map((p) => ll(...p));
-  const deck = [],
-    piers = [];
+  // 線路を約120mごとの点にする。湖の上に出た点は、いちばん近い陸へ寄せる
+  const pts = [];
   for (let i = 0; i < L.length - 1; i++) {
     const [a, b] = [L[i], L[i + 1]],
       len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    for (let s = 0; s < len; s += 250) {
+    for (let s = 0; s < len; s += 120) {
       const u = s / len;
       let x = a[0] + (b[0] - a[0]) * u,
         y = a[1] + (b[1] - a[1]) * u;
-      if (inLake(x, y)) continue;
-      const h = terrainAt(x, y);
-      deck.push([x, y, Math.atan2(b[1] - a[1], b[0] - a[0]), h]);
+      if (inLake(x, y)) {
+        let best = null;
+        for (let r = 60; r <= 2400 && !best; r += 60)
+          for (let k = 0; k < 24 && !best; k++) {
+            const q = (k / 24) * Math.PI * 2,
+              px = x + Math.cos(q) * r,
+              py = y + Math.sin(q) * r;
+            if (!inLake(px, py) && distShore(px, py) > 80) best = [px, py];
+          }
+        if (!best) continue;
+        [x, y] = best;
+      }
+      pts.push([x, y]);
     }
   }
+  // 高さ：地面の高さ＋約9。前後でならして、なめらかに上り下りする
+  const gh = pts.map(([x, y]) => landY(x, y));
+  const top = gh.map((_, i) => {
+    let m = -1e9;
+    for (let k = -3; k <= 3; k++) m = Math.max(m, gh[Math.min(gh.length - 1, Math.max(0, i + k))]);
+    return m + 9;
+  });
+  const ht = top.map((_, i) => {
+    let s = 0,
+      n = 0;
+    for (let k = -4; k <= 4; k++) {
+      const j = Math.min(top.length - 1, Math.max(0, i + k));
+      s += top[j];
+      n++;
+    }
+    return Math.max(s / n, gh[i] + 6);
+  });
+  // 橋桁：隣り合う点どうしを、すき間なくつなぐ（向きと傾きを合わせる）
   const D = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(25.5, 0.9, 4),
+      new THREE.BoxGeometry(1, 0.9, 4),
       new THREE.MeshLambertMaterial({ color: 0xa9aaa5 }),
-      deck.length,
+      Math.max(1, pts.length - 1),
     ),
     Pm = new THREE.InstancedMesh(
       new THREE.BoxGeometry(1.4, 1, 2.6).translate(0, 0.5, 0),
       new THREE.MeshLambertMaterial({ color: 0xb0b0aa }),
-      deck.length,
+      Math.max(1, pts.length),
     );
-  const M = new THREE.Matrix4();
-  deck.forEach(([x, y, r, h], i) => {
-    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -r, 0)),
-      gy = 0.6 + h * S * VEX;
-    M.compose(new THREE.Vector3(x * S, gy + 9, y * S), q, new THREE.Vector3(1, 1, 1));
-    D.setMatrixAt(i, M);
-    M.compose(new THREE.Vector3(x * S, gy, y * S), q, new THREE.Vector3(1, 9, 1));
-    Pm.setMatrixAt(i, M);
+  const M = new THREE.Matrix4(),
+    A = new THREE.Vector3(),
+    Bv = new THREE.Vector3(),
+    Q = new THREE.Quaternion(),
+    X = new THREE.Vector3(1, 0, 0);
+  let nd = 0,
+    np = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    A.set(pts[i][0] * S, ht[i], pts[i][1] * S);
+    Bv.set(pts[i + 1][0] * S, ht[i + 1], pts[i + 1][1] * S);
+    const len = A.distanceTo(Bv);
+    if (len < 0.01) continue; // 湖を避けて寄せた点が重なった所（水の上を渡る所も、そのまま橋桁でつなぐ）
+    Q.setFromUnitVectors(X, Bv.clone().sub(A).normalize());
+    M.compose(A.clone().add(Bv).multiplyScalar(0.5), Q, new THREE.Vector3(len + 0.3, 1, 1));
+    D.setMatrixAt(nd++, M);
+  }
+  // 橋脚：陸の上だけ、地面から桁の下まで
+  pts.forEach(([x, y], i) => {
+    if (inLake(x, y) || i % 2) return;
+    const yaw = i < pts.length - 1 ? Math.atan2(pts[i + 1][1] - y, pts[i + 1][0] - x) : 0;
+    M.compose(new THREE.Vector3(x * S, gh[i] - 0.5, y * S), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -yaw, 0)), new THREE.Vector3(1, ht[i] - gh[i], 1));
+    Pm.setMatrixAt(np++, M);
   });
+  D.count = nd;
+  Pm.count = np;
   scene.add(D, Pm);
+  G.kosei = { pts, ht, gh }; // 確認用（高架のつながりの検査）
 }
 // 岸の松並木と砂浜
 {

@@ -745,6 +745,7 @@ function buildHouse() {
   glassMats = [m.glass, m.glow];
   G.glowMat = m.glow;
   const g = Bd.make(m);
+  mergeStatic(g); // 細い部材を材質ごとに束ねて、描画の回数を減らす
   {
     const bb = new THREE.Box3().setFromObject(g),
       sz = bb.getSize(new THREE.Vector3());

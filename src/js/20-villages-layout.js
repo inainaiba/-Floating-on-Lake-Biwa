@@ -112,7 +112,7 @@ const houses = [],
       if (R() < 0.07) continue;
       const north = (y - minY) / (maxY - minY) < 0.45,
         south = (y - minY) / (maxY - minY) > 0.75;
-      houses.push({
+      const hs = {
         x,
         y,
         north,
@@ -123,7 +123,16 @@ const houses = [],
         h: 3.1 + (R() < (south ? 0.65 : north ? 0.25 : 0.4) ? 2.7 : 0) + R() * 0.5,
         roof: R(),
         ground: th,
-      });
+      };
+      // 家の四隅（と少しの余白）まで陸に収まるときだけ建てる（内湖や湖にはみ出さない）
+      {
+        const c = Math.cos(hs.rot),
+          sn = Math.sin(hs.rot),
+          hw = (hs.w / 2 + 1) / S,
+          hd = (hs.d / 2 + 1) / S;
+        if ([[-1, -1], [1, -1], [1, 1], [-1, 1]].some(([u, v]) => inLake(x + u * hw * c - v * hd * sn, y + u * hw * sn + v * hd * c))) continue;
+      }
+      houses.push(hs);
     }
     // 岸沿いの道
     for (let k = -8; k < 8; k++) {

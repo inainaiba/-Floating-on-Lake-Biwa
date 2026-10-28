@@ -125,6 +125,7 @@ G.okishima = (() => {
     return o;
   };
   let houses = 0;
+  const foot = []; // 家の足元（確認用：中心・幅・奥行き・向き、作品内の座標）
   for (const s of segs) {
     const tx = (s.x2 - s.x1) / s.L,
       ty = (s.y2 - s.y1) / s.L,
@@ -151,6 +152,8 @@ G.okishima = (() => {
           floors = R() < 0.75 ? 2 : 1,
           h = floors * 2.9,
           wm = wallMs[Math.floor(R() * wallMs.length)];
+        // 家の四隅まで島の上に収まるときだけ建てる
+        if ([[-1, -1], [1, -1], [1, 1], [-1, 1]].some(([u, v]) => isleH((wx + (u * w * 0.5 * Math.cos(rot) - v * d * 0.5 * Math.sin(rot)) * 1.05) / S, (wz + (-u * w * 0.5 * Math.sin(rot) - v * d * 0.5 * Math.cos(rot)) * 1.05) / S) === null)) continue;
         // 斜面に建つので、石の基礎で地面まで下ろす
         add(new THREE.Mesh(new THREE.BoxGeometry(w, 4, d), baseM), wx, gy - 2, wz, rot);
         add(new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wm), wx, gy + h / 2, wz, rot);
@@ -161,6 +164,7 @@ G.okishima = (() => {
         add(new THREE.Mesh(new THREE.BoxGeometry(w, 0.12, 1.1), roofM), wx + s.nx * (d / 2 + 0.5), gy + 2.6, wz + s.ny * (d / 2 + 0.5), rot);
         // 瓦屋根（切妻、棟は岸と平行）
         add(gable(w + 0.9, d + 1.2, 1.7 + R() * 0.5, roofM), wx, gy + h, wz, rot);
+        foot.push([wx, wz, w, d, rot]);
         houses++;
       }
     // 電柱：道に沿って
@@ -212,5 +216,6 @@ G.okishima = (() => {
       bz = s.y1 * S + s.ny * 22 + ty * 20;
     add(new THREE.Mesh(new THREE.BoxGeometry(60, 2.2, 3), baseM), bx, 0.1, bz, -Math.atan2(ty, tx));
   }
-  return { g, houses };
+  mergeStatic(g); // 家並み・護岸・漁船・電柱を材質ごとに束ねる
+  return { g, houses, foot };
 })();

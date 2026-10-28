@@ -5,7 +5,7 @@
 部品は番号順に1つのモジュールとしてつながる。後ろの部品で作る名前は、前の部品の「読み込み時に動く処理」からは使えない（関数の中や毎フレームの処理からは使える）。
 
 ## 00-head.js
-- 作る：`G`、`GLSL_NOISE`、`LEAFTX`、`NEAR_TREE_MAT`、`mkLeaf`
+- 作る：`G`、`GLSL_NOISE`、`LEAFTX`、`NEAR_TREE_MAT`、`mergeStatic`、`mkLeaf`
 - 使う：
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
   - 31-ui.js（後ろの部品・要注意）：`$`
@@ -126,7 +126,7 @@
 ## 18-buildings.js
 - 作る：`BODY_COLORS`、`BP`、`BUILDINGS`、`CUST`、`LIGHT_COLORS`、`MAT`、`WOODTX`、`bbox`、`box`、`buildHouse`、`gable`、`glassMats`、`glowBox`、`house`、`hullShape`、`inReeds`、`posts`、`reedMask`、`ring`、`ringPts`、`rod`
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`mergeStatic`
   - 01-settings.js：`Q`
   - 12-renderer.js：`scene`
   - 16-terrain.js：`reedPts`
@@ -199,6 +199,7 @@
 ## 24-shore-landmarks.js
 - 作る：`brk`、`shoreTrees`、`treeI`、`treeM`、`treeSeason`
 - 使う：
+  - 00-head.js：`G`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 05-lake.js：`outer`
@@ -364,7 +365,7 @@
 ## 39-kaizu.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`mergeStatic`
   - 01-settings.js：`S`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inLake`
@@ -388,7 +389,7 @@
 ## 41-islands.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`mergeStatic`
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
   - 03-coords.js：`ll`
@@ -568,14 +569,17 @@
   - 01-settings.js：`Q`、`S`
   - 03-coords.js：`ll`
   - 04-clock.js：`MO`、`PH`、`clock`
+  - 06-inner-lakes.js：`inLake`、`inMain`
+  - 07-depth.js：`distShore`
   - 08-weather.js：`WXQ`
   - 09-wind.js：`wind`
   - 10-start.js：`rnd`
   - 11-state.js：`B`、`STATE`、`camX`、`camZ`
-  - 12-renderer.js：`QUALITY`、`camera`、`resScale`
+  - 12-renderer.js：`QUALITY`、`camera`、`renderer`、`resScale`、`scene`
+  - 16-terrain.js：`isleH`
   - 18-buildings.js：`CUST`、`buildHouse`、`reedMask`
   - 19-boats.js：`boatState`、`updateBoats`
-  - 20-villages-layout.js：`groundH`、`houses`
+  - 20-villages-layout.js：`groundH`、`houses`、`landY`、`terrainAt`
   - 28-map.js：`drawFar`
   - 29-controls.js：`dist`、`distT`、`isFar`、`pitch`、`yaw`、`yawT`
   - 30-audio.js：`audioUpdate`
@@ -613,6 +617,7 @@
 - `G.camera`：53-frame.js
 - `G.cards`：17-trees.js
 - `G.city`：47-city.js
+- `G.dbg`：53-frame.js
 - `G.deb`：30d-debussy.js
 - `G.dotTex`：00-head.js
 - `G.eri`：46-shore-life.js
@@ -630,6 +635,7 @@
 - `G.innerMeshes`：16-terrain.js
 - `G.isl`：41-islands.js
 - `G.kaizu`：39-kaizu.js
+- `G.kosei`：24-shore-landmarks.js
 - `G.lastDrag`：29-controls.js
 - `G.lastInput`：42-ambience.js
 - `G.life`：44-life.js
@@ -642,12 +648,14 @@
 - `G.paused`：53-frame.js
 - `G.plTx`：18-buildings.js
 - `G.pm`：29-controls.js
+- `G.prof`：53-frame.js
 - `G.rc`：52-frame-render.js
 - `G.resetSky`：49-frame-sky-light.js
 - `G.rf`：52-frame-render.js
 - `G.rocks`：40-shore-rocks.js
 - `G.roofTex`：20-villages-layout.js
 - `G.rt`：52-frame-render.js
+- `G.scene`：53-frame.js
 - `G.shigure`：49-frame-sky-light.js
 - `G.shore`：46-shore-life.js
 - `G.street`：21-villages-walls-roofs.js

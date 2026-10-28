@@ -71,5 +71,6 @@ G.city = (() => {
   I.receiveShadow = false;
   I.material.emissive = new THREE.Color(0x3a3834);
   scene.add(I);
+  I.userData.bl = bl; // 確認用（はみ出しの検査）
   return I;
 })();
