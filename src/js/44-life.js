@@ -319,26 +319,75 @@ G.life = (() => {
   // 遊覧船：白い大きな船が、遠くをゆっくり横切る
   const ship = (() => {
     const g = new THREE.Group(),
-      wh = new THREE.MeshLambertMaterial({ color: 0xf2f0ea }),
-      bl = new THREE.MeshLambertMaterial({ color: 0x2d4a6e }),
-      rd = new THREE.MeshLambertMaterial({ color: 0xa83a2a }),
-      gl = new THREE.MeshLambertMaterial({ color: 0x3a4a58 });
-    const add = (geo, m, x, y, z) => {
+      wh = new THREE.MeshStandardMaterial({ color: 0xf4f2ec, roughness: 0.55 }),
+      bl = new THREE.MeshStandardMaterial({ color: 0x24406a, roughness: 0.6 }),
+      rd = new THREE.MeshStandardMaterial({ color: 0xa83a2a, roughness: 0.6 }),
+      gl = new THREE.MeshStandardMaterial({ color: 0x27323c, roughness: 0.15, metalness: 0.3 }),
+      rl = new THREE.MeshStandardMaterial({ color: 0xdedcd4, roughness: 0.6 });
+    // 平面形：舳先は細く尖り、船尾は丸い（x が船首方向）
+    const plan = (L, B, bowK = 0.42, sternR = 0.5) => {
+      const sh = new THREE.Shape(),
+        hb = B / 2,
+        xb = L / 2 - L * bowK,
+        xs = -L / 2 + hb * sternR;
+      sh.moveTo(xs, -hb);
+      sh.lineTo(xb, -hb);
+      sh.bezierCurveTo(xb + L * bowK * 0.55, -hb, L / 2 - L * 0.03, -hb * 0.35, L / 2, 0);
+      sh.bezierCurveTo(L / 2 - L * 0.03, hb * 0.35, xb + L * bowK * 0.55, hb, xb, hb);
+      sh.lineTo(xs, hb);
+      sh.bezierCurveTo(xs - hb * sternR * 0.9, hb, -L / 2, hb * 0.6, -L / 2, 0);
+      sh.bezierCurveTo(-L / 2, -hb * 0.6, xs - hb * sternR * 0.9, -hb, xs, -hb);
+      return sh;
+    };
+    const slab = (L, B, h, m, y, x = 0, bowK, sternR, bevel = 0.25) => {
+      const geo = new THREE.ExtrudeGeometry(plan(L, B, bowK, sternR), {
+        depth: h,
+        bevelEnabled: bevel > 0,
+        bevelSize: bevel,
+        bevelThickness: bevel,
+        bevelSegments: 3,
+        curveSegments: 16,
+      }).rotateX(-Math.PI / 2);
       const o = new THREE.Mesh(geo, m);
-      o.position.set(x, y, z);
+      o.position.set(x, y, 0);
+      o.castShadow = true;
       g.add(o);
       return o;
     };
-    add(new THREE.BoxGeometry(34, 3, 8), wh, 0, 1.5, 0);
-    add(new THREE.BoxGeometry(34.2, 0.6, 8.2), bl, 0, 0.3, 0);
-    add(new THREE.ConeGeometry(4.1, 7, 4).rotateZ(-Math.PI / 2).rotateX(Math.PI / 4), wh, 20, 1.5, 0).scale.set(1, 0.5, 1.4);
-    add(new THREE.BoxGeometry(26, 2.6, 7.4), wh, -2, 4.3, 0);
-    add(new THREE.BoxGeometry(26.2, 0.9, 7.6), gl, -2, 4.4, 0);
-    add(new THREE.BoxGeometry(16, 2.4, 6.6), wh, -4, 6.8, 0);
-    add(new THREE.BoxGeometry(16.2, 0.8, 6.8), gl, -4, 6.9, 0);
-    add(new THREE.BoxGeometry(6, 2, 5.4), wh, 1, 9, 0);
-    add(new THREE.CylinderGeometry(0.9, 1, 3.4, 10), rd, -6, 9.5, 0);
-    add(new THREE.BoxGeometry(34.3, 0.35, 8.3), rd, 0, 2.6, 0);
+    // 船体：喫水線から上へ広がるように、少しずつ大きい層を重ねる
+    slab(32, 6.6, 0.6, bl, -0.2, 0, 0.42, 0.6, 0.2);
+    slab(33, 7.4, 1.2, wh, 0.4, 0, 0.42, 0.6, 0.3);
+    slab(33.6, 7.9, 1.4, wh, 1.6, 0, 0.42, 0.6, 0.3);
+    slab(33.8, 8.0, 0.25, rd, 2.95, 0, 0.42, 0.6, 0.05);
+    // 甲板の手すり
+    slab(33.4, 7.7, 0.08, rl, 3.9, 0, 0.42, 0.6, 0);
+    // 1層目の客室：連続窓
+    slab(24, 6.6, 0.5, wh, 3.2, -2.5, 0.25, 0.9, 0.15);
+    slab(24.2, 6.8, 1.1, gl, 3.75, -2.5, 0.25, 0.9, 0.08);
+    slab(24, 6.6, 0.45, wh, 4.85, -2.5, 0.25, 0.9, 0.15);
+    // 2層目
+    slab(17, 5.8, 0.4, wh, 5.4, -3.5, 0.22, 0.9, 0.12);
+    slab(17.2, 6.0, 1.0, gl, 5.85, -3.5, 0.22, 0.9, 0.06);
+    slab(17, 5.8, 0.4, wh, 6.85, -3.5, 0.22, 0.9, 0.12);
+    slab(16.6, 5.6, 0.06, rl, 7.9, -3.5, 0.22, 0.9, 0);
+    // 操舵室
+    slab(5.5, 4.4, 0.9, gl, 7.35, 1.2, 0.3, 0.9, 0.06);
+    slab(5.6, 4.6, 0.3, wh, 8.25, 1.2, 0.3, 0.9, 0.1);
+    // 煙突：少し後ろへ傾いた楕円
+    const fun = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.95, 3.2, 16), rd);
+    fun.scale.set(1.4, 1, 0.9);
+    fun.position.set(-6.5, 9.2, 0);
+    fun.rotation.z = 0.12;
+    g.add(fun);
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.78, 0.4, 16), bl);
+    cap.scale.set(1.4, 1, 0.9);
+    cap.position.set(-6.7, 10.9, 0);
+    cap.rotation.z = 0.12;
+    g.add(cap);
+    // マスト
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, 4, 6), rl);
+    mast.position.set(2.2, 10.3, 0);
+    g.add(mast);
     g.visible = false;
     scene.add(g);
     return { g, on: false, x: 0, z: 0, dx: 0, dz: 0, life: 0 };
@@ -637,5 +686,6 @@ G.life = (() => {
     // サギはときどき首をかしげる
     for (const h of herons) h.visible = day > 0.05 && !(c.month === 0 && wxNow.snow > 0.5);
   }
+  G.camera = camera;
   return { update, herons, bam, tabune, susuki, ship };
 })();
