@@ -15,7 +15,8 @@
 """
 import sys, shutil, pathlib, http.server, threading, functools
 from playwright.sync_api import sync_playwright
-from PIL import Image, ImageChops, ImageDraw
+from PIL import Image, ImageChops, ImageDraw, ImageFont
+import glob
 
 R = pathlib.Path(__file__).resolve().parent.parent
 OUT, BASE = R / 'check/now', R / 'check/base'
@@ -39,8 +40,10 @@ QUICK = [0, 1, 2, 3]
 
 
 def serve():
-    h = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(R))
-    h.log_message = lambda *a: None
+    class Q(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+    h = functools.partial(Q, directory=str(R))
     s = http.server.ThreadingHTTPServer(('127.0.0.1', 0), h)
     threading.Thread(target=s.serve_forever, daemon=True).start()
     return s
@@ -79,6 +82,8 @@ def sheet(idx):
     W, H = 400, 250
     img = Image.new('RGB', (W * 2 + 12, (H + 22) * len(idx)), 'white')
     d = ImageDraw.Draw(img)
+    fs = sorted(glob.glob('/usr/share/fonts/**/NotoSansCJK-Regular.ttc', recursive=True) + glob.glob('/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc'))
+    font = ImageFont.truetype(fs[0], 13) if fs else None
     report = []
     for row, i in enumerate(idx):
         now = Image.open(OUT / f'{i:02d}.png').convert('RGB')
@@ -92,7 +97,7 @@ def sheet(idx):
         img.paste(now.resize((W, H)), (W + 12, y + 20))
         mark = '' if diff is None else (' !' if diff > 0.08 else '')
         label = f'{i:02d} {SCENES[i][0]}' + ('' if diff is None else f'  差 {diff:.3f}{mark}')
-        d.text((4, y + 4), label, fill=(0, 0, 0))
+        d.text((4, y + 2), label, fill=(0, 0, 0), font=font)
         report.append(label)
     img.save(R / 'check/sheet.png')
     return report
