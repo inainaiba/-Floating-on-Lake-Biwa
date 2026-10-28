@@ -643,7 +643,9 @@ function rnd(seed) {
     return seed / 4294967296;
   };
 }
-const R0 = rnd((Math.random() * 1e9) | 0),
+// 確認用（?debug）のときは開始地点の乱数を固定する（&start=数 で種を変えられる。開始地点の検査で使う）
+const DBG_START = !!window.__floating,
+  R0 = rnd(DBG_START ? +new URLSearchParams(location.search).get("start") || 1 : (Math.random() * 1e9) | 0),
   starts = [];
 const cumL = [0];
 for (let i = 0; i < outer.length - 1; i++)
@@ -687,7 +689,7 @@ for (const bd of okB) {
   }
 }
 const okS = starts.filter(([x, y]) => !reedFree0(x, y));
-const st = (okS.length ? okS : starts)[Math.floor(Math.random() * (okS.length || starts.length))];
+const st = (okS.length ? okS : starts)[Math.floor((DBG_START ? R0() : Math.random()) * (okS.length || starts.length))];
 
 // ==== 11-state.js ====
 /* ---------- 建物の状態（座標は実寸m。描画時に縮尺Sをかける） ---------- */
@@ -9249,6 +9251,14 @@ function moveHouse(dt, c, W) {
 
 // ==== 49-frame-sky-light.js ====
 /* ---------- 毎フレーム②：波・空・光・霧・季節の色・夜の灯り ---------- */
+// 時間とともに持ち越す空の状態（雨上がり・時雨・稲光・流れ星・飛行機雲）を初期に戻す（確認用の場面切り替えで使う）
+G.resetSky = () => {
+  G.afterRain = 0;
+  G.shigure = 0;
+  G.lt = 0;
+  skyU.uMet.value.w = 0;
+  skyU.uCon.value.w = 0;
+};
 function updateSkyLight(dt, t, c, W) {
   // 波・空・光
   G.W = W;
@@ -9874,6 +9884,12 @@ c+=gr*(.022-.01*l);
 
 // ==== 53-frame.js ====
 function frame(now) {
+  // 確認用：撮影の間は描画を止める（?debug の __frames / __pause から使う）
+  if (G.paused) {
+    requestAnimationFrame(frame);
+    return;
+  }
+  if (G.frameWaiters) for (const f of G.frameWaiters.splice(0)) requestAnimationFrame(f);
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   fpsN++;
@@ -9943,6 +9959,18 @@ if (Q.has("debug")) {
   };
   // 同じページのまま、月・時刻・天気・建物を切り替える（確認用）
   window.__scene = (q) => {
+    // 場面ごとに初期状態へ戻す：前の場面から持ち越す状態（雨上がり・時雨・稲光・流れ星・飛行機雲・
+    // ときどき現れる舟）と、偶然に頼る出来事の乱数をそろえ、撮る順番に結果が左右されないようにする
+    Math.random = rnd(20261028);
+    G.resetSky();
+    if (G.boats && G.boats.ship) {
+      G.boats.ship.on = false;
+      G.boats.ship.g.visible = false;
+    }
+    for (const b of (G.ambience && G.ambience.boats) || []) {
+      b.on = false;
+      b.g.visible = false;
+    }
     if (q.month !== undefined) MO = String(q.month);
     if (q.phase !== undefined) PH = String(q.phase);
     if (q.wx !== undefined) WXQ = String(q.wx);
@@ -9952,6 +9980,15 @@ if (Q.has("debug")) {
       buildHouse();
     }
   };
+  // 描画を n 回進めてから知らせる（撮影の前に場面を落ち着かせる）
+  window.__frames = (n) =>
+    new Promise((res) => {
+      G.frameWaiters = G.frameWaiters || [];
+      const step = (k) => (k <= 0 ? res() : G.frameWaiters.push(() => step(k - 1)));
+      step(n);
+    });
+  // 撮影の間、描画を止める（画面には最後に描いた絵が残る）
+  window.__pause = (p) => (G.paused = p);
   window.__set = (lo, la, dx, dy, yw, pt, ds) => {
     G.lock = null;
     const [x, y] = ll(lo, la);

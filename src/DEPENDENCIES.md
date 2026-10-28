@@ -58,7 +58,7 @@
   - 08-weather.js：`weather`
 
 ## 10-start.js
-- 作る：`NB`、`R0`、`bands`、`cumL`、`okB`、`okS`、`rnd`、`rndFor`、`st`、`starts`
+- 作る：`DBG_START`、`NB`、`R0`、`bands`、`cumL`、`okB`、`okS`、`rnd`、`rndFor`、`st`、`starts`
 - 使う：
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inMain`、`maxY`、`minY`
@@ -561,6 +561,7 @@
   - 04-clock.js：`MO`、`PH`、`clock`
   - 08-weather.js：`WXQ`
   - 09-wind.js：`wind`
+  - 10-start.js：`rnd`
   - 11-state.js：`B`、`STATE`、`camX`、`camZ`
   - 12-renderer.js：`QUALITY`、`camera`、`resScale`
   - 18-buildings.js：`CUST`、`buildHouse`、`reedMask`
@@ -580,7 +581,9 @@
 
 ## 共有の値（window.__xxx）
 
-- `__floating`：00-head.js
+- `__floating`：00-head.js、10-start.js
+- `__frames`：53-frame.js
+- `__pause`：53-frame.js
 - `__scene`：53-frame.js
 - `__set`：53-frame.js
 - `__setH`：53-frame.js
@@ -605,6 +608,7 @@
 - `G.eri`：46-shore-life.js
 - `G.exp`：12-renderer.js
 - `G.forest`：17-trees.js
+- `G.frameWaiters`：53-frame.js
 - `G.gc`：52-frame-render.js
 - `G.glowMat`：18-buildings.js
 - `G.gm`：50-frame-float.js
@@ -625,9 +629,11 @@
 - `G.morning`：49-frame-sky-light.js
 - `G.netTx2`：18-buildings.js
 - `G.okishima`：41-islands.js
+- `G.paused`：53-frame.js
 - `G.plTx`：18-buildings.js
 - `G.pm`：29-controls.js
 - `G.rc`：52-frame-render.js
+- `G.resetSky`：49-frame-sky-light.js
 - `G.rf`：52-frame-render.js
 - `G.rocks`：40-shore-rocks.js
 - `G.roofTex`：20-villages-layout.js

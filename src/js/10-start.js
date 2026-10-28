@@ -11,7 +11,9 @@ function rnd(seed) {
     return seed / 4294967296;
   };
 }
-const R0 = rnd((Math.random() * 1e9) | 0),
+// 確認用（?debug）のときは開始地点の乱数を固定する（&start=数 で種を変えられる。開始地点の検査で使う）
+const DBG_START = !!window.__floating,
+  R0 = rnd(DBG_START ? +new URLSearchParams(location.search).get("start") || 1 : (Math.random() * 1e9) | 0),
   starts = [];
 const cumL = [0];
 for (let i = 0; i < outer.length - 1; i++)
@@ -55,4 +57,4 @@ for (const bd of okB) {
   }
 }
 const okS = starts.filter(([x, y]) => !reedFree0(x, y));
-const st = (okS.length ? okS : starts)[Math.floor(Math.random() * (okS.length || starts.length))];
+const st = (okS.length ? okS : starts)[Math.floor((DBG_START ? R0() : Math.random()) * (okS.length || starts.length))];

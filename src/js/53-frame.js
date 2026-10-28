@@ -1,4 +1,10 @@
 function frame(now) {
+  // 確認用：撮影の間は描画を止める（?debug の __frames / __pause から使う）
+  if (G.paused) {
+    requestAnimationFrame(frame);
+    return;
+  }
+  if (G.frameWaiters) for (const f of G.frameWaiters.splice(0)) requestAnimationFrame(f);
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   fpsN++;
@@ -68,6 +74,18 @@ if (Q.has("debug")) {
   };
   // 同じページのまま、月・時刻・天気・建物を切り替える（確認用）
   window.__scene = (q) => {
+    // 場面ごとに初期状態へ戻す：前の場面から持ち越す状態（雨上がり・時雨・稲光・流れ星・飛行機雲・
+    // ときどき現れる舟）と、偶然に頼る出来事の乱数をそろえ、撮る順番に結果が左右されないようにする
+    Math.random = rnd(20261028);
+    G.resetSky();
+    if (G.boats && G.boats.ship) {
+      G.boats.ship.on = false;
+      G.boats.ship.g.visible = false;
+    }
+    for (const b of (G.ambience && G.ambience.boats) || []) {
+      b.on = false;
+      b.g.visible = false;
+    }
     if (q.month !== undefined) MO = String(q.month);
     if (q.phase !== undefined) PH = String(q.phase);
     if (q.wx !== undefined) WXQ = String(q.wx);
@@ -77,6 +95,15 @@ if (Q.has("debug")) {
       buildHouse();
     }
   };
+  // 描画を n 回進めてから知らせる（撮影の前に場面を落ち着かせる）
+  window.__frames = (n) =>
+    new Promise((res) => {
+      G.frameWaiters = G.frameWaiters || [];
+      const step = (k) => (k <= 0 ? res() : G.frameWaiters.push(() => step(k - 1)));
+      step(n);
+    });
+  // 撮影の間、描画を止める（画面には最後に描いた絵が残る）
+  window.__pause = (p) => (G.paused = p);
   window.__set = (lo, la, dx, dy, yw, pt, ds) => {
     G.lock = null;
     const [x, y] = ll(lo, la);

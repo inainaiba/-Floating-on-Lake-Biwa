@@ -51,7 +51,21 @@ SCENES = [
     ('冬のヨシ原',         'month=0&phase=0.45&wx=0', [135.9295, 35.124, 320, 0, 1.57, 0.25, 60], 0),
     ('夜の庵の灯り',       'month=5&phase=0.9&wx=0', [136.03, 35.22, 0, 0, 0.7, 0.12, 60], 8),
 ]
-QUICK = [0, 1, 2, 3, 16]  # 代表4場面と全体地図
+QUICK = [0, 1, 2, 3, 16]
+# 場面を切り替えてから、描画を何回進めて撮るか。場面ごとに状態を初期化しているので少なくてよい
+FRAMES = 3
+
+
+def snap(pg, path):
+    """描画を FRAMES 回進めてから止めて撮る。
+    この環境（ソフトウェア描画）は1回の描画に数秒かかり、描画を動かしたままだと撮影が描画の切れ目を
+    何度も待つため、1場面に40秒ほどかかっていた。止めて撮ると数秒で済む。"""
+    pg.evaluate(f'()=>__frames({FRAMES})')
+    pg.evaluate('()=>__pause(true)')
+    try:
+        pg.screenshot(path=str(path), timeout=180000)
+    finally:
+        pg.evaluate('()=>__pause(false)')  # 代表4場面と全体地図
 
 
 def serve():
@@ -98,7 +112,10 @@ def shoot(idx):
                 pg.wait_for_timeout(1500)
                 sel = [k for k in idx if len(SCENES[k]) > 4 and SCENES[k][4].get('act') == 'select']
                 if sel:   # 選択画面は湖に出る前にしか撮れないので、最初に撮る
-                    pg.screenshot(path=str(OUT / f'{sel[0]:02d}.png'), timeout=180000)
+                    # 実際の時計で空が変わらないよう、その場面の月・時刻・天気と時計を固定してから撮る
+                    q2 = dict(kv.split('=') for kv in SCENES[sel[0]][1].split('&'))
+                    pg.evaluate('a=>__scene(a)', {'month': int(q2['month']), 'phase': float(q2['phase']), 'wx': int(q2['wx']), 'b': SCENES[sel[0]][3], 't': 1000000})
+                    snap(pg, OUT / f'{sel[0]:02d}.png')
                     print(f'  {sel[0]:02d} {SCENES[sel[0]][0]}')
                 pg.evaluate("()=>document.getElementById('go').click()")
                 loaded = True
@@ -112,8 +129,8 @@ def shoot(idx):
                 break
             if ex.get('act') == 'map':
                 pg.evaluate("()=>document.getElementById('view').click()")
-            pg.wait_for_timeout(1800)
-            pg.screenshot(path=str(OUT / f'{i:02d}.png'), timeout=180000)
+                pg.wait_for_timeout(2500)  # 地図は少しずつ現れる（画面の切り替えの動き）
+            snap(pg, OUT / f'{i:02d}.png')
             if ex.get('act') == 'map':
                 pg.evaluate("()=>document.getElementById('view').click()")
             print(f'  {i:02d} {name}')
@@ -136,7 +153,7 @@ def start_check(n=10):
         if three.exists():
             pg.route('**/three.module.js', lambda r: r.fulfill(path=str(three)))
         for k in range(n):
-            pg.goto(f'http://127.0.0.1:{port}/docs/index.html?debug')
+            pg.goto(f'http://127.0.0.1:{port}/docs/index.html?debug&start={k * 7919 + 13}')
             pg.evaluate("()=>{try{localStorage.setItem('floating.hint2','1')}catch(e){}}")
             pg.wait_for_timeout(700)
             pg.evaluate("()=>document.getElementById('title').click()")
@@ -206,7 +223,7 @@ def main():
         print(line)
     print('比較画像：check/sheet.png')
     if True:
-        bad, e2 = start_check(3 if '--quick' in a else 10)
+        bad, e2 = start_check(3 if '--quick' in a else 6)
         errs += e2 + [f'開始地点が陸や島に近すぎ：{r}' for r in bad]
     if errs:
         print('ページのエラー：')

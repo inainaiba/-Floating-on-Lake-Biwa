@@ -1,4 +1,12 @@
 /* ---------- 毎フレーム②：波・空・光・霧・季節の色・夜の灯り ---------- */
+// 時間とともに持ち越す空の状態（雨上がり・時雨・稲光・流れ星・飛行機雲）を初期に戻す（確認用の場面切り替えで使う）
+G.resetSky = () => {
+  G.afterRain = 0;
+  G.shigure = 0;
+  G.lt = 0;
+  skyU.uMet.value.w = 0;
+  skyU.uCon.value.w = 0;
+};
 function updateSkyLight(dt, t, c, W) {
   // 波・空・光
   G.W = W;
