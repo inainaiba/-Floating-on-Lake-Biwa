@@ -35,6 +35,8 @@
 
 ## 更新の流れ
 
+GitHub に記録するたびに、GitHub の側で自動確認（`.github/workflows/check.yml`）が走る：組み立て、公開ファイルが最新かの確認、簡易確認（代表の場面・開始地点・シェーダーの誤り）、全体点検（はみ出し・置き場所）。結果は GitHub の Actions に出て、比較画像も残る。
+
 1. `src/` や `data/` を直す（季節の値は `src/js/03-season.js`、ブイは `data/buoys.xlsx`）
 2. `python3 tools/release.py "変更の説明"`
    - 組み立て（`build.py`）→ 代表4場面と全体地図の撮影・比較、開始地点の検査3回（`tools/check.py --quick`）→ GitHubへ記録

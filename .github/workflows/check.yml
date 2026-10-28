@@ -1,0 +1,50 @@
+# 自動確認：GitHub に記録するたびに、組み立て・簡易確認・全体点検を走らせる。
+# 失敗したら、記録の一覧（Actions）に赤い印が付く。比較画像は「確認の結果」として残る。
+name: 確認
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 道具を入れる
+        run: |
+          pip install playwright==1.63.0 pillow openpyxl
+          python -m playwright install --with-deps chromium
+
+      - name: 組み立て（文法の確認・部品の名前の重なりの確認を含む）
+        run: python build.py
+
+      - name: 公開ファイルが最新か（組み立て直した結果と、記録された docs/index.html が同じか）
+        run: git diff --exit-code docs/index.html
+
+      - name: 簡易確認（代表の場面の撮影、開始地点の検査、シェーダーの誤り）
+        run: python tools/check.py --quick
+
+      - name: 全体点検（建物のはみ出し・景物の置き場所・描画の量）
+        run: python tools/audit.py
+
+      - name: 確認の結果を残す
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 確認の結果
+          path: |
+            check/sheet.png
+            check/now/
+          if-no-files-found: ignore

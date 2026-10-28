@@ -51,6 +51,7 @@ def main():
     srv = check.serve()
     port = srv.server_address[1]
     errs = []
+    bad_total = 0
     with sync_playwright() as p:
         b = p.chromium.launch(args=['--use-gl=swiftshader'])
         pg = b.new_page(viewport={'width': 640, 'height': 400})
@@ -69,6 +70,7 @@ def main():
         print('■ 建物のはみ出し（全数／はみ出し／例）')
         for k, v in pg.evaluate(OVERLAP).items():
             print(f'  {k}：{v[0]} 棟中 {v[1]} 棟', v[2] if v[1] else '')
+            bad_total += v[1]
         print('■ 場面ごとの処理時間（ミリ秒、ソフトウェア描画）と描画の量')
         for name, sc, v in SCENES:
             pg.evaluate('a=>{__scene(a[0]);__set(...a[1])}', [sc, v])
@@ -83,6 +85,9 @@ def main():
         print('■ ページのエラー')
         for e in sorted(set(errs)):
             print('  ', e)
+    # はみ出しや置き場所の誤り、ページの誤りがあれば失敗にする（自動確認で止めるため）
+    if bad_total or errs:
+        sys.exit(1)
 
 
 if __name__ == '__main__':

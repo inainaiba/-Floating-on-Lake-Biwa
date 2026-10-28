@@ -861,7 +861,7 @@ const MOBILE = matchMedia("(pointer:coarse)").matches;
    ?q=high / mid / low で強制できる。中と低はスマホ（MOBILE）だと水面の網目をさらに粗くする */
 const QUALITY_TABLE = {
   high: { resStart: 1, resMax: 1, pixelMax: 2.5, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], reflection: 1, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1, msaa: 4, cloudSteps: 32 },
-  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1, msaa: 2, cloudSteps: 16 },
+  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.7, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1, msaa: 2, cloudSteps: 16 },
   low: { resStart: 0.6, resMax: 0.9, pixelMax: 2, shadowMap: 512, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 3500, fireworkBurst: 0.55, msaa: 0, cloudSteps: 0 },
 };
 const QUALITY = { ...(QUALITY_TABLE[QUAL] || QUALITY_TABLE.mid) };
@@ -1276,10 +1276,22 @@ vec2 i=floor(q),f=fract(q);
 vec2 u=f*f*(3.-2.*f);
  float a=fract(sin(dot(i,vec2(127.1,311.7)))*43758.5),b=fract(sin(dot(i+vec2(1,0),vec2(127.1,311.7)))*43758.5),c2=fract(sin(dot(i+vec2(0,1),vec2(127.1,311.7)))*43758.5),d2=fract(sin(dot(i+vec2(1,1),vec2(127.1,311.7)))*43758.5);
  vec2 du=6.*f*(1.-f);
-g+=fa*vec2((b-a)*(1.-u.y)+(d2-c2)*u.y,(c2-a)*(1.-u.x)+(d2-b)*u.x)*du*.17*smoothstep(160.+float(o)*-20.,4.,dc*(1.+float(o)*.4));
+g+=fa*vec2((b-a)*(1.-u.y)+(d2-c2)*u.y,(c2-a)*(1.-u.x)+(d2-b)*u.x)*du*.09*smoothstep(160.+float(o)*-20.,4.,dc*(1.+float(o)*.4));
 pp=mat2(1.6,1.2,-1.2,1.6)*pp+vec2(1.7,9.2);
 fa*=.55;
 }
+// 風の向きのまわりに広がる短い波（12本）。波長ごとに水の波の速さ（重力と表面張力）で進み、
+// 風が強いほど高く、向きのばらつきは風の向きを中心に狭い
+{vec2 wd=normalize(uWd+1e-4);float wa=atan(wd.y,wd.x),ws=.35+.65*(1.-uCalm);
+for(int j=0;j<12;j++){float fj=float(j);
+ float L=.35*pow(1.28,fj);float k=6.2832/L;
+ float om=sqrt(9.8*k+.074/1000.*k*k*k*30.);
+ float ang=wa+(fract(sin(fj*12.9898)*43758.5)-.5)*2.2*(.5+.5*fract(sin(fj*7.13)*91.3));
+ vec2 d=vec2(cos(ang),sin(ang));
+ float A=.0045*L*ws*pow(cos(ang-wa)*.5+.5,2.);
+ float ph=k*dot(d,rp)-om*t2*.6+fj*1.7;
+ g+=d*k*A*cos(ph)*smoothstep(L*60.,L*6.,dc);
+}}
 g+=vec2(cos(dot(rp,vec2(.05,.03))+t2*.6+sin(rp.y*.021)*3.),cos(dot(rp,vec2(-.02,.06))+t2*.5+sin(rp.x*.017)*3.))*.01;
 vec2 mg=vec2(sin(rp.x*3.1+t2*1.9+sin(rp.y*2.3)),sin(rp.y*2.9+t2*1.7+sin(rp.x*2.1)))*.018*smoothstep(25.,2.,dc);
 g+=mg;
@@ -1413,7 +1425,7 @@ for(int k=-3;
 k<=3;
 k++)for(int j=-1;
 j<=1;
-j++)rf+=texture2D(uRefl,ruv+vec2(float(j)*.003,float(k)*.0018)*(1.-uCalm*.65));
+j++)rf+=texture2D(uRefl,ruv+vec2(float(j)*.003,float(k)*.0018)*(1.-uCalm*.65)*mix(.35,1.,smoothstep(15.,140.,dc)));
 rf/=21.;
 // 夜の灯りの映り込み：明るい灯りほど水面に縦長の筋になって揺れる
 {float nt=smoothstep(.0,-.12,uSun.y);if(nt>.01){vec3 sk=vec3(0.);for(int k=-8;k<=8;k++){vec4 s=texture2D(uRefl,ruv+vec2(sin(float(k)*1.7+uT2*2.)*.002*(1.-uCalm*.5),float(k)*.007));sk=max(sk,(s.rgb/max(s.a,.001))*s.a*(1.-abs(float(k))/9.));}rf.rgb+=max(sk-.35,0.)*1.4*nt*rf.a;}}
