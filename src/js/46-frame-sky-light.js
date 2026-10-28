@@ -45,7 +45,16 @@ function updateSkyLight(dt, t, c, W) {
     skyU.uSunD.value.copy(sunDirSky);
     skyU.uSunC2.value.copy(sun.color).multiplyScalar(day > 0 ? 1 : 0);
     skyU.uT.value = t;
-    skyU.uCloud.value = 0.5 + wxNow.gray * 0.5;
+    skyU.uCloud.value = 0.5 + wxNow.gray * 0.5 + SEASON.snowCloud[c.month] * 0.25;
+    skyU.uSnowCap.value = SEASON.snowCloud[c.month] * (wxNow.rain > 0.3 ? 0.5 : 1);
+    {
+      // 流れ星：晴れた夜、ときどき空を走る
+      const m = skyU.uMet.value;
+      if (m.w > 0) {
+        m.z += dt * 1.6;
+        if (m.z >= 1) m.w = 0;
+      } else if (day <= 0 && wxNow.gray < 0.3 && Math.random() < dt / 25) m.set(Math.random() * 6.28, 0.35 + Math.random() * 0.5, 0, 1);
+    }
     skyU.uCi.value = SEASON.cirrus[c.month] * (1 - wxNow.gray * 0.6);
     skyU.uRay.value =
       wxNow.gray > 0.3 && wxNow.gray < 0.8 && wxNow.rain < 0.3 ? Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3) : 0;
