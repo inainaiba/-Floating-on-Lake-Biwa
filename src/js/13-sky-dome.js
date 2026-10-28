@@ -92,24 +92,25 @@ c=mix(c,cu,m_*uCu);
 // 太陽へ向けた数段で光の届き方を求めて重ねる。段数は画質で変える（QUALITY.cloudSteps）
 const SKY_FS_CUMULUS_VOL = `if(uCu>.01&&vD.y>.012){
 const int CS=${Math.max(1, QUALITY.cloudSteps)};
-float H0=1.,H1=2.6,t0=H0/vD.y,t1=min(H1/vD.y,t0+14.);
+float H0=1.,H1=4.2,t0=H0/vD.y,t1=min(H1/vD.y,t0+20.);/* 雲の層を厚く：遠くの雲も高く立ち上がって見える */
 float dtt=(t1-t0)/float(CS),T=1.;vec3 acc=vec3(0.);
-float cov=1.-uCu*.5;
+float cov=1.-uCu*.55;
 vec2 wnd=vec2(uT*.004,uT*.0015);
 vec3 sD=normalize(vec3(uSunD.x,max(uSunD.y,.03),uSunD.z));
 float jit=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));/* 画面の位置から決まる細かいずらし（縞を消し、ざらつきも目立たない） */
 vec3 sunCol=mix(vec3(1.,.62,.42),vec3(1.,.97,.92),smoothstep(.0,.35,uSunD.y))*smoothstep(-.12,.02,uSunD.y)*(1.-uDark*.7);
 for(int i=0;i<CS;i++){
  float tt=t0+dtt*(float(i)+jit);vec3 p=vD*tt;
- float hy=(p.y-H0)/(H1-H0);vec2 q=p.xz*.28+wnd;
+ float hy=(p.y-H0)/(H1-H0);vec2 q=p.xz*.18+wnd;
  q+=vec2(nzN(q*1.3+7.),nzN(q*1.3+1.7))*.35;
- float top=.25+.75*nzN(q*.55+3.1);
+ float top=.15+.85*pow(nzN(q*.5+3.1),1.6);/* 塔の高さの差を大きく */
  // 高いところほど雲が細り、頭が丸くなる。底は平ら
  float th=cov+hy*hy*.32+max(0.,hy-top)*1.5;
  float d=smoothstep(th,th+.07,nzF4(q))*smoothstep(.0,.04,hy);
  if(d<.01)continue;
- d*=.75+.25*nzN(p.xz*2.3+vec2(hy*5.)+wnd*2.);
- float ld=0.;for(int k=1;k<=3;k++){vec3 lp=p+sD*(float(k)*.22);ld+=smoothstep(cov,cov+.1,nzN(lp.xz*.28+wnd)*.92+.04)*step((lp.y-H0)/(H1-H0),.95);}
+ // 縁を細かい凹凸で削って、もくもくした輪郭に（濃い芯は残す）
+ d=clamp(d-(1.-d)*nzN(p.xz*2.6+vec2(hy*6.,-hy*3.)+wnd*2.)*.85-nzN(p.xz*6.+hy*9.)*.12,0.,1.);
+ float ld=0.;for(int k=1;k<=3;k++){vec3 lp=p+sD*(float(k)*.35);ld+=smoothstep(cov,cov+.1,nzN(lp.xz*.18+wnd)*.92+.04)*step((lp.y-H0)/(H1-H0),.95);}
  float Ls=exp(-ld*1.2),pw=1.-exp(-d*5.);
  vec3 amb=mix(uHor*.85,uTop*1.15+.06,hy)*(1.-uDark*.6);
  vec3 col=sunCol*Ls*pw*1.7+amb*(.3+.7*smoothstep(.0,.6,hy));/* 底は暗く、日の当たる頭は明るく */

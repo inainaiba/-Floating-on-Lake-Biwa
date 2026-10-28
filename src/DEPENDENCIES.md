@@ -286,7 +286,7 @@
   - 30-audio.js：`SND`
 
 ## 31-ui.js
-- 作る：`$`、`MAT_ICONS`、`dots`、`hex`、`mats`、`pick`、`restBtn`、`showName`
+- 作る：`$`、`MAT_ICONS`、`dots`、`hex`、`mats`、`pick`、`replayWanted`、`restBtn`、`runHints`、`showName`
 - 使う：
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inLake`、`inMain`

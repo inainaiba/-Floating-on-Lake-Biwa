@@ -102,39 +102,48 @@ $("go").onclick = () => {
     seen = localStorage.getItem("floating.hint2") === "1";
     localStorage.setItem("floating.hint2", "1");
   } catch (e) {}
-  if (!seen) {
-    const mob = matchMedia("(pointer:coarse)").matches;
-    const steps = [
-      [
-        "ドラッグで見回す・" + (mob ? "ピンチ" : "ホイール") + "で寄る",
-        "Drag to look around, " + (mob ? "pinch" : "scroll") + " to zoom",
-      ],
-      [
-        mob ? "左下の円で舵をとる。手を離すと、また漂う" : "矢印キーかWASDで舵をとる。離すと、また漂う",
-        mob ? "Steer with the circle at lower left" : "Steer with arrow keys or WASD",
-      ],
-      ["右上の地図で、行きたい場所をタップ", "Tap the map (top right) to set a destination"],
-      ["赤いブイに近づいてタップすると、その集落の映像がひらく", "Drift close to a red buoy and tap it"],
-      ["時は流れ、季節がめぐる。ゆっくりどうぞ", "Time flows, seasons turn"],
-    ];
-    const hn = $("hint");
-    let k = 0;
-    const show = () => {
-      if (k >= steps.length || STATE !== "lake") {
-        hn.style.opacity = 0;
-        return;
-      }
-      const [j, e] = steps[k++];
-      hn.innerHTML = j + '<br><span style="font-size:11px;opacity:.8">' + e + "</span>";
-      hn.style.opacity = 0.9;
-      clearTimeout(hn._t);
-      hn._t = setTimeout(() => {
-        hn.style.opacity = 0;
-        setTimeout(show, 1600);
-      }, 5200);
-    };
-    setTimeout(show, 1200);
-  }
+  if (!seen || replayWanted) setTimeout(() => runHints(), 1200);
+  replayWanted = false;
+};
+// 湖に出てからの案内：一つずつ文を出し、関係する画面のボタンを光らせる
+let replayWanted = false; // 「案内をもう一度」を、湖に出る前に押したとき
+function runHints() {
+  const mob = matchMedia("(pointer:coarse)").matches;
+  const steps = [
+    ["ドラッグで見回す・" + (mob ? "ピンチ" : "ホイール") + "で寄る", "Drag to look around, " + (mob ? "pinch" : "scroll") + " to zoom", null],
+    [mob ? "左下の円で舵をとる。手を離すと、また漂う" : "矢印キーかWASDで舵をとる。離すと、また漂う", mob ? "Steer with the circle at lower left" : "Steer with arrow keys or WASD", mob ? "joy" : null],
+    ["右上の地図で、行きたい場所をタップ", "Tap the map (top right) to set a destination", "view"],
+    ["赤いブイに近づいてタップすると、その集落の映像がひらく", "Drift close to a red buoy and tap it", null],
+    ["時は流れ、季節がめぐる。ゆっくりどうぞ", "Time flows, seasons turn", null],
+  ];
+  const hn = $("hint");
+  let k = 0,
+    lit = null;
+  const show = () => {
+    if (lit) lit.classList.remove("ping");
+    lit = null;
+    if (k >= steps.length || STATE !== "lake") {
+      hn.style.opacity = 0;
+      return;
+    }
+    const [j, e, target] = steps[k++];
+    hn.innerHTML = j + '<br><span style="font-size:11px;opacity:.8">' + e + "</span>";
+    hn.style.opacity = 0.9;
+    if (target && $(target)) (lit = $(target)).classList.add("ping");
+    clearTimeout(hn._t);
+    hn._t = setTimeout(() => {
+      hn.style.opacity = 0;
+      setTimeout(show, 1600);
+    }, 5200);
+  };
+  show();
+}
+// 「この作品について」から、案内をもう一度
+$("replayHint").onclick = (e) => {
+  e.stopPropagation();
+  $("about").classList.remove("on");
+  if (STATE === "lake") runHints();
+  else replayWanted = true; // 湖に出たときに流す
 };
 $("snd").onclick = () => {
   SND.on = !SND.on;

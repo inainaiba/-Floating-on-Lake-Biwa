@@ -40,7 +40,7 @@ body:not(.lake) #snd{display:none}
 #ui{position:fixed;inset:0;pointer-events:none;color:#fff;font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif}
 #ui>*{pointer-events:auto}
 #title{position:fixed;inset:0;display:grid;place-items:center;font-size:clamp(40px,9vw,88px);letter-spacing:.18em;font-weight:300;cursor:pointer;transition:opacity 1.2s ease;text-shadow:0 0 30px rgba(0,0,0,.25)}
-#sel{position:fixed;left:0;right:0;bottom:0;padding:16px 16px calc(20px + env(safe-area-inset-bottom));display:none;flex-direction:column;align-items:center;gap:14px;background:linear-gradient(transparent,rgba(0,0,0,.35));transition:opacity .8s}
+#sel{position:fixed;left:0;right:0;bottom:0;padding:16px 16px calc(46px + env(safe-area-inset-bottom));display:none;flex-direction:column;align-items:center;gap:14px;background:linear-gradient(transparent,rgba(0,0,0,.35));transition:opacity .8s}
 #sel .nm{font-size:22px;letter-spacing:.12em;text-shadow:0 1px 8px rgba(0,0,0,.4);text-align:center}
 #sel .ln{display:block;font-size:12px;letter-spacing:.06em;opacity:.8;margin-top:4px}
 .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center}
@@ -58,6 +58,20 @@ input[type=range]{width:110px;accent-color:#fff}
 #hint{position:fixed;left:0;right:0;top:22%;text-align:center;font-size:14px;letter-spacing:.08em;opacity:0;transition:opacity 1.5s;pointer-events:none;text-shadow:0 1px 6px rgba(0,0,0,.5)}
 body:not(.lake) #view,body:not(.lake) #joy{display:none!important}
 body.far #rest{display:none}
+
+/* 初めての人への案内 */
+#title{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
+#title .sub{font-size:13px;letter-spacing:.3em;margin-top:18px;opacity:0;animation:fadeIn 2s 1s forwards;text-align:center}
+#title .sub span,#title .tap span,#sel .guide span{display:block;font-size:10px;letter-spacing:.12em;opacity:.7;margin-top:4px}
+#title .tap{font-size:12px;letter-spacing:.25em;margin-top:56px;opacity:0;animation:fadeIn 1.5s 2.4s forwards,breathe 3s 3.9s ease-in-out infinite;text-align:center}
+@keyframes fadeIn{to{opacity:.85}}
+@keyframes breathe{0%,100%{opacity:.85}50%{opacity:.35}}
+#sel .guide{font-size:12px;letter-spacing:.08em;text-align:center;opacity:.85;text-shadow:0 1px 6px rgba(0,0,0,.5);max-width:520px;line-height:1.7}
+#sel .golab{font-size:11px;letter-spacing:.3em;opacity:.8;margin-bottom:-6px}
+.ping{animation:ping 1.6s ease-out infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(255,255,255,.75)}100%{box-shadow:0 0 0 16px rgba(255,255,255,0)}}
+#about .how{font-size:12px;line-height:2;margin-top:12px;opacity:.85}
+#about .replay{font-size:12px;margin-top:10px;text-decoration:underline;cursor:pointer;opacity:.8}
 </style>
 </head>
 <body>
@@ -66,15 +80,16 @@ body.far #rest{display:none}
 <div id="view" class="ico" aria-label="view"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16"/></svg></div>
 <div id="joy" class="ico"><i></i></div>
 <div id="ui">
-<div id="title">Floating</div>
+<div id="title"><div>Floating</div><div class="sub">琵琶湖に、建築を浮かべる。<span>Float architecture on Lake Biwa</span></div><div class="tap">タップしてはじめる<span>tap to begin</span></div></div>
 <div class="arr" id="prev" style="display:none"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></div>
 <div class="arr" id="next" style="display:none"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></div>
 <div id="sel">
+ <div class="guide" id="selGuide">‹ › で建築をえらび、色と灯りをきめて湖へ<span>Choose a building, set its colour and light, then release it</span></div>
  <div class="nm" id="nm"></div>
  <div class="row" id="cBody"></div>
  <div class="row"><span id="cMat" class="row"></span></div>
  <div class="row"><span id="cLight" class="row"></span><input id="bright" type="range" min="0.1" max="1" step="0.05" value="0.7" aria-label="light"></div>
- <div id="go" aria-label="go"><svg viewBox="0 0 24 24"><path d="M3 14c3-3 6 3 9 0s6 3 9 0"/><path d="M12 4v7M9 8l3 3 3-3"/></svg></div>
+ <div class="golab">湖へ放つ</div><div id="go" aria-label="go"><svg viewBox="0 0 24 24"><path d="M3 14c3-3 6 3 9 0s6 3 9 0"/><path d="M12 4v7M9 8l3 3 3-3"/></svg></div>
 </div>
 <div id="snd" class="ico" aria-label="sound"><svg viewBox="0 0 24 24"><path d="M4 10h4l5-4v12l-5-4H4z"/><path class="w" d="M16 9c1.5 1.5 1.5 4.5 0 6M18.5 6.5c3 3 3 8 0 11"/></svg></div>
 <div id="save" class="ico" aria-label="save"><svg viewBox="0 0 24 24"><path d="M6 4h12v16H6z"/><path d="M9 15c2-4 3 1 6-5"/></svg></div>
@@ -82,7 +97,7 @@ body.far #rest{display:none}
 <div id="rest" aria-label="drift"><svg viewBox="0 0 24 24"><path d="M3 16c3-3 6 3 9 0s6 3 9 0"/><path d="M8 9h9M14 6l3 3-3 3"/></svg></div>
 <div id="hint">ドラッグで見回す・ピンチで寄る<br><span style="font-size:11px;opacity:.8">Drag to look, pinch to zoom</span></div>
 </div>
-<div id="ab">この作品について</div><div id="about"><div class="in"><h2>Floating</h2><p>琵琶湖に、建築を浮かべる。</p><p class="src">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a><br><a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a> ／ <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></p><p class="cl">閉じる</p></div></div>
+<div id="ab">この作品について</div><div id="about"><div class="in"><h2>Floating</h2><p>琵琶湖に、建築を浮かべる。</p><p class="how">見回す：ドラッグ　寄る：ピンチ・ホイール<br>舵：左下の円・矢印キー（離すとまた漂う）<br>行き先：右上の地図でタップ<br>映像：赤いブイに近づいてタップ</p><p class="replay" id="replayHint">案内をもう一度見る</p><p class="src">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a><br><a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a> ／ <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></p><p class="cl">閉じる</p></div></div>
 <div id="veil"><div id="ld">湖を描いています<span>Drawing the lake</span></div></div>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 <script type="module">
