@@ -1124,7 +1124,9 @@ skyR*=1.+.1*(fract(sin(dot(floor((vP.xz+R.xz*200.)*.01),vec2(1.7,9.2)))*43.)-.5)
 // ── 建物のまわり：喫水の陰、波の斜面の陰影、建物の影、水際の泡 ──
 float ub=length(vP.xz-uHouse.xy);
 vec2 hso=uHouse.xy-normalize(uSun.xz+1e-4)*uHouse.z*.9/max(uSun.y,.25)*.6;
-float hs=smoothstep(uHouse.z*1.,uHouse.z*.4,length(vP.xz-hso));
+// 建物の影：日が低いほど長く伸びる（家から影の先までの線分への距離）
+vec2 hsE=uHouse.xy-normalize(uSun.xz+1e-4)*uHouse.z*.55/max(uSun.y,.07);
+float hs;{vec2 ab=hsE-uHouse.xy;float tt=clamp(dot(vP.xz-uHouse.xy,ab)/max(dot(ab,ab),1e-3),0.,1.);hs=smoothstep(uHouse.z*.8,uHouse.z*.3,length(vP.xz-uHouse.xy-ab*tt))*(1.-tt*.5);}
 // 喫水の陰 × 波の斜面の陰影 × 建物の影 を一度に掛ける
 body*=(1.-.38*smoothstep(uHouse.z*1.15,uHouse.z*.3,ub))*(.9+.22*clamp(dot(N,normalize(vec3(uSun.x,1.2,uSun.z))),0.,1.))*(1.-hs*.28*clamp(uSun.y*3.,0.,1.));
 // 浅瀬では建物の影が湖底に落ち、水深の分だけ日の向こうへずれる
@@ -1201,6 +1203,8 @@ skyR+=uFWc[i]*uFW[i].w*(pow(dd,180.)*1.6+pow(dd,30.)*.25);
  vec3 c=mix(body,skyR*mix(vec3(.9,.95,1.),vec3(1.05),graz),min(1.,fr*(1.05-uRainR*.3)+.03))+uSunC*sp+foam+uSunC*.04*pow(max(dot(-V,uSun),0.),2.);
 float ws_=smoothstep(.6,1.,sin(dot(vP0.xz,vec2(.011,.017))+sin(vP0.x*.004)*3.)*.5+.5)*.04*(1.-smoothstep(300.,1500.,dc));
 c+=ws_;
+// 夜の湖面：月のない夜も、空の明るさをうっすら映す
+c+=vec3(.02,.03,.055)*smoothstep(.0,-.15,uSun.y)*(.4+.6*pow(1.-max(V.y,0.),2.));
 // 写真のような落ち着いた湖の色：鮮やかすぎる青緑を少し鎮める
 c=mix(c,vec3(dot(c,vec3(.3,.59,.11)))*vec3(.92,.97,1.06),.2);
 // 真昼の水面に流れる細かな光の網目
@@ -1487,7 +1491,7 @@ terrMat.onBeforeCompile = (sh) => {
     )
     .replace(
       "#include <fog_fragment>",
-      "float hz=pow(smoothstep(500.,6200.,length(cameraPosition.xz-vXZ)),.85)*1.25;hz=max(hz,uLow*.45*smoothstep(800.,5000.,length(cameraPosition.xz-vXZ)));gl_FragColor.rgb=mix(gl_FragColor.rgb,uHaze*vec3(.85,.92,1.04),hz*.5);\n#include <fog_fragment>",
+      "float hz=pow(smoothstep(500.,6200.,length(cameraPosition.xz-vXZ)),.85)*1.25;hz=max(hz,uLow*.45*smoothstep(800.,5000.,length(cameraPosition.xz-vXZ)));gl_FragColor.rgb=mix(gl_FragColor.rgb,mix(uHaze*vec3(.85,.92,1.04),uHaze*vec3(.5,.56,.68),smoothstep(2500.,7500.,length(cameraPosition.xz-vXZ))),hz*.55);\n#include <fog_fragment>",
     );
   sh.fragmentShader = sh.fragmentShader
     .replace(
@@ -1576,7 +1580,7 @@ diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.93,.94,.96),uSnow*smoothstep(${(600 
 float hz=1.-exp(-dc_/3800.);
 hz*=(.55+.45*smoothstep(5.,160.,vH));
 {float cs=smoothstep(.35,.8,.5+.5*sin((vXZ.x+uCT*4.)*.0045+sin(vXZ.y*.0031)*2.)*sin((vXZ.y+uCT*2.)*.0038+sin(vXZ.x*.0027)*1.7));
-diffuseColor.rgb*=1.-cs*.42*uCSh*clamp(uSunT.y*3.,0.,1.);
+diffuseColor.rgb*=(1.-cs*.55*uCSh*clamp(uSunT.y*3.,0.,1.))*(1.+(1.-cs)*.08*uCSh*clamp(uSunT.y*3.,0.,1.));
 float low=smoothstep(.22,.02,uSunT.y)*smoothstep(-.1,.02,uSunT.y);
 vec2 sd2=normalize(uSunT.xz+1e-4);
 float face=pow(max(dot(normalize(nrm.xz+1e-4),sd2),0.),2.)*smoothstep(.05,.5,1.-nrm.y);
@@ -9031,6 +9035,34 @@ G.life = (() => {
     eri.castShadow = false;
     scene.add(eri);
     G.eriMesh = eri;
+  }
+  // 湖岸の松並木：近江舞子・北小松・萩の浜・宮ヶ浜の白砂青松
+  {
+    const SITES = [
+      [135.958, 35.262, 1400],
+      [135.972, 35.284, 900],
+      [136.043, 35.334, 900],
+      [136.082, 35.172, 800],
+    ].map(([lo, la, r]) => [...ll(lo, la), r]);
+    const P = [];
+    for (let i = 0; i < outer.length - 1; i++) {
+      const [x1, y1] = outer[i],
+        [x2, y2] = outer[i + 1],
+        L = Math.hypot(x2 - x1, y2 - y1);
+      if (L < 1 || !SITES.some(([sx, sy, r]) => Math.hypot(x1 - sx, y1 - sy) < r)) continue;
+      let nx = -(y2 - y1) / L,
+        ny = (x2 - x1) / L;
+      if (inLake(x1 + nx * 30, y1 + ny * 30)) (nx = -nx), (ny = -ny);
+      for (let s = 0; s < L; s += 9)
+        for (let k = 0; k < 2; k++) {
+          const off = 14 + R() * 45,
+            x = x1 + ((x2 - x1) * s) / L + nx * off + (R() - 0.5) * 8,
+            y = y1 + ((y2 - y1) * s) / L + ny * off + (R() - 0.5) * 8;
+          if (inLake(x, y) || inInner(x, y)) continue;
+          P.push([x, y, 0.6 + terrainAt(x, y) * S * VEX, 0.9 + R() * 0.5, R()]);
+        }
+    }
+    if (P.length) cardForest("pine", P, 11, 7, 60, 3500, QUALITY.treeShadow);
   }
   function update(dt, t, c, day, wxNow) {
     const cx = camera.position.x,

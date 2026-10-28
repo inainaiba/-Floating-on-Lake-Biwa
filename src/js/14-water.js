@@ -263,7 +263,9 @@ skyR*=1.+.1*(fract(sin(dot(floor((vP.xz+R.xz*200.)*.01),vec2(1.7,9.2)))*43.)-.5)
 // ── 建物のまわり：喫水の陰、波の斜面の陰影、建物の影、水際の泡 ──
 float ub=length(vP.xz-uHouse.xy);
 vec2 hso=uHouse.xy-normalize(uSun.xz+1e-4)*uHouse.z*.9/max(uSun.y,.25)*.6;
-float hs=smoothstep(uHouse.z*1.,uHouse.z*.4,length(vP.xz-hso));
+// 建物の影：日が低いほど長く伸びる（家から影の先までの線分への距離）
+vec2 hsE=uHouse.xy-normalize(uSun.xz+1e-4)*uHouse.z*.55/max(uSun.y,.07);
+float hs;{vec2 ab=hsE-uHouse.xy;float tt=clamp(dot(vP.xz-uHouse.xy,ab)/max(dot(ab,ab),1e-3),0.,1.);hs=smoothstep(uHouse.z*.8,uHouse.z*.3,length(vP.xz-uHouse.xy-ab*tt))*(1.-tt*.5);}
 // 喫水の陰 × 波の斜面の陰影 × 建物の影 を一度に掛ける
 body*=(1.-.38*smoothstep(uHouse.z*1.15,uHouse.z*.3,ub))*(.9+.22*clamp(dot(N,normalize(vec3(uSun.x,1.2,uSun.z))),0.,1.))*(1.-hs*.28*clamp(uSun.y*3.,0.,1.));
 // 浅瀬では建物の影が湖底に落ち、水深の分だけ日の向こうへずれる
@@ -340,6 +342,8 @@ skyR+=uFWc[i]*uFW[i].w*(pow(dd,180.)*1.6+pow(dd,30.)*.25);
  vec3 c=mix(body,skyR*mix(vec3(.9,.95,1.),vec3(1.05),graz),min(1.,fr*(1.05-uRainR*.3)+.03))+uSunC*sp+foam+uSunC*.04*pow(max(dot(-V,uSun),0.),2.);
 float ws_=smoothstep(.6,1.,sin(dot(vP0.xz,vec2(.011,.017))+sin(vP0.x*.004)*3.)*.5+.5)*.04*(1.-smoothstep(300.,1500.,dc));
 c+=ws_;
+// 夜の湖面：月のない夜も、空の明るさをうっすら映す
+c+=vec3(.02,.03,.055)*smoothstep(.0,-.15,uSun.y)*(.4+.6*pow(1.-max(V.y,0.),2.));
 // 写真のような落ち着いた湖の色：鮮やかすぎる青緑を少し鎮める
 c=mix(c,vec3(dot(c,vec3(.3,.59,.11)))*vec3(.92,.97,1.06),.2);
 // 真昼の水面に流れる細かな光の網目

@@ -237,7 +237,7 @@ terrMat.onBeforeCompile = (sh) => {
     )
     .replace(
       "#include <fog_fragment>",
-      "float hz=pow(smoothstep(500.,6200.,length(cameraPosition.xz-vXZ)),.85)*1.25;hz=max(hz,uLow*.45*smoothstep(800.,5000.,length(cameraPosition.xz-vXZ)));gl_FragColor.rgb=mix(gl_FragColor.rgb,uHaze*vec3(.85,.92,1.04),hz*.5);\n#include <fog_fragment>",
+      "float hz=pow(smoothstep(500.,6200.,length(cameraPosition.xz-vXZ)),.85)*1.25;hz=max(hz,uLow*.45*smoothstep(800.,5000.,length(cameraPosition.xz-vXZ)));gl_FragColor.rgb=mix(gl_FragColor.rgb,mix(uHaze*vec3(.85,.92,1.04),uHaze*vec3(.5,.56,.68),smoothstep(2500.,7500.,length(cameraPosition.xz-vXZ))),hz*.55);\n#include <fog_fragment>",
     );
   sh.fragmentShader = sh.fragmentShader
     .replace(
@@ -326,7 +326,7 @@ diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.93,.94,.96),uSnow*smoothstep(${(600 
 float hz=1.-exp(-dc_/3800.);
 hz*=(.55+.45*smoothstep(5.,160.,vH));
 {float cs=smoothstep(.35,.8,.5+.5*sin((vXZ.x+uCT*4.)*.0045+sin(vXZ.y*.0031)*2.)*sin((vXZ.y+uCT*2.)*.0038+sin(vXZ.x*.0027)*1.7));
-diffuseColor.rgb*=1.-cs*.42*uCSh*clamp(uSunT.y*3.,0.,1.);
+diffuseColor.rgb*=(1.-cs*.55*uCSh*clamp(uSunT.y*3.,0.,1.))*(1.+(1.-cs)*.08*uCSh*clamp(uSunT.y*3.,0.,1.));
 float low=smoothstep(.22,.02,uSunT.y)*smoothstep(-.1,.02,uSunT.y);
 vec2 sd2=normalize(uSunT.xz+1e-4);
 float face=pow(max(dot(normalize(nrm.xz+1e-4),sd2),0.),2.)*smoothstep(.05,.5,1.-nrm.y);

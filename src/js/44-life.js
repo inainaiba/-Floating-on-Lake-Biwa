@@ -523,6 +523,34 @@ G.life = (() => {
     scene.add(eri);
     G.eriMesh = eri;
   }
+  // 湖岸の松並木：近江舞子・北小松・萩の浜・宮ヶ浜の白砂青松
+  {
+    const SITES = [
+      [135.958, 35.262, 1400],
+      [135.972, 35.284, 900],
+      [136.043, 35.334, 900],
+      [136.082, 35.172, 800],
+    ].map(([lo, la, r]) => [...ll(lo, la), r]);
+    const P = [];
+    for (let i = 0; i < outer.length - 1; i++) {
+      const [x1, y1] = outer[i],
+        [x2, y2] = outer[i + 1],
+        L = Math.hypot(x2 - x1, y2 - y1);
+      if (L < 1 || !SITES.some(([sx, sy, r]) => Math.hypot(x1 - sx, y1 - sy) < r)) continue;
+      let nx = -(y2 - y1) / L,
+        ny = (x2 - x1) / L;
+      if (inLake(x1 + nx * 30, y1 + ny * 30)) (nx = -nx), (ny = -ny);
+      for (let s = 0; s < L; s += 9)
+        for (let k = 0; k < 2; k++) {
+          const off = 14 + R() * 45,
+            x = x1 + ((x2 - x1) * s) / L + nx * off + (R() - 0.5) * 8,
+            y = y1 + ((y2 - y1) * s) / L + ny * off + (R() - 0.5) * 8;
+          if (inLake(x, y) || inInner(x, y)) continue;
+          P.push([x, y, 0.6 + terrainAt(x, y) * S * VEX, 0.9 + R() * 0.5, R()]);
+        }
+    }
+    if (P.length) cardForest("pine", P, 11, 7, 60, 3500, QUALITY.treeShadow);
+  }
   function update(dt, t, c, day, wxNow) {
     const cx = camera.position.x,
       cz = camera.position.z;
