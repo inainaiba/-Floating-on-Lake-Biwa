@@ -262,11 +262,11 @@ function updateSkyLight(dt, t, c, W) {
   if (house.halo) {
     house.halo.visible = night || day < 0.12;
     house.halo.material.color.set(LIGHT_COLORS[CUST.light]);
-    house.halo.material.opacity = CUST.bright;
-    house.halo.scale.setScalar((CUST.b !== undefined && BUILDINGS[CUST.b].lamp ? 3.2 : 7) * (1 + (wxNow.white || 0) * 3.5));
+    house.halo.material.opacity = CUST.bright * 0.45;
+    house.halo.scale.setScalar(2.4 * (1 + (wxNow.white || 0) * 3.5));
   }
   for (const g of glassMats)
-    g.emissive.set(night ? LIGHT_COLORS[CUST.light] : 0).multiplyScalar(night ? CUST.bright * 0.8 : 0);
+    g.emissive.set(night ? LIGHT_COLORS[CUST.light] : 0).multiplyScalar(night ? CUST.bright * (g === G.glowMat ? 1.9 : 0.8) : 0);
   portLamps.visible = night || day < 0.12;
   windows.material.size = 3.4 * (1 + (wxNow.white || 0) * 1.6);
   if (G.street) G.street.material.size = 2.4 * (1 + (wxNow.white || 0) * 1.8);

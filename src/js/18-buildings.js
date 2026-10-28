@@ -78,6 +78,10 @@ const bbox = (w, h, d) => {
   return g;
 };
 const box = (w, h, d, m, x = 0, y = 0, z = 0) => {
+  // 細すぎる部材は遠目にちらつくので、最小の太さをそろえる
+  w = Math.max(w, 0.06);
+  h = Math.max(h, 0.06);
+  d = Math.max(d, 0.06);
   const o = new THREE.Mesh(w > 0.5 && h > 0.5 && d > 0.5 ? bbox(w, h, d) : new THREE.BoxGeometry(w, h, d), m);
   o.position.set(x, y, z);
   return o;
@@ -97,12 +101,30 @@ const rod = (a, b, r, m) => {
   const A = new THREE.Vector3(...a),
     Bv = new THREE.Vector3(...b),
     L = A.distanceTo(Bv),
-    o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 6), m);
+    o = new THREE.Mesh(new THREE.CylinderGeometry(Math.max(r, 0.045), Math.max(r, 0.045), L, 6), m);
   o.position.copy(A).add(Bv).multiplyScalar(0.5);
   o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), Bv.clone().sub(A).normalize());
   return o;
 };
-const s0 = (k) => (k % 2 ? -4.2 : 4.2);
+// 細い部材をまとめて並べる道具
+const posts = (g, m, pts, y0, y1, r = 0.05) => pts.forEach(([x, z]) => g.add(rod([x, y0, z], [x, y1, z], r, m)));
+const ringPts = (R, n, a0 = 0) => Array.from({ length: n }, (_, i) => [Math.cos(a0 + (i / n) * Math.PI * 2) * R, Math.sin(a0 + (i / n) * Math.PI * 2) * R]);
+const ring = (g, m, R, y, r = 0.03, seg = 64) => {
+  const t = new THREE.Mesh(new THREE.TorusGeometry(R, r, 5, seg), m);
+  t.rotation.x = Math.PI / 2;
+  t.position.y = y;
+  g.add(t);
+  return t;
+};
+// 灯り：建物の内側に置く光る面（夜だけ内側から明るくなる）
+const glowBox = (g, m, w, h, d, x, y, z) => {
+  const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m.glow);
+  o.position.set(x, y, z);
+  o.castShadow = false;
+  o.userData.noShadow = true;
+  g.add(o);
+  return o;
+};
 const BUILDINGS = [
   {
     name: "浮かぶ学校",
@@ -111,50 +133,56 @@ const BUILDINGS = [
     make(m) {
       const g = new THREE.Group(),
         blue = new THREE.MeshStandardMaterial({ color: 0x2f5fa8, roughness: 0.6 });
+      // 浮き：青い樽を並べる
       for (let i = -4; i <= 4; i++) {
-        const c = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 10, 12), blue);
+        const c = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 9.6, 14), blue);
         c.rotation.z = Math.PI / 2;
         c.position.set(0, 0.2, i * 1.15);
         g.add(c);
       }
-      g.add(box(11, 0.3, 11, m.wood, 0, 0.75));
-      for (const s of [-1, 1]) {
-        for (let k = 0; k < 5; k++) {
-          const y = 1 + k * 1.8,
-            w = 10 * (1 - (y - 0.9) / 10.5);
-          g.add(box(10.4, 0.12, 0.14, m.wood, 0, y, (s * w) / 2));
-        }
-        g.add(rod([-5, 0.9, s * 5], [-5, 11.4, 0], 0.12, m.wood));
-        g.add(rod([5, 0.9, s * 5], [5, 11.4, 0], 0.12, m.wood));
-        g.add(rod([0, 0.9, s * 5], [0, 11.4, 0], 0.1, m.wood));
+      // 床：細い板を並べる
+      for (let i = -27; i <= 27; i++) g.add(box(10.6, 0.08, 0.17, m.wood, 0, 0.72, i * 0.2));
+      // A形の骨組み：細い垂木を細かく並べる
+      const H = 10.6,
+        Wb = 5.2;
+      for (let x = -5; x <= 5.001; x += 0.5)
+        for (const s of [-1, 1]) g.add(rod([x, 0.8, s * Wb], [x, H, 0], x % 2.5 === 0 ? 0.07 : 0.035, m.wood));
+      // 下階の壁：細い横板のルーバー
+      for (let k = 0; k < 16; k++) {
+        const y = 1 + k * 0.17,
+          w = Wb * (1 - (y - 0.8) / (H - 0.8));
+        for (const s of [-1, 1]) g.add(box(10.2, 0.025, 0.11, m.wood, 0, y, s * w));
       }
-      for (let k = 0; k < 9; k++) {
-        const y = 3.7 + k * 0.5,
-          w = 9.4 * (1 - (y - 3.6) / 4.6);
-        if (w < 0.4) break;
-        for (const s of [-1, 1]) g.add(box(9.6, 0.32, 0.08, m.body, 0, y, (s * w) / 2));
-      }
+      // 中階の床と、上部の屋根（細い母屋の上に薄い屋根面）
+      g.add(box(10.2, 0.12, 7.4, m.wood, 0, 3.6));
+      g.add(box(10.2, 0.1, 3.4, m.wood, 0, 7.2));
       for (let k = 0; k < 12; k++) {
-        const y = 1 + k * 0.38;
-        g.add(box(0.08, 0.3, 8.9, m.body, s0(k), y, 0));
+        const y = 3.8 + k * 0.5,
+          w = Wb * (1 - (y - 0.8) / (H - 0.8));
+        for (const s of [-1, 1]) g.add(box(10.4, 0.04, 0.05, m.wood, 0, y, s * (w + 0.05)));
       }
-      for (const x of [-4.8, 4.8]) {
-        const tri = gable(0.12, 9.4, 4.6, m.body);
-        tri.position.set(x, 3.6, 0);
-        g.add(tri);
+      for (const s of [-1, 1]) {
+        const y = 7.6,
+          w = Wb * (1 - (y - 0.8) / (H - 0.8));
+        const pl = new THREE.Mesh(new THREE.PlaneGeometry(10.6, Math.hypot(H - y, w) + 0.3), blue);
+        pl.material.side = THREE.DoubleSide;
+        pl.position.set(0, (y + H) / 2, (s * w) / 2);
+        pl.rotation.set(s * -(Math.PI / 2 - Math.atan2(H - y, w)), 0, 0);
+        g.add(pl);
       }
-      g.add(box(9.6, 0.25, 8.6, m.wood, 0, 3.6));
-      g.add(box(9.6, 0.25, 4.9, m.wood, 0, 7));
-      const roof = gable(10.6, 4.6, 2.3, blue);
-      roof.position.y = 8.9;
-      g.add(roof);
-      const roof2 = gable(10.8, 5.2, 2.6, blue);
-      roof2.position.set(0, 8.6, 0);
-      roof2.scale.set(1, 1, 1.0);
-      g.add(roof2);
+      // 妻面：細い縦格子
+      for (const x of [-5.05, 5.05])
+        for (let z = -4.6; z <= 4.6; z += 0.35) {
+          const top = H - (Math.abs(z) / Wb) * (H - 0.8);
+          if (top > 1.2) g.add(box(0.03, top - 0.9, 0.05, m.wood, x, (top + 0.9) / 2, z));
+        }
+      // 灯り：教室の中と、頂部の小屋裏
+      glowBox(g, m, 9.4, 2.2, 6.6, 0, 2.2, 0);
+      glowBox(g, m, 9.4, 1.4, 2.2, 0, 8.2, 0);
       return g;
     },
     L: 12,
+    lamp: [0, 2.2, 0],
   },
   {
     name: "漏斗の舞台",
@@ -163,43 +191,45 @@ const BUILDINGS = [
     make(m) {
       const g = new THREE.Group(),
         blue = new THREE.MeshStandardMaterial({ color: 0x2f5fa8, roughness: 0.6 }),
-        fab = new THREE.MeshStandardMaterial({
-          color: 0xf7f6f1,
-          emissive: 0x2a2a28,
-          roughness: 0.8,
-          transparent: true,
-          opacity: 0.93,
-        });
-      fab.side = THREE.DoubleSide;
+        fab = new THREE.MeshStandardMaterial({ color: 0xf7f6f1, emissive: 0x000000, roughness: 0.85, transparent: true, opacity: 0.9, side: THREE.DoubleSide });
+      glassMats.push(fab);
       for (let i = -3; i <= 3; i++) {
-        const c = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 8.4, 10), blue);
+        const c = new THREE.Mesh(new THREE.CylinderGeometry(0.33, 0.33, 8.4, 14), blue);
         c.rotation.z = Math.PI / 2;
         c.position.set(0, 0.15, i * 0.95);
         g.add(c);
       }
-      g.add(box(9, 0.25, 7, m.wood, 0, 0.6));
-      for (const x of [-4.2, 4.2]) for (const z of [-3.2, 3.2]) g.add(box(0.18, 8, 0.18, m.wood, x, 4.6, z));
-      for (const y of [3.4, 5.2, 8.5])
+      for (let i = -17; i <= 17; i++) g.add(box(8.8, 0.08, 0.18, m.wood, 0, 0.62, i * 0.2));
+      // 柱：細い柱を密に。梁は二重の細材
+      const px = [-4.2, -2.8, -1.4, 0, 1.4, 2.8, 4.2];
+      for (const x of px) for (const z of [-3.2, 3.2]) g.add(rod([x, 0.7, z], [x, 8.6, z], x === -4.2 || x === 4.2 ? 0.07 : 0.045, m.wood));
+      for (const z of [-3.2, -1.6, 0, 1.6, 3.2]) for (const x of [-4.2, 4.2]) g.add(rod([x, 0.7, z], [x, 8.6, z], 0.045, m.wood));
+      for (const y of [3.4, 3.6, 8.4, 8.6])
         for (const s of [-1, 1]) {
-          g.add(box(8.6, 0.14, 0.14, m.wood, 0, y, s * 3.2));
-          g.add(box(0.14, 0.14, 6.6, m.wood, s * 4.2, y, 0));
+          g.add(box(8.5, 0.05, 0.05, m.wood, 0, y, s * 3.2));
+          g.add(box(0.05, 0.05, 6.5, m.wood, s * 4.2, y, 0));
         }
-      for (const x of [-2.1, 0, 2.1])
-        g.add(box(0.1, 3.2, 0.1, m.wood, x, 6.9, 3.2)), g.add(box(0.1, 3.2, 0.1, m.wood, x, 6.9, -3.2));
-      const f = new THREE.Mesh(new THREE.CylinderGeometry(1, 0.62, 1, 4, 1, true), fab);
+      // 方杖：細い斜材
+      for (const x of px.slice(1, -1))
+        for (const s of [-1, 1]) g.add(rod([x - 0.6, 8.4, s * 3.2], [x + 0.6, 7.4, s * 3.2], 0.025, m.wood));
+      // 漏斗の膜：上から吊る。内側に灯りを入れて膜ごと光る
+      const f = new THREE.Mesh(new THREE.CylinderGeometry(1, 0.6, 1, 4, 6, true), fab);
       f.rotation.y = Math.PI / 4;
-      f.scale.set(6.1, 3.3, 4.6);
-      f.position.y = 6.85;
+      f.scale.set(5.9, 3.2, 4.4);
+      f.position.y = 6.8;
       g.add(f);
-      const lid = new THREE.Mesh(new THREE.PlaneGeometry(8.6, 6.5), fab);
+      // 膜を吊る細いケーブル
+      for (const x of [-2.1, 0, 2.1]) for (const s of [-1, 1]) g.add(rod([x, 8.4, s * 3.2], [x * 0.7, 5.3, s * 1.5], 0.012, m.dark));
+      const lid = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 6.4), fab);
       lid.rotation.x = -Math.PI / 2;
-      lid.position.y = 8.52;
+      lid.position.y = 8.62;
       g.add(lid);
-      g.add(box(1, 1.2, 0.8, m.dark, -3, 1.3, -2.4));
-      g.add(box(1, 1.2, 0.8, m.dark, 3, 1.3, -2.4));
+      // 舞台の床の縁と客席の段
+      for (let k = 0; k < 3; k++) g.add(box(7.6 - k * 0.6, 0.12, 0.6, m.wood, 0, 0.75 + k * 0.25, -2.6 + k * 0.6));
       return g;
     },
     L: 9,
+    lamp: [0, 5.4, 0],
   },
   {
     name: "葦の屋根",
@@ -215,7 +245,7 @@ const BUILDINGS = [
             (G.thTx = cvTex(128, 128, (c, w, h) => {
               c.fillStyle = "#b89a6a";
               c.fillRect(0, 0, w, h);
-              for (let i = 0; i < 700; i++) {
+              for (let i = 0; i < 900; i++) {
                 const v = 110 + Math.random() * 90;
                 c.strokeStyle = `rgb(${v},${(v * 0.82) | 0},${(v * 0.55) | 0})`;
                 c.lineWidth = 1;
@@ -227,26 +257,38 @@ const BUILDINGS = [
               }
             })),
         });
-      g.add(box(14, 0.35, 6.4, m.wood, 0, 0.45));
-      for (const x of [-5.5, 0, 5.5])
-        for (const z of [-2.2, 2.2]) g.add(box(0.28, 2.4, 0.28, m.dark, x, 1.8, z));
-      g.add(box(13, 0.25, 0.3, m.wood, 0, 3, 2.2));
-      g.add(box(13, 0.25, 0.3, m.wood, 0, 3, -2.2));
-      const r = gable(14.6, 8.2, 3.6, th);
-      r.position.y = 2.6;
+      for (let i = -15; i <= 15; i++) g.add(box(14, 0.1, 0.19, m.wood, 0, 0.45, i * 0.21));
+      // 細い柱を細かく並べる
+      for (let x = -6; x <= 6.001; x += 1.5) for (const z of [-2.3, 2.3]) g.add(rod([x, 0.5, z], [x, 3.05, z], 0.06, m.wood));
+      g.add(box(13, 0.08, 0.12, m.wood, 0, 3.05, 2.3));
+      g.add(box(13, 0.08, 0.12, m.wood, 0, 3.05, -2.3));
+      // 屋根：薄い茅の面と、その下に見える細い垂木
+      const r = gable(14.4, 8, 3.5, th);
+      r.position.y = 2.75;
+      r.scale.y = 1;
       g.add(r);
-      const ri = gable(12.8, 6.6, 2.8, m.wood);
-      ri.position.y = 2.65;
-      g.add(ri);
-      for (const x of [-7.1, 7.1]) {
-        g.add(rod([x, 2.7, -3.6], [x, 6.1, 0], 0.09, m.wood));
-        g.add(rod([x, 2.7, 3.6], [x, 6.1, 0], 0.09, m.wood));
-        g.add(rod([x, 2.7, 0], [x, 6.1, 0], 0.08, m.wood));
+      for (let x = -6.8; x <= 6.801; x += 0.4) for (const s of [-1, 1]) g.add(rod([x, 2.72, s * 3.95], [x, 6.2, 0], 0.025, m.wood));
+      g.add(rod([-7.2, 6.2, 0], [7.2, 6.2, 0], 0.06, m.wood));
+      // 妻の細い格子
+      for (const x of [-7.15, 7.15]) for (let z = -3.4; z <= 3.4; z += 0.45) {
+        const top = 2.75 + 3.45 * (1 - Math.abs(z) / 4);
+        g.add(rod([x, 2.75, z], [x, top, z], 0.02, m.wood));
+      }
+      // 灯り：棟から細い紐で吊った行灯
+      g.add(rod([0, 6.1, 0], [0, 3.6, 0], 0.01, m.dark));
+      const an = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.9, 12), m.glow);
+      an.position.set(0, 3.15, 0);
+      g.add(an);
+      for (const x of [-3.5, 3.5]) {
+        g.add(rod([x, 6.1, 0], [x, 4.1, 0], 0.01, m.dark));
+        const a2 = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.55, 10), m.glow);
+        a2.position.set(x, 3.8, 0);
+        g.add(a2);
       }
       return g;
     },
     L: 14,
-    lamp: [6.4, 2.1, 0, 0.62],
+    lamp: [0, 3.2, 0],
   },
   {
     name: "白い幕の環",
@@ -255,45 +297,44 @@ const BUILDINGS = [
     make(m) {
       const g = new THREE.Group(),
         wh = new THREE.MeshStandardMaterial({ color: 0xf2f1ec, roughness: 0.6 });
-      const deck = new THREE.Mesh(new THREE.CylinderGeometry(9.2, 9.2, 0.5, 56, 1), wh);
+      const deck = new THREE.Mesh(new THREE.CylinderGeometry(9.2, 9.2, 0.5, 72, 1), wh);
       deck.position.y = 0.45;
       g.add(deck);
-      const pool = new THREE.Mesh(new THREE.CylinderGeometry(6.8, 6.8, 0.52, 48), m.dark);
+      const pool = new THREE.Mesh(new THREE.CylinderGeometry(6.8, 6.8, 0.52, 64), m.dark);
       pool.position.y = 0.46;
       g.add(pool);
-      for (let i = 0; i < 16; i++) {
-        const a = (i / 16) * Math.PI * 2;
-        g.add(box(0.16, 4, 0.16, wh, Math.cos(a) * 8.6, 2.6, Math.sin(a) * 8.6));
-      }
-      const tr = new THREE.Mesh(new THREE.TorusGeometry(8.6, 0.07, 6, 64), wh);
-      tr.rotation.x = Math.PI / 2;
-      tr.position.y = 4.55;
-      g.add(tr);
-      const cg = new THREE.CylinderGeometry(8.75, 8.95, 3.9, 96, 6, true),
+      // 細い柱を48本、上下に細い輪
+      posts(g, wh, ringPts(8.6, 48), 0.7, 4.6, 0.04);
+      ring(g, wh, 8.6, 4.6, 0.045, 96);
+      ring(g, wh, 8.6, 4.35, 0.025, 96);
+      // カーテンレールから吊る幕：内側の灯りで幕ごとほのかに光る
+      const cg = new THREE.CylinderGeometry(8.75, 8.95, 3.7, 128, 8, true),
         p = cg.attributes.position;
       for (let i = 0; i < p.count; i++) {
         const x = p.getX(i),
           z = p.getZ(i),
           y = p.getY(i),
           a = Math.atan2(z, x),
-          k = 1 + 0.018 * Math.sin(a * 64) + 0.02 * Math.sin(a * 7 + y) * (0.5 - y / 3.9);
+          k = 1 + 0.016 * Math.sin(a * 96) + 0.02 * Math.sin(a * 7 + y) * (0.5 - y / 3.7);
         p.setX(i, x * k);
         p.setZ(i, z * k);
       }
       cg.computeVertexNormals();
-      const cm = m.body.clone();
-      cm.transparent = true;
-      cm.opacity = 0.62;
-      cm.emissive = new THREE.Color(0x1c1c1a);
-      cm.side = THREE.DoubleSide;
-      cm.depthWrite = false;
+      const cm = new THREE.MeshStandardMaterial({ color: 0xf6f4ee, roughness: 0.9, transparent: true, opacity: 0.62, emissive: 0x000000, side: THREE.DoubleSide, depthWrite: false });
+      glassMats.push(cm);
       const cu = new THREE.Mesh(cg, cm);
-      cu.position.y = 2.6;
+      cu.position.y = 2.55;
       g.add(cu);
+      // 水盤の縁の細い灯りの線
+      const lr = new THREE.Mesh(new THREE.TorusGeometry(6.85, 0.05, 4, 96), m.glow);
+      lr.rotation.x = Math.PI / 2;
+      lr.position.y = 0.74;
+      g.add(lr);
       return g;
     },
     L: 18,
     noWL: true,
+    lamp: [0, 2.4, 0],
   },
   {
     name: "劇場",
@@ -302,30 +343,46 @@ const BUILDINGS = [
     make(m) {
       const g = new THREE.Group();
       g.add(box(22, 1.8, 22, m.dark, 0, 0.2));
-      g.add(box(10, 13, 10, m.body, 0, 7.6));
-      for (let i = 0; i < 4; i++) g.add(box(10.1, 0.3, 10.1, m.wood, 0, 3 + i * 3));
-      const o = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.2, 4, 8), m.body);
-      o.position.y = 16;
+      // 本体：細い縦の羽目板で覆う
+      g.add(box(9.8, 12.6, 9.8, m.body, 0, 7.6));
+      for (let k = -24; k <= 24; k++)
+        for (const s of [-1, 1]) {
+          g.add(box(0.06, 12.6, 0.06, m.wood, k * 0.2, 7.6, s * 4.93));
+          g.add(box(0.06, 12.6, 0.06, m.wood, s * 4.93, 7.6, k * 0.2));
+        }
+      for (let i = 0; i < 4; i++) g.add(box(10.1, 0.12, 10.1, m.wood, 0, 3 + i * 3));
+      // 細長い窓：内側の灯りが縦のスリットからこぼれる
+      for (const y of [5.2, 8.2, 11.2])
+        for (let k = -3; k <= 3; k += 2)
+          for (const s of [-1, 1]) {
+            glowBox(g, m, 0.35, 1.6, 0.05, k * 1.1, y, s * 4.97);
+            glowBox(g, m, 0.05, 1.6, 0.35, s * 4.97, y, k * 1.1);
+          }
+      // 八角の頂塔：細い柱と連続窓。夜は頂部が灯籠のように灯る
+      const o = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.2, 0.4, 8), m.wood);
+      o.position.y = 14.1;
       g.add(o);
+      glowBox(g, m, 5.6, 3.2, 5.6, 0, 15.9, 0).geometry = new THREE.CylinderGeometry(3.9, 3.9, 3.2, 8);
+      posts(g, m.wood, ringPts(4.1, 24, Math.PI / 8), 14.3, 17.6, 0.05);
+      const o2 = new THREE.Mesh(new THREE.CylinderGeometry(4.3, 4.3, 0.3, 8), m.wood);
+      o2.position.y = 17.7;
+      g.add(o2);
       const r = new THREE.Mesh(new THREE.ConeGeometry(4.6, 3.2, 8), m.roof);
-      r.position.y = 19.6;
+      r.position.y = 19.45;
       g.add(r);
-      const b = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 6), m.roof);
-      b.position.y = 21.6;
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 8), m.roof);
+      b.position.y = 21.4;
       g.add(b);
-      const fl = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.6, 1),
-        new THREE.MeshStandardMaterial({ color: 0xb03a2e, side: THREE.DoubleSide }),
-      );
-      fl.position.set(0.8, 23, 0);
-      g.add(fl);
-      const pl = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.4), m.dark);
-      pl.position.y = 22.6;
+      const pl = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.4), m.dark);
+      pl.position.y = 22.4;
       g.add(pl);
+      const fl = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.8), new THREE.MeshStandardMaterial({ color: 0xb03a2e, side: THREE.DoubleSide }));
+      fl.position.set(0.72, 23.1, 0);
+      g.add(fl);
       return g;
     },
     L: 22,
-    lamp: [7.5, 3.2, 7.5, 1.1],
+    lamp: [0, 15.9, 0],
   },
   {
     name: "泡",
@@ -335,54 +392,51 @@ const BUILDINGS = [
       const g = new THREE.Group(),
         wh = new THREE.MeshStandardMaterial({ color: 0xefeee9, roughness: 0.55 }),
         rib = new THREE.MeshStandardMaterial({ color: 0xf6f6f2, roughness: 0.4 });
-      const dk = new THREE.Mesh(new THREE.CylinderGeometry(15, 15, 1.2, 64), wh);
+      const dk = new THREE.Mesh(new THREE.CylinderGeometry(15, 15, 1.2, 96), wh);
       dk.position.y = 0.3;
       g.add(dk);
-      const band = new THREE.Mesh(new THREE.CylinderGeometry(15.05, 15.05, 0.5, 64, 1, true), m.dark);
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(15.05, 15.05, 0.5, 96, 1, true), m.dark);
       band.position.y = 0.1;
       g.add(band);
-      const rl = new THREE.Mesh(new THREE.TorusGeometry(14.6, 0.05, 4, 96), rib);
-      rl.rotation.x = Math.PI / 2;
-      rl.position.y = 2;
-      g.add(rl);
-      for (let k = 0; k < 40; k++) {
-        const a = (k / 40) * Math.PI * 2;
-        g.add(box(0.06, 1.1, 0.06, rib, Math.cos(a) * 14.6, 1.45, Math.sin(a) * 14.6));
-      }
+      ring(g, rib, 14.6, 2, 0.03, 128);
+      ring(g, rib, 14.6, 1.5, 0.02, 128);
+      posts(g, rib, ringPts(14.6, 96), 0.9, 2, 0.02);
       [
         [0, -5, 7],
         [-5, 5, 6],
         [6, 4, 5],
       ].forEach(([x, z, r]) => {
-        const d = new THREE.Mesh(
-          new THREE.SphereGeometry(r, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2),
-          m.glass.clone(),
-        );
+        const d = new THREE.Mesh(new THREE.SphereGeometry(r, 48, 24, 0, Math.PI * 2, 0, Math.PI / 2), m.glass.clone());
         d.material.transparent = true;
-        d.material.opacity = 0.42;
+        d.material.opacity = 0.38;
         d.material.color.set(0xe6edef);
         d.material.depthWrite = false;
         glassMats.push(d.material);
         d.position.set(x, 0.9, z);
         g.add(d);
-        for (let k = 0; k < 12; k++) {
-          const a = new THREE.Mesh(new THREE.TorusGeometry(r, 0.06, 4, 28, Math.PI), rib);
-          a.rotation.y = (k / 12) * Math.PI;
+        // 細いリブを密に（経線24本・緯線5本）
+        for (let k = 0; k < 24; k++) {
+          const a = new THREE.Mesh(new THREE.TorusGeometry(r, 0.03, 4, 40, Math.PI), rib);
+          a.rotation.y = (k / 24) * Math.PI;
           a.position.set(x, 0.9, z);
           g.add(a);
         }
-        for (const f of [0.35, 0.7]) {
-          const ri = new THREE.Mesh(new THREE.TorusGeometry(r * Math.cos(Math.asin(f)), 0.05, 4, 48), rib);
+        for (const f of [0.2, 0.4, 0.6, 0.78, 0.92]) {
+          const ri = new THREE.Mesh(new THREE.TorusGeometry(r * Math.cos(Math.asin(f)), 0.025, 4, 64), rib);
           ri.rotation.x = Math.PI / 2;
           ri.position.set(x, 0.9 + r * f, z);
           g.add(ri);
         }
-        g.add(box(r * 0.5, 0.08, r * 0.25, m.wood, x, 1.3, z));
+        // 内部：床の上の柔らかな光の円
+        const fl = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.55, r * 0.55, 0.06, 40), m.glow);
+        fl.position.set(x, 0.95, z);
+        g.add(fl);
       });
       return g;
     },
     L: 30,
     noWL: true,
+    lamp: [0, 3, 0],
   },
   {
     name: "水上の塔",
@@ -390,45 +444,61 @@ const BUILDINGS = [
     p: { draft: 0.6, wind: 1.4, align: 0.1, rock: 0.7, rudder: 0.6, mass: 0.6 },
     make(m) {
       const g = new THREE.Group(),
-        gl = new THREE.MeshStandardMaterial({
-          color: 0xd6e2e6,
-          roughness: 0.15,
-          transparent: true,
-          opacity: 0.32,
-          side: THREE.DoubleSide,
-          depthWrite: false,
-        });
-      g.add(box(10, 0.5, 10, m.wood, 0, 0.45));
-      for (const x of [-1.8, 1.8]) for (const z of [-1.8, 1.8]) g.add(box(0.35, 16, 0.35, m.wood, x, 8.6, z));
-      g.add(box(7.6, 0.25, 7.6, m.wood, 0, 5.4));
+        gl = new THREE.MeshStandardMaterial({ color: 0xd6e2e6, roughness: 0.15, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false });
+      for (let i = -24; i <= 24; i++) g.add(box(10, 0.08, 0.19, m.wood, 0, 0.62, i * 0.2));
+      // 4本の主柱を、細い4本組の柱にして、細い斜材で組む
+      for (const x of [-1.8, 1.8])
+        for (const z of [-1.8, 1.8]) for (const dx of [-0.08, 0.08]) for (const dz of [-0.08, 0.08]) g.add(rod([x + dx, 0.7, z + dz], [x + dx, 16.8, z + dz], 0.035, m.wood));
+      for (let y = 1; y < 16.5; y += 1.9)
+        for (const s of [-1, 1]) {
+          g.add(rod([-1.8, y, s * 1.8], [1.8, y + 1.9, s * 1.8], 0.02, m.wood));
+          g.add(rod([1.8, y, s * 1.8], [-1.8, y + 1.9, s * 1.8], 0.02, m.wood));
+          g.add(rod([s * 1.8, y, -1.8], [s * 1.8, y + 1.9, 1.8], 0.02, m.wood));
+          g.add(rod([s * 1.8, y, 1.8], [s * 1.8, y + 1.9, -1.8], 0.02, m.wood));
+          g.add(box(3.7, 0.04, 0.04, m.wood, 0, y, s * 1.8));
+          g.add(box(0.04, 0.04, 3.7, m.wood, s * 1.8, y, 0));
+        }
+      // 中段の広がった床とガラスのスカート
+      g.add(box(7.6, 0.12, 7.6, m.wood, 0, 5.4));
       const sk = new THREE.Mesh(new THREE.CylinderGeometry(2.6 * 1.414, 4.6 * 1.414, 3.4, 4, 1, true), gl);
       sk.rotation.y = Math.PI / 4;
       sk.position.y = 7.2;
       g.add(sk);
-      for (const y of [8.9, 12.4, 16.3])
+      for (let k = -8; k <= 8; k++)
         for (const s of [-1, 1]) {
-          g.add(box(4.2, 0.2, 0.2, m.wood, 0, y, s * 2.05));
-          g.add(box(0.2, 0.2, 4.2, m.wood, s * 2.05, y, 0));
+          const u = k / 8;
+          g.add(rod([u * 4.6, 5.5, s * 4.6], [u * 2.6, 8.9, s * 2.6], 0.018, m.wood));
+          g.add(rod([s * 4.6, 5.5, u * 4.6], [s * 2.6, 8.9, u * 2.6], 0.018, m.wood));
         }
-      const cage = new THREE.Mesh(new THREE.BoxGeometry(4, 7.3, 4), gl);
-      cage.position.y = 12.6;
+      g.add(box(3.9, 0.12, 3.9, m.wood, 0, 8.9));
+      g.add(box(3.9, 0.12, 3.9, m.wood, 0, 12.4));
+      // 頂部の見晴らし台：細い方立のガラス箱。夜は塔の頂が灯る
+      const cage = new THREE.Mesh(new THREE.BoxGeometry(4, 4.2, 4), gl);
+      cage.position.y = 14.6;
       g.add(cage);
-      g.add(box(3.9, 0.2, 3.9, m.wood, 0, 12.4));
-      g.add(box(3.9, 0.2, 3.9, m.body, 0, 8.9));
-      for (let y = 1; y < 15.6; y += 0.45) g.add(box(0.7, 0.06, 0.06, m.wood, 1.8, y, -1.55));
-      g.add(box(0.06, 15, 0.06, m.wood, 1.45, 8, -1.55));
-      g.add(box(0.06, 15, 0.06, m.wood, 2.15, 8, -1.55));
+      for (let k = -5; k <= 5; k++)
+        for (const s of [-1, 1]) {
+          g.add(box(0.03, 4.2, 0.03, m.wood, k * 0.39, 14.6, s * 2));
+          g.add(box(0.03, 4.2, 0.03, m.wood, s * 2, 14.6, k * 0.39));
+        }
+      g.add(box(4.3, 0.1, 4.3, m.wood, 0, 16.75));
+      glowBox(g, m, 3.4, 0.1, 3.4, 0, 16.6, 0);
+      glowBox(g, m, 1.2, 1.2, 1.2, 0, 15.6, 0).geometry = new THREE.CylinderGeometry(0.45, 0.45, 1.1, 16);
+      // 細い階段
+      for (let y = 1; y < 12.4; y += 0.3) g.add(box(0.7, 0.03, 0.18, m.wood, 1.8 - (Math.floor(y / 3) % 2) * 3.6, y, -1.5 + ((y % 3) / 3) * 3));
+      // 床の手すり
       for (const s of [-1, 1]) {
-        g.add(box(9.6, 0.06, 0.06, m.wood, 0, 1.6, s * 4.8));
-        g.add(box(0.06, 0.06, 9.6, m.wood, s * 4.8, 1.6, 0));
-        for (let k = -4; k <= 4; k += 2) {
-          g.add(box(0.06, 1, 0.06, m.wood, k, 1.1, s * 4.8));
-          g.add(box(0.06, 1, 0.06, m.wood, s * 4.8, 1.1, k));
+        g.add(box(9.6, 0.04, 0.04, m.wood, 0, 1.6, s * 4.8));
+        g.add(box(0.04, 0.04, 9.6, m.wood, s * 4.8, 1.6, 0));
+        for (let k = -4.8; k <= 4.801; k += 0.6) {
+          g.add(box(0.03, 0.9, 0.03, m.wood, k, 1.15, s * 4.8));
+          g.add(box(0.03, 0.9, 0.03, m.wood, s * 4.8, 1.15, k));
         }
       }
       return g;
     },
     L: 10,
+    lamp: [0, 15.6, 0],
   },
   {
     name: "網の三角",
@@ -442,7 +512,7 @@ const BUILDINGS = [
           const a = (i / 3) * Math.PI * 2 + Math.PI / 2;
           return [Math.cos(a) * R, Math.sin(a) * R];
         });
-      const fl = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 0.5, 3), wh);
+      const fl = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 0.4, 3), wh);
       fl.rotation.y = Math.PI / 2;
       fl.position.y = 0.45;
       g.add(fl);
@@ -450,55 +520,74 @@ const BUILDINGS = [
         net = new THREE.MeshBasicMaterial({
           color: 0xffffff,
           transparent: true,
-          opacity: 0.6,
+          opacity: 0.55,
           side: THREE.DoubleSide,
           depthWrite: false,
           map:
-            G.netTx ||
-            (G.netTx = cvTex(128, 128, (c, w, h) => {
+            G.netTx2 ||
+            (G.netTx2 = cvTex(256, 256, (c, w, h) => {
               c.fillStyle = "#000";
               c.fillRect(0, 0, w, h);
               c.strokeStyle = "#fff";
-              c.lineWidth = 3;
-              for (let i = 0; i < 8; i++) {
+              c.lineWidth = 1.5;
+              for (let i = 0; i < 16; i++) {
                 c.beginPath();
-                c.arc(64, 64, 8 * i, 0, 7);
+                c.arc(128, 128, 8 * i, 0, 7);
                 c.stroke();
               }
-              for (let a = 0; a < 12; a++) {
+              for (let a = 0; a < 24; a++) {
                 c.beginPath();
-                c.moveTo(64, 64);
-                c.lineTo(64 + Math.cos((a / 12) * 6.28) * 90, 64 + Math.sin((a / 12) * 6.28) * 90);
+                c.moveTo(128, 128);
+                c.lineTo(128 + Math.cos((a / 24) * 6.28) * 180, 128 + Math.sin((a / 24) * 6.28) * 180);
                 c.stroke();
               }
             })),
         });
       net.alphaMap = net.map;
+      // 細い白い格子：辺を8分割、上面は中心へ集まる
       for (let i = 0; i < 3; i++) {
         const [a, b] = [P[i], P[(i + 1) % 3]];
-        g.add(rod([a[0], 0.7, a[1]], [b[0], 0.7, b[1]], 0.09, m.body));
-        g.add(rod([a[0], H, a[1]], [b[0], H, b[1]], 0.09, m.body));
-        g.add(rod([a[0], 0.7, a[1]], [a[0], H, a[1]], 0.09, m.body));
-        for (let k = 1; k < 4; k++) {
-          const u = k / 4,
+        g.add(rod([a[0], 0.7, a[1]], [b[0], 0.7, b[1]], 0.05, m.body));
+        g.add(rod([a[0], H, a[1]], [b[0], H, b[1]], 0.05, m.body));
+        g.add(rod([a[0], 0.7, a[1]], [a[0], H, a[1]], 0.06, m.body));
+        for (let k = 1; k < 8; k++) {
+          const u = k / 8,
             x = a[0] + (b[0] - a[0]) * u,
             z = a[1] + (b[1] - a[1]) * u;
-          g.add(rod([x, 0.7, z], [x, H, z], 0.05, m.body));
-          g.add(rod([x, H, z], [0, H, 0], 0.05, m.body));
+          g.add(rod([x, 0.7, z], [x, H, z], 0.025, m.body));
+          g.add(rod([x, H, z], [0, H + 0.5, 0], 0.02, m.body));
         }
-        g.add(rod([a[0], 0.7, a[1]], [b[0], H, b[1]], 0.05, m.body));
-        g.add(rod([a[0], H, a[1]], [0, H, 0], 0.06, m.body));
+        for (let k = 0; k < 4; k++) {
+          const u0 = k / 4,
+            u1 = (k + 1) / 4;
+          g.add(rod([a[0] + (b[0] - a[0]) * u0, 0.7, a[1] + (b[1] - a[1]) * u0], [a[0] + (b[0] - a[0]) * u1, H, a[1] + (b[1] - a[1]) * u1], 0.015, m.body));
+        }
+        g.add(rod([a[0], H, a[1]], [0, H + 0.5, 0], 0.04, m.body));
         const L = Math.hypot(b[0] - a[0], b[1] - a[1]),
           pl = new THREE.Mesh(new THREE.PlaneGeometry(L, H - 0.7), net);
         pl.position.set((a[0] + b[0]) / 2, (H + 0.7) / 2, (a[1] + b[1]) / 2);
         pl.rotation.y = -Math.atan2(b[1] - a[1], b[0] - a[0]);
         g.add(pl);
       }
-      g.add(box(3.5, 0.6, 2.2, wh, 0, 1, 0.6));
+      // 中央の低い座：その下から灯りが網を照らす
+      const seat = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.35, 3), wh);
+      seat.rotation.y = Math.PI / 2;
+      seat.position.y = 0.85;
+      g.add(seat);
+      const gl2 = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 0.08, 3), m.glow);
+      gl2.rotation.y = Math.PI / 2;
+      gl2.position.y = 0.66;
+      g.add(gl2);
+      // 頂点に吊る小さな灯り
+      g.add(rod([0, H + 0.5, 0], [0, H - 0.6, 0], 0.008, m.dark));
+      const lp = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 12), m.glow);
+      lp.position.y = H - 0.85;
+      g.add(lp);
       return g;
     },
     L: 12,
     noWL: true,
+    lamp: [0, 4.3, 0],
   },
   {
     name: "庵",
@@ -506,53 +595,95 @@ const BUILDINGS = [
     p: { draft: 0.4, wind: 0.8, align: 0.4, rock: 0.8, rudder: 0.7, mass: 0.4 },
     make(m) {
       const g = new THREE.Group();
-      g.add(box(12, 0.8, 8, m.wood, 0, 0.2));
-      g.add(box(5.5, 3.4, 4.5, m.body, -1.2, 2.3));
-      const r = gable(6.6, 6, 2.3, m.roof);
-      r.position.set(-1.2, 4, 0);
+      // 浮き床：細い板張り
+      for (let i = -19; i <= 19; i++) g.add(box(12, 0.08, 0.19, m.wood, 0, 0.6, i * 0.2));
+      g.add(box(12, 0.5, 8, m.dark, 0, 0.3));
+      // 柱・貫：細い角材
+      const W0 = 5.4,
+        D0 = 4.4,
+        cx = -1.2;
+      for (const x of [cx - W0 / 2, cx - W0 / 6, cx + W0 / 6, cx + W0 / 2]) for (const z of [-D0 / 2, D0 / 2]) g.add(box(0.1, 3.3, 0.1, m.wood, x, 2.3, z));
+      for (const z of [-D0 / 2, 0, D0 / 2]) for (const x of [cx - W0 / 2, cx + W0 / 2]) g.add(box(0.1, 3.3, 0.1, m.wood, x, 2.3, z));
+      for (const y of [0.75, 3.92])
+        for (const s of [-1, 1]) {
+          g.add(box(W0 + 0.1, 0.1, 0.1, m.wood, cx, y, (s * D0) / 2));
+          g.add(box(0.1, 0.1, D0 + 0.1, m.wood, cx + (s * W0) / 2, y, 0));
+        }
+      // 障子：内側から灯る和紙の面と、細い組子
+      for (const s of [-1, 1]) {
+        glowBox(g, m, W0 - 0.1, 2.9, 0.03, cx, 2.3, (s * D0) / 2);
+        for (let k = 1; k < 18; k++) g.add(box(0.025, 2.9, 0.035, m.wood, cx - W0 / 2 + (k * W0) / 18, 2.3, (s * D0) / 2 + s * 0.02));
+        for (let k = 1; k < 8; k++) g.add(box(W0, 0.025, 0.035, m.wood, cx, 0.85 + (k * 2.9) / 8, (s * D0) / 2 + s * 0.02));
+      }
+      for (const s of [-1, 1]) {
+        glowBox(g, m, 0.03, 2.9, D0 - 0.1, cx + (s * W0) / 2, 2.3, 0);
+        for (let k = 1; k < 14; k++) g.add(box(0.035, 2.9, 0.025, m.wood, cx + (s * W0) / 2 + s * 0.02, 2.3, -D0 / 2 + (k * D0) / 14));
+        for (let k = 1; k < 8; k++) g.add(box(0.035, 0.025, D0, m.wood, cx + (s * W0) / 2 + s * 0.02, 0.85 + (k * 2.9) / 8, 0));
+      }
+      // 屋根：薄い屋根面と、軒下に並ぶ細い垂木
+      const r = gable(7.4, 6.6, 2.1, m.roof);
+      r.position.set(cx, 4, 0);
+      r.scale.set(1, 1, 1);
       g.add(r);
-      g.add(box(3.6, 0.2, 4.5, m.wood, 3.2, 0.7));
-      g.add(box(0.5, 0.8, 0.5, m.body, 4.6, 1.2, 1.8));
-      g.add(
-        box(0.05, 1.6, 3.6, new THREE.MeshStandardMaterial({ color: 0xa58a5a, roughness: 1 }), 1.56, 3, 0),
-      );
+      for (let x = cx - 3.6; x <= cx + 3.601; x += 0.3) for (const s of [-1, 1]) g.add(rod([x, 3.98, s * 3.3], [x, 6.05, 0], 0.025, m.wood));
+      // 縁側と、水に下りる細い段
+      for (let i = 0; i < 12; i++) g.add(box(0.26, 0.06, 4.4, m.wood, 2.1 + i * 0.3, 0.72, 0));
+      for (let k = 0; k < 3; k++) g.add(box(0.5, 0.05, 2, m.wood, 5.6 + k * 0.1, 0.5 - k * 0.18, 0));
       return g;
     },
     L: 12,
-    lamp: [4.8, 2.1, -2.6, 0.6],
+    lamp: [-1.2, 2.2, 0],
   },
   {
     name: "筏",
     line: "Floating Bamboo House",
     p: { draft: 0.3, wind: 0.6, align: 0.1, rock: 0.9, rudder: 0.8, mass: 0.3 },
     make(m) {
-      const g = new THREE.Group();
-      for (let i = -6; i <= 6; i++) {
-        const c = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.22, 0.22, 13, 6),
-          new THREE.MeshStandardMaterial({ color: 0xb8a46a, roughness: 0.7 }),
-        );
+      const g = new THREE.Group(),
+        bam = new THREE.MeshStandardMaterial({ color: 0xb8a46a, roughness: 0.7 });
+      // 竹の筏：細い竹を密に二層で組む
+      for (let i = -24; i <= 24; i++) {
+        const c = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 13, 8), bam);
         c.rotation.z = Math.PI / 2;
-        c.position.set(0, 0.2, i * 1);
+        c.position.set(0, 0.2, i * 0.26);
         g.add(c);
-        const d = c.clone();
-        d.rotation.set(Math.PI / 2, 0, 0);
-        d.position.set(i * 1, 0.6, 0);
+      }
+      for (let i = -6; i <= 6; i++) {
+        const d = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 13, 8), bam);
+        d.rotation.x = Math.PI / 2;
+        d.position.set(i, 0.42, 0);
         g.add(d);
       }
-      g.add(box(6, 2.2, 5, m.body, 0, 1.9));
-      const r = gable(7.6, 7, 1.5, m.roof);
-      r.position.y = 3;
-      g.add(r);
-      for (const s of [-1, 1]) {
-        g.add(box(12, 0.06, 0.06, m.wood, 0, 1.3, s * 6.2));
-        for (let k = -6; k <= 6; k += 2) g.add(box(0.08, 1, 0.08, m.wood, k, 0.85, s * 6.2));
+      // 小屋：細い竹の柱と、竹すだれの壁
+      const W0 = 6,
+        D0 = 5;
+      for (const x of [-3, -1.5, 0, 1.5, 3]) for (const z of [-2.5, 2.5]) g.add(rod([x, 0.5, z], [x, 3.1, z], 0.06, bam));
+      for (const z of [-1.25, 0, 1.25]) for (const x of [-3, 3]) g.add(rod([x, 0.5, z], [x, 3.1, z], 0.06, bam));
+      glowBox(g, m, W0 - 0.3, 2.2, D0 - 0.3, 0, 1.7, 0);
+      for (let k = 0; k < 13; k++) {
+        const y = 0.6 + k * 0.19;
+        if (y > 1.4 && y < 2.4) continue; // 窓の帯：ここから灯りがこぼれる
+        for (const s of [-1, 1]) {
+          g.add(rod([-3, y, s * 2.52], [3, y, s * 2.52], 0.045, bam));
+          g.add(rod([s * 3.02, y, -2.5], [s * 3.02, y, 2.5], 0.045, bam));
+        }
       }
-      g.add(box(1.2, 1.9, 0.06, m.wood, 3.01, 1.75, 0));
+      // 窓の帯の細い縦格子
+      for (let k = -14; k <= 14; k++) for (const s of [-1, 1]) g.add(rod([k * 0.2, 1.4, s * 2.53], [k * 0.2, 2.4, s * 2.53], 0.015, bam));
+      // 屋根：薄い屋根面と細い垂木
+      const r = gable(7.6, 7, 1.6, m.roof);
+      r.position.y = 3.05;
+      g.add(r);
+      for (let x = -3.6; x <= 3.601; x += 0.3) for (const s of [-1, 1]) g.add(rod([x, 3.03, s * 3.5], [x, 4.65, 0], 0.025, bam));
+      // 筏の縁の手すり
+      for (const s of [-1, 1]) {
+        g.add(rod([-6.2, 1.3, s * 6.2], [6.2, 1.3, s * 6.2], 0.03, bam));
+        for (let k = -6; k <= 6; k += 1) g.add(rod([k, 0.45, s * 6.2], [k, 1.3, s * 6.2], 0.03, bam));
+      }
       return g;
     },
     L: 13,
-    lamp: [4.3, 2.4, 3.3, 0.42],
+    lamp: [0, 1.8, 0],
   },
 ];
 // カスタマイズ（色・灯り・素材感）。通信で送るのは番号と設定値だけ
@@ -608,8 +739,11 @@ function buildHouse() {
     roof: new THREE.MeshStandardMaterial({ color: 0x3a3a3e, roughness: 0.75, map: G.roofTex || null }),
     dark: MAT.dark(),
     glass: MAT.glass(),
+    // 灯りの面：昼は和紙や内壁の色、夜は内側から光る
+    glow: new THREE.MeshStandardMaterial({ color: 0xece2cc, roughness: 0.95, emissive: 0x000000 }),
   };
-  glassMats = [m.glass];
+  glassMats = [m.glass, m.glow];
+  G.glowMat = m.glow;
   const g = Bd.make(m);
   {
     const bb = new THREE.Box3().setFromObject(g),
@@ -645,19 +779,10 @@ function buildHouse() {
   g.updateMatrixWorld(true);
   const top = new THREE.Box3().setFromObject(g);
   house.add(g);
-  if (Bd.lamp) {
-    const [lx, ly, lz, ld] = Bd.lamp;
-    house.lamp.position.set(lx * k, ly * k, lz * k);
-    house.add(rod([lx * k, ld * k, lz * k], [lx * k, (ly + 0.35) * k, lz * k], 0.06, MAT.dark()));
-    house.add(
-      rod([lx * k, (ly + 0.35) * k, lz * k], [(lx - 0.5) * k, (ly + 0.35) * k, lz * k], 0.04, MAT.dark()),
-    );
-  } else
-    house.lamp.position.set(
-      (top.min.x + top.max.x) / 2,
-      Math.max(1.2, Math.min(2.6, top.max.y * 0.4)),
-      (top.min.z + top.max.z) / 2,
-    );
+  // 灯りの位置：建物の内側・頂部（光源の玉そのものは見せない）
+  const [lx, ly, lz] = Bd.lamp || [0, 2, 0];
+  house.lamp.position.set(lx * k, ly * k, lz * k);
+  house.lamp.material.visible = false;
   house.light.position.copy(house.lamp.position);
   {
     const sp = new THREE.Sprite(
@@ -678,7 +803,7 @@ function buildHouse() {
         blending: THREE.AdditiveBlending,
       }),
     );
-    sp.scale.setScalar(Bd.lamp ? 3.2 : 7);
+    sp.scale.setScalar(2.4);
     sp.visible = false;
     house.lamp.add(sp);
     house.halo = sp;
@@ -686,7 +811,7 @@ function buildHouse() {
   house.add(house.lamp, house.light);
   house.traverse((o) => {
     if (o.isMesh) {
-      o.castShadow = true;
+      o.castShadow = !o.userData.noShadow;
       o.receiveShadow = true;
     }
   });

@@ -123,7 +123,7 @@
   - 16-terrain.js：`reedU`
 
 ## 18-buildings.js
-- 作る：`BODY_COLORS`、`BP`、`BUILDINGS`、`CUST`、`LIGHT_COLORS`、`MAT`、`WOODTX`、`bbox`、`box`、`buildHouse`、`gable`、`glassMats`、`house`、`hullShape`、`inReeds`、`reedMask`、`rod`、`s0`
+- 作る：`BODY_COLORS`、`BP`、`BUILDINGS`、`CUST`、`LIGHT_COLORS`、`MAT`、`WOODTX`、`bbox`、`box`、`buildHouse`、`gable`、`glassMats`、`glowBox`、`house`、`hullShape`、`inReeds`、`posts`、`reedMask`、`ring`、`ringPts`、`rod`
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`Q`
@@ -143,7 +143,7 @@
   - 12-renderer.js：`camera`、`scene`
   - 14-water.js：`waveH`
   - 16-terrain.js：`REED_SITES`
-  - 18-buildings.js：`house`、`s0`
+  - 18-buildings.js：`house`
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
 ## 20-villages-layout.js
@@ -481,7 +481,7 @@
   - 13-sky-dome.js：`hemi`、`skyDome`、`skyU`、`sun`
   - 14-water.js：`setWaves`、`water`、`waterU`、`waves`
   - 16-terrain.js：`FOREST_TINT`、`INNER_Y`、`REED_MONTH`、`REED_TEX`、`SNOW`、`innerReeds`、`reedU`、`reeds`、`terrMat`
-  - 18-buildings.js：`BUILDINGS`、`CUST`、`LIGHT_COLORS`、`glassMats`、`house`
+  - 18-buildings.js：`CUST`、`LIGHT_COLORS`、`glassMats`、`house`
   - 19-boats.js：`W_SENSE`、`flash`、`nextFlash`、`portLamps`、`smB`、`smoke`、`smokeGeo`、`updatePrecip`
   - 20-villages-layout.js：`roofM`、`roofSnowU`
   - 22-village-lights-roads.js：`windows`
