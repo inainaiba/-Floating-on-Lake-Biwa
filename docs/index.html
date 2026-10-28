@@ -674,9 +674,9 @@ const MOBILE = matchMedia("(pointer:coarse)").matches;
 /* 画質の表：高（high）・中（mid）・低（low）で何を省くか。重いときはここを調整する
    ?q=high / mid / low で強制できる。中と低はスマホ（MOBILE）だと水面の網目をさらに粗くする */
 const QUALITY_TABLE = {
-  high: { resStart: 1, resMax: 1, pixelMax: 2.5, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], reflection: 1, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1 },
-  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1 },
-  low: { resStart: 0.6, resMax: 0.9, pixelMax: 2, shadowMap: 512, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 3500, fireworkBurst: 0.55 },
+  high: { resStart: 1, resMax: 1, pixelMax: 2.5, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], reflection: 1, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1, dof: 1 },
+  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1, dof: 1 },
+  low: { resStart: 0.6, resMax: 0.9, pixelMax: 2, shadowMap: 512, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 3500, fireworkBurst: 0.55, dof: 0 },
 };
 const QUALITY = { ...(QUALITY_TABLE[QUAL] || QUALITY_TABLE.mid) };
 if (!HQ && MOBILE) QUALITY.waterGrid = 180;
@@ -715,6 +715,7 @@ const skyU = {
   uCon: { value: new THREE.Vector4(0, 0, 0, 0) },
   uVenus: { value: 0 },
   uHzS: { value: 0 },
+  uMw: { value: 1 },
 };
 const skyDome = new THREE.Mesh(
   new THREE.SphereGeometry(9000, 32, 16),
@@ -725,7 +726,7 @@ const skyDome = new THREE.Mesh(
     fog: false,
     vertexShader: `varying vec3 vD;void main(){vD=normalize(position);vec4 p=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*p;gl_Position.z=gl_Position.w*.9999;}`,
     fragmentShader: `uniform vec3 uTop,uHor,uSunD,uSunC2;
-uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;
+uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;uniform float uMw;
 uniform vec3 uLd;
 varying vec3 vD;
  float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);
@@ -779,7 +780,7 @@ c=mix(c,cu,m_*uCu);
  if(uRay>.01){vec3 sp=normalize(vD-uSunD*dot(vD,uSunD));
 float an=atan(dot(sp,normalize(cross(uSunD,vec3(0.,1.,0.)))),sp.y);
 float rays=smoothstep(.55,.9,fbm(vec2(an*8.,uT*.01)))*pow(max(dot(vD,uSunD),0.),3.)*smoothstep(-.02,.15,vD.y);
-c+=vec3(1.,.86,.62)*rays*uRay*.5;
+c+=vec3(1.,.86,.62)*rays*uRay*.5*(1.+1.4*smoothstep(.0,-.15,vD.y-uSunD.y)*smoothstep(.15,.4,uSunD.y));
 }if(uLt>.01){float lg=pow(max(dot(vD,normalize(uLd)),0.),18.)*smoothstep(.0,.04,vD.y)*smoothstep(.3,.06,vD.y);
 c+=vec3(.85,.85,1.)*lg*uLt*1.4;
 }
@@ -806,7 +807,7 @@ float h1=fract(sin(dot(floor(sp_*160.),vec2(12.9,78.2)))*43758.5),h2=fract(sin(d
  vec2 f1=fract(sp_*160.)-.5,f2=fract(sp_*70.)-.5;
 float st=step(.992,h1)*(.3+.7*fract(h1*91.))*smoothstep(.25,.0,length(f1))+step(.997,h2)*1.3*smoothstep(.22,.0,length(f2));
  vec3 mwd=normalize(vec3(.55,.35,-.75));
-float mw=exp(-pow(dot(vD,mwd)*4.,2.))*(.55+.45*fbm(vD.xz*9.+vD.y*4.));
+float mw=exp(-pow(dot(vD,mwd)*4.,2.))*(.55+.45*fbm(vD.xz*9.+vD.y*4.))*uMw*(.75+.5*smoothstep(.35,.75,fbm(vD.xz*22.+3.)));
  st+=step(.97,h1)*mw*.9*smoothstep(.25,.0,length(f1));
 c+=vec3(.55,.6,.8)*mw*.06*nt*(1.-uDark);
  c=mix(c,mix(vec3(.08,.14,.32),vec3(.01,.02,.08),pow(y,.6)),nt*.9);
@@ -1058,6 +1059,8 @@ float sh=exp(-dep/3.);
 // ③ 浅瀬：湖底が透ける（lakeBedSand/Light）　④ 浅瀬と沖の間の青緑（shoalTeal）　⑤ 浅瀬の光の網目
 // ⑥ 深い所の青（waterOffshore）　⑦ 河口の濁り（riverSilt）
 vec3 body=mix(uDeep,uShal,sh*.8);
+// 風の通り道：さざ波の立った暗い帯が風下へ流れる（静かな日ほど目立つ）
+float cpw;{vec2 wd=normalize(uWd+1e-4);vec2 q=vP0.xz*.0016-wd*uT2*.014;cpw=smoothstep(.45,.85,(sin(q.x*3.1+sin(q.y*2.3)*1.4)*sin(q.y*2.7+sin(q.x*1.9)*1.3))*.5+.5)*(.35+.65*uCalm);body*=1.-cpw*.16;}
 {vec2 wd=normalize(uWd+1e-4),wp=vec2(dot(vP0.xz,wd),dot(vP0.xz,vec2(-wd.y,wd.x)));
 float ws=(1.-uCalm)*smoothstep(.45,.75,fract(sin(dot(floor(vec2(wp.x*.006-uT2*.05,wp.y*.03)),vec2(5.1,3.7)))*91.))*smoothstep(.2,.8,sin(wp.y*.045+sin(wp.x*.004)*3.)*.5+.5);
 body*=1.-ws*.22;
@@ -1067,8 +1070,8 @@ body=mix(body,bed,sb*.5);
 {vec2 cq=vP0.xz*.9;
 float ca=abs(sin(cq.x+sin(cq.y*1.3+uT2*.9)*1.6+uT2*.6)*sin(cq.y*1.1+sin(cq.x*1.4-uT2*.7)*1.5-uT2*.5));
 body+=vec3(.09,.1,.07)*pow(1.-ca,6.)*sb*clamp(uSun.y*3.,0.,1.)*smoothstep(150.,10.,dc);
-}body=mix(body,${v3(PALETTE.shoalTeal)},smoothstep(12.,3.,dep)*(1.-sb)*.3);
-}body=mix(body,${v3(PALETTE.waterOffshore)},smoothstep(10.,60.,dep)*.5);
+}body=mix(body,${v3(PALETTE.shoalTeal)},smoothstep(12.,3.,dep)*(1.-sb)*.42);
+}body=mix(body,${v3(PALETTE.waterOffshore)},smoothstep(10.,60.,dep)*.68);
 float tb=0.;
 for(int i=0;
 i<16;
@@ -1097,6 +1100,7 @@ body*=(1.-.38*smoothstep(uHouse.z*1.15,uHouse.z*.3,ub))*(.9+.22*clamp(dot(N,norm
 {float gp=smoothstep(.62,.8,.5+.5*sin((vP.x-uT2*3.)*.0024+sin(vP.z*.0019)*2.3)*sin((vP.z+uT2*1.5)*.0021+sin(vP.x*.0017)*1.9));body*=1.+gp*.55*uGap;skyR*=1.+gp*.35*uGap;}
 float wlf=exp(-pow((ub-uHouse.z*.92)/(.6+uHouse.z*.05),2.))*(.55+.45*sin(atan(vP.z-uHouse.y,vP.x-uHouse.x)*9.+uT2*1.3))*(.5+.5*fract(sin(dot(floor(vP0.xz*3.),vec2(3.7,8.1)))*91.));
 skyR=mix(skyR,vec3(.18,.26,.2),lowR*.65);
+skyR*=1.-cpw*.3;
 // ── 泡：白波・岸の波打ち際・雨の波紋・遠くの白波 ──
 float wfoam=smoothstep(.12,.8,wf)*(.35+.65*fract(sin(dot(floor(vP0.xz*5.),vec2(7.,3.)))*91.));
 float foam=wfoam*.55+uFoam*smoothstep(.12,.3,1.-N.y)*.8+smoothstep(.06,.12,1.-N.y)*uFoam*.25;
@@ -1114,13 +1118,13 @@ body=mix(body,stone,smoothstep(.45,0.,dep)*.55);
 body+=vec3(.05,.06,.04)*smoothstep(.4,0.,dep)*pow(abs(sin(vP0.x*1.7+uT2)*sin(vP0.z*1.9-uT2*.8)),3.)*clamp(uSun.y*3.,0.,1.);
 float rr=0.;
 {for(int k=0;
-k<2;
+k<3;
 k++){vec2 q=vP.xz*(1.1+float(k)*.7)+float(k)*7.3,ci=floor(q),cf=fract(q)-.5;
 float h=fract(sin(dot(ci,vec2(12.9,78.2)))*43758.5),ph=fract(uT2*(.8+h*.6)+h*7.);
 vec2 o=vec2(fract(h*13.)-.5,fract(h*29.)-.5)*.4;
 float r=length(cf-o),rad=ph*.45;
 rr+=smoothstep(.04,.0,abs(r-rad))*(1.-ph)*step(.35,h);
-}rr*=uRainR*.35*smoothstep(70.,8.,length(cameraPosition-vP));
+}rr*=uRainR*.55*smoothstep(160.,8.,length(cameraPosition-vP));
 }foam+=wlf*.32;
 foam+=rr;
 // ── 明るさ：時刻、空の映り込み、浅瀬の濡れた石、遠くで空と溶ける ──
@@ -1158,7 +1162,7 @@ float ws_=smoothstep(.6,1.,sin(dot(vP0.xz,vec2(.011,.017))+sin(vP0.x*.004)*3.)*.
 c+=ws_;
 c*=.97+.06*sin(vP.x*.002+sin(vP.z*.0017)*2.);
 float csh=smoothstep(.35,.8,.5+.5*sin((vP.x+uT2*4.)*.0045+sin(vP.z*.0031)*2.)*sin((vP.z+uT2*2.)*.0038+sin(vP.x*.0027)*1.7));
-c*=1.-csh*.24*clamp(uSun.y*3.,0.,1.)*uCSh;
+c*=1.-csh*.36*clamp(uSun.y*3.,0.,1.)*uCSh;
 if(uHL.w>.001){vec2 dh=vP.xz-uHL.xz;
 float dl=length(dh);
 vec3 Lh=normalize(uHL.xyz-vP);
@@ -1527,7 +1531,7 @@ diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.93,.94,.96),uSnow*smoothstep(${(600 
 float hz=1.-exp(-dc_/3800.);
 hz*=(.55+.45*smoothstep(5.,160.,vH));
 {float cs=smoothstep(.35,.8,.5+.5*sin((vXZ.x+uCT*4.)*.0045+sin(vXZ.y*.0031)*2.)*sin((vXZ.y+uCT*2.)*.0038+sin(vXZ.x*.0027)*1.7));
-diffuseColor.rgb*=1.-cs*.3*uCSh*clamp(uSunT.y*3.,0.,1.);
+diffuseColor.rgb*=1.-cs*.42*uCSh*clamp(uSunT.y*3.,0.,1.);
 float low=smoothstep(.22,.02,uSunT.y)*smoothstep(-.1,.02,uSunT.y);
 vec2 sd2=normalize(uSunT.xz+1e-4);
 float face=pow(max(dot(normalize(nrm.xz+1e-4),sd2),0.),2.)*smoothstep(.05,.5,1.-nrm.y);
@@ -8207,6 +8211,58 @@ G.life = (() => {
     Qt = new THREE.Quaternion(),
     V = new THREE.Vector3(),
     Sc = new THREE.Vector3(1, 1, 1);
+  // 田舟：ヨシ原の水際に舫われた細長い木の小舟
+  const tabune = [];
+  {
+    const wd = new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 0.95 }),
+      g0 = new THREE.Group();
+    const bot = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.12, 5.2), wd);
+    bot.position.y = 0.05;
+    g0.add(bot);
+    for (const sx of [-0.52, 0.52]) {
+      const sd = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.32, 5.2), wd);
+      sd.position.set(sx, 0.2, 0);
+      g0.add(sd);
+    }
+    const bow = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.3, 0.08), wd);
+    bow.position.set(0, 0.22, -2.6);
+    bow.rotation.x = -0.5;
+    g0.add(bow);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 4.5, 4), new THREE.MeshStandardMaterial({ color: 0x8a8a5a }));
+    pole.position.set(0.2, 0.32, 0);
+    pole.rotation.x = Math.PI / 2;
+    g0.add(pole);
+    reedPts.forEach(([x, y], i) => {
+      if (i % 97 !== 11 || tabune.length > 40) return;
+      for (let k = 0; k < 6; k++) {
+        const a = R() * 6.28,
+          xx = x + Math.cos(a) * 25,
+          yy = y + Math.sin(a) * 25,
+          dp = depth(xx, yy);
+        if (inLake(xx, yy) && dp > 0.1 && dp < 1.5) {
+          const g = g0.clone();
+          g.position.set(xx * S, -0.12, yy * S);
+          g.rotation.y = a + 1.57 + (R() - 0.5) * 0.6;
+          g.userData.ph = R() * 6.28;
+          scene.add(g);
+          tabune.push(g);
+          break;
+        }
+      }
+    });
+  }
+  // 家々の灯り：日暮れから一軒ずつ灯り、夜更けに一軒ずつ消える
+  const wN = winGeo.attributes.color.count,
+    wBase = winGeo.attributes.color.array.slice(),
+    wOn = new Float32Array(wN),
+    wOff = new Float32Array(wN),
+    wMorn = new Float32Array(wN);
+  for (let i = 0; i < wN; i++) {
+    wOn[i] = 0.7 + R() * 0.1;
+    wOff[i] = 0.9 + R() * 0.2;
+    wMorn[i] = R() < 0.25 ? 0.19 + R() * 0.06 : 9;
+  }
+  let wT = 0;
   function update(dt, t, c, day, wxNow) {
     const cx = camera.position.x,
       cz = camera.position.z;
@@ -8249,10 +8305,28 @@ G.life = (() => {
       });
       dfly.instanceMatrix.needsUpdate = true;
     }
+    for (const g of tabune) {
+      g.position.y = -0.12 + Math.sin(t * 0.8 + g.userData.ph) * 0.03;
+      g.rotation.z = Math.sin(t * 0.6 + g.userData.ph) * 0.02;
+    }
+    wT -= dt;
+    if (wT <= 0) {
+      wT = 0.5;
+      const p = c.phase,
+        ar = winGeo.attributes.color.array;
+      for (let i = 0; i < wN; i++) {
+        const on = p >= wOn[i] ? p < wOff[i] : p + 1 < wOff[i] || (p >= wMorn[i] && p < 0.3);
+        const k = on ? 1 : 0;
+        ar[i * 3] = wBase[i * 3] * k;
+        ar[i * 3 + 1] = wBase[i * 3 + 1] * k;
+        ar[i * 3 + 2] = wBase[i * 3 + 2] * k;
+      }
+      winGeo.attributes.color.needsUpdate = true;
+    }
     // サギはときどき首をかしげる
     for (const h of herons) h.visible = day > 0.05 && !(c.month === 0 && wxNow.snow > 0.5);
   }
-  return { update, herons, bam };
+  return { update, herons, bam, tabune };
 })();
 
 // ==== 45-city.js ====
@@ -8547,7 +8621,9 @@ function updateSkyLight(dt, t, c, W) {
     }
     skyU.uCi.value = SEASON.cirrus[c.month] * (1 - wxNow.gray * 0.6);
     skyU.uRay.value =
-      wxNow.gray > 0.3 && wxNow.gray < 0.8 && wxNow.rain < 0.3 ? Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3) : 0;
+      wxNow.gray > 0.25 && wxNow.gray < 0.8 && wxNow.rain < 0.3
+        ? Math.max(Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3), day > 0.3 ? 0.55 * (1 - Math.abs(wxNow.gray - 0.5) * 3) : 0)
+        : 0;
     {
       const dn = Math.floor(c.t / DAY),
         hr = Math.abs(Math.sin(dn * 12.9898) * 43758.5453) % 1;
@@ -8574,7 +8650,9 @@ function updateSkyLight(dt, t, c, W) {
     skyU.uStar.value = SEASON.stars[c.month] * (1 - wxNow.gray * 0.8);
     skyU.uHzS.value = SEASON.springHaze[c.month] * Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3.5);
     waterU.uLowSun.value = (c.month >= 8 && c.month <= 11 ? 1 : 0.4) * Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3) * (day > 0 ? 1 : 0) * (1 - wxNow.gray);
-    skyU.uMp.value = (((Math.floor(c.t / DAY) % 8) + 8) % 8) / 8 + 0.0625;
+    skyU.uMp.value = ((((c.t / DAY) % 29.53) + 29.53) % 29.53) / 29.53;
+    // 天の川：夏の、月の細い晴れた夜ほど濃い
+    skyU.uMw.value = (0.55 + 0.9 * Math.max(0, 1 - Math.abs(c.month - 7) / 2.5)) * (0.3 + 0.7 * Math.abs(skyU.uMp.value - 0.5) * 2);
     skyU.uCu.value = SEASON.cumulus[c.month] * (1 - wxNow.gray * 0.8) * (wxNow.rain > 0.3 ? 0 : 1);
     skyU.uDark.value = wxNow.dark;
     skyDome.position.copy(camera.position);
@@ -8910,11 +8988,18 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
   }
   if (!G.rt) {
     G.rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+    G.rt.depthTexture = new THREE.DepthTexture(1, 1);
     G.gq = new THREE.Mesh(
       new THREE.PlaneGeometry(2, 2),
       new THREE.ShaderMaterial({
         uniforms: {
           tD: { value: null },
+          tZ: { value: null },
+          uN: { value: 0.1 },
+          uF: { value: 1000 },
+          uFoc: { value: 50 },
+          uDof: { value: 0 },
+          uAsp: { value: 1.6 },
           uTm: { value: 0 },
           uWarm: { value: 0 },
           uDay: { value: 1 },
@@ -8923,12 +9008,17 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
         depthTest: false,
         depthWrite: false,
         vertexShader: `varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy,0.,1.);}`,
-        fragmentShader: `uniform sampler2D tD;
+        fragmentShader: `uniform sampler2D tD,tZ;uniform float uN,uF,uFoc,uDof,uAsp;
+float lz(vec2 u){float z=texture2D(tZ,u).r*2.-1.;return 2.*uN*uF/(uF+uN-z*(uF-uN));}
+float coc(vec2 u){return clamp((lz(u)-uFoc*3.)/(uFoc*10.),0.,1.);}
 uniform float uWarm,uDay,uMorn,uTm;
 varying vec2 vU;
    vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);
 }
-   void main(){vec3 c=aces(texture2D(tD,vU).rgb*1.15);
+   void main(){vec3 c0=texture2D(tD,vU).rgb;
+// 被写界深度：建物に寄ったときだけ、遠景をほのかにぼかす
+if(uDof>.01){float k=coc(vU)*uDof;if(k>.02){vec3 s=c0;float ws=1.;for(int i=0;i<14;i++){float a=float(i)*2.399,r=sqrt(float(i)+.5)*.001*k;vec2 o=vU+vec2(cos(a),sin(a)*uAsp)*r;float w=coc(o);s+=texture2D(tD,o).rgb*w;ws+=w;}c0=s/ws;}}
+vec3 c=aces(c0*1.15);
 vec3 bl=vec3(0.);
 for(int i=0;
 i<16;
@@ -9028,6 +9118,16 @@ c+=gr*(.022-.01*l);
   renderer.render(scene, camera);
   renderer.setRenderTarget(null);
   G.gq.material.uniforms.tD.value = G.rt.texture;
+  {
+    const u = G.gq.material.uniforms,
+      fd = camera.position.distanceTo(house.position);
+    u.tZ.value = G.rt.depthTexture;
+    u.uN.value = camera.near;
+    u.uF.value = camera.far;
+    u.uFoc.value = fd;
+    u.uAsp.value = camera.aspect;
+    u.uDof.value = 0.8 * Math.min(1, Math.max(0, (85 - fd) / 20)) * QUALITY.dof;
+  }
   G.gq.material.uniforms.uTm.value = (performance.now() / 1000) % 100;
   G.gq.material.uniforms.uDay.value = Math.min(1, day * 2.5) * (1 - wxNow.dark);
   G.gq.material.uniforms.uMorn.value = Math.max(0, 1 - Math.abs(c.phase - 0.34) / 0.08) * (1 - wxNow.gray * 0.5);

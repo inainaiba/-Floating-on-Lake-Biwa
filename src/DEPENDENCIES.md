@@ -435,6 +435,7 @@
   - 16-terrain.js：`VEX`、`reedPts`
   - 17-trees.js：`cardForest`
   - 20-villages-layout.js：`houses`、`terrainAt`
+  - 22-village-lights-roads.js：`winGeo`
   - 29-controls.js：`isFar`
 
 ## 45-city.js
@@ -521,6 +522,7 @@
   - 12-renderer.js：`QUALITY`、`camera`、`renderer`、`scene`
   - 13-sky-dome.js：`skyDome`
   - 14-water.js：`water`、`waterU`
+  - 18-buildings.js：`house`
 
 ## 51-frame.js
 - 作る：`frame`

@@ -128,6 +128,58 @@ G.life = (() => {
     Qt = new THREE.Quaternion(),
     V = new THREE.Vector3(),
     Sc = new THREE.Vector3(1, 1, 1);
+  // 田舟：ヨシ原の水際に舫われた細長い木の小舟
+  const tabune = [];
+  {
+    const wd = new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 0.95 }),
+      g0 = new THREE.Group();
+    const bot = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.12, 5.2), wd);
+    bot.position.y = 0.05;
+    g0.add(bot);
+    for (const sx of [-0.52, 0.52]) {
+      const sd = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.32, 5.2), wd);
+      sd.position.set(sx, 0.2, 0);
+      g0.add(sd);
+    }
+    const bow = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.3, 0.08), wd);
+    bow.position.set(0, 0.22, -2.6);
+    bow.rotation.x = -0.5;
+    g0.add(bow);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 4.5, 4), new THREE.MeshStandardMaterial({ color: 0x8a8a5a }));
+    pole.position.set(0.2, 0.32, 0);
+    pole.rotation.x = Math.PI / 2;
+    g0.add(pole);
+    reedPts.forEach(([x, y], i) => {
+      if (i % 97 !== 11 || tabune.length > 40) return;
+      for (let k = 0; k < 6; k++) {
+        const a = R() * 6.28,
+          xx = x + Math.cos(a) * 25,
+          yy = y + Math.sin(a) * 25,
+          dp = depth(xx, yy);
+        if (inLake(xx, yy) && dp > 0.1 && dp < 1.5) {
+          const g = g0.clone();
+          g.position.set(xx * S, -0.12, yy * S);
+          g.rotation.y = a + 1.57 + (R() - 0.5) * 0.6;
+          g.userData.ph = R() * 6.28;
+          scene.add(g);
+          tabune.push(g);
+          break;
+        }
+      }
+    });
+  }
+  // 家々の灯り：日暮れから一軒ずつ灯り、夜更けに一軒ずつ消える
+  const wN = winGeo.attributes.color.count,
+    wBase = winGeo.attributes.color.array.slice(),
+    wOn = new Float32Array(wN),
+    wOff = new Float32Array(wN),
+    wMorn = new Float32Array(wN);
+  for (let i = 0; i < wN; i++) {
+    wOn[i] = 0.7 + R() * 0.1;
+    wOff[i] = 0.9 + R() * 0.2;
+    wMorn[i] = R() < 0.25 ? 0.19 + R() * 0.06 : 9;
+  }
+  let wT = 0;
   function update(dt, t, c, day, wxNow) {
     const cx = camera.position.x,
       cz = camera.position.z;
@@ -170,8 +222,26 @@ G.life = (() => {
       });
       dfly.instanceMatrix.needsUpdate = true;
     }
+    for (const g of tabune) {
+      g.position.y = -0.12 + Math.sin(t * 0.8 + g.userData.ph) * 0.03;
+      g.rotation.z = Math.sin(t * 0.6 + g.userData.ph) * 0.02;
+    }
+    wT -= dt;
+    if (wT <= 0) {
+      wT = 0.5;
+      const p = c.phase,
+        ar = winGeo.attributes.color.array;
+      for (let i = 0; i < wN; i++) {
+        const on = p >= wOn[i] ? p < wOff[i] : p + 1 < wOff[i] || (p >= wMorn[i] && p < 0.3);
+        const k = on ? 1 : 0;
+        ar[i * 3] = wBase[i * 3] * k;
+        ar[i * 3 + 1] = wBase[i * 3 + 1] * k;
+        ar[i * 3 + 2] = wBase[i * 3 + 2] * k;
+      }
+      winGeo.attributes.color.needsUpdate = true;
+    }
     // サギはときどき首をかしげる
     for (const h of herons) h.visible = day > 0.05 && !(c.month === 0 && wxNow.snow > 0.5);
   }
-  return { update, herons, bam };
+  return { update, herons, bam, tabune };
 })();

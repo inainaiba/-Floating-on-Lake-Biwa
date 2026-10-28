@@ -7,11 +7,18 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
   }
   if (!G.rt) {
     G.rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+    G.rt.depthTexture = new THREE.DepthTexture(1, 1);
     G.gq = new THREE.Mesh(
       new THREE.PlaneGeometry(2, 2),
       new THREE.ShaderMaterial({
         uniforms: {
           tD: { value: null },
+          tZ: { value: null },
+          uN: { value: 0.1 },
+          uF: { value: 1000 },
+          uFoc: { value: 50 },
+          uDof: { value: 0 },
+          uAsp: { value: 1.6 },
           uTm: { value: 0 },
           uWarm: { value: 0 },
           uDay: { value: 1 },
@@ -20,12 +27,17 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
         depthTest: false,
         depthWrite: false,
         vertexShader: `varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy,0.,1.);}`,
-        fragmentShader: `uniform sampler2D tD;
+        fragmentShader: `uniform sampler2D tD,tZ;uniform float uN,uF,uFoc,uDof,uAsp;
+float lz(vec2 u){float z=texture2D(tZ,u).r*2.-1.;return 2.*uN*uF/(uF+uN-z*(uF-uN));}
+float coc(vec2 u){return clamp((lz(u)-uFoc*3.)/(uFoc*10.),0.,1.);}
 uniform float uWarm,uDay,uMorn,uTm;
 varying vec2 vU;
    vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);
 }
-   void main(){vec3 c=aces(texture2D(tD,vU).rgb*1.15);
+   void main(){vec3 c0=texture2D(tD,vU).rgb;
+// 被写界深度：建物に寄ったときだけ、遠景をほのかにぼかす
+if(uDof>.01){float k=coc(vU)*uDof;if(k>.02){vec3 s=c0;float ws=1.;for(int i=0;i<14;i++){float a=float(i)*2.399,r=sqrt(float(i)+.5)*.001*k;vec2 o=vU+vec2(cos(a),sin(a)*uAsp)*r;float w=coc(o);s+=texture2D(tD,o).rgb*w;ws+=w;}c0=s/ws;}}
+vec3 c=aces(c0*1.15);
 vec3 bl=vec3(0.);
 for(int i=0;
 i<16;
@@ -125,6 +137,16 @@ c+=gr*(.022-.01*l);
   renderer.render(scene, camera);
   renderer.setRenderTarget(null);
   G.gq.material.uniforms.tD.value = G.rt.texture;
+  {
+    const u = G.gq.material.uniforms,
+      fd = camera.position.distanceTo(house.position);
+    u.tZ.value = G.rt.depthTexture;
+    u.uN.value = camera.near;
+    u.uF.value = camera.far;
+    u.uFoc.value = fd;
+    u.uAsp.value = camera.aspect;
+    u.uDof.value = 0.8 * Math.min(1, Math.max(0, (85 - fd) / 20)) * QUALITY.dof;
+  }
   G.gq.material.uniforms.uTm.value = (performance.now() / 1000) % 100;
   G.gq.material.uniforms.uDay.value = Math.min(1, day * 2.5) * (1 - wxNow.dark);
   G.gq.material.uniforms.uMorn.value = Math.max(0, 1 - Math.abs(c.phase - 0.34) / 0.08) * (1 - wxNow.gray * 0.5);

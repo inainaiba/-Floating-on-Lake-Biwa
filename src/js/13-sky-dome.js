@@ -21,6 +21,7 @@ const skyU = {
   uCon: { value: new THREE.Vector4(0, 0, 0, 0) },
   uVenus: { value: 0 },
   uHzS: { value: 0 },
+  uMw: { value: 1 },
 };
 const skyDome = new THREE.Mesh(
   new THREE.SphereGeometry(9000, 32, 16),
@@ -31,7 +32,7 @@ const skyDome = new THREE.Mesh(
     fog: false,
     vertexShader: `varying vec3 vD;void main(){vD=normalize(position);vec4 p=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*p;gl_Position.z=gl_Position.w*.9999;}`,
     fragmentShader: `uniform vec3 uTop,uHor,uSunD,uSunC2;
-uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;
+uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;uniform float uMw;
 uniform vec3 uLd;
 varying vec3 vD;
  float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);
@@ -85,7 +86,7 @@ c=mix(c,cu,m_*uCu);
  if(uRay>.01){vec3 sp=normalize(vD-uSunD*dot(vD,uSunD));
 float an=atan(dot(sp,normalize(cross(uSunD,vec3(0.,1.,0.)))),sp.y);
 float rays=smoothstep(.55,.9,fbm(vec2(an*8.,uT*.01)))*pow(max(dot(vD,uSunD),0.),3.)*smoothstep(-.02,.15,vD.y);
-c+=vec3(1.,.86,.62)*rays*uRay*.5;
+c+=vec3(1.,.86,.62)*rays*uRay*.5*(1.+1.4*smoothstep(.0,-.15,vD.y-uSunD.y)*smoothstep(.15,.4,uSunD.y));
 }if(uLt>.01){float lg=pow(max(dot(vD,normalize(uLd)),0.),18.)*smoothstep(.0,.04,vD.y)*smoothstep(.3,.06,vD.y);
 c+=vec3(.85,.85,1.)*lg*uLt*1.4;
 }
@@ -112,7 +113,7 @@ float h1=fract(sin(dot(floor(sp_*160.),vec2(12.9,78.2)))*43758.5),h2=fract(sin(d
  vec2 f1=fract(sp_*160.)-.5,f2=fract(sp_*70.)-.5;
 float st=step(.992,h1)*(.3+.7*fract(h1*91.))*smoothstep(.25,.0,length(f1))+step(.997,h2)*1.3*smoothstep(.22,.0,length(f2));
  vec3 mwd=normalize(vec3(.55,.35,-.75));
-float mw=exp(-pow(dot(vD,mwd)*4.,2.))*(.55+.45*fbm(vD.xz*9.+vD.y*4.));
+float mw=exp(-pow(dot(vD,mwd)*4.,2.))*(.55+.45*fbm(vD.xz*9.+vD.y*4.))*uMw*(.75+.5*smoothstep(.35,.75,fbm(vD.xz*22.+3.)));
  st+=step(.97,h1)*mw*.9*smoothstep(.25,.0,length(f1));
 c+=vec3(.55,.6,.8)*mw*.06*nt*(1.-uDark);
  c=mix(c,mix(vec3(.08,.14,.32),vec3(.01,.02,.08),pow(y,.6)),nt*.9);

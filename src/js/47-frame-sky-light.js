@@ -65,7 +65,9 @@ function updateSkyLight(dt, t, c, W) {
     }
     skyU.uCi.value = SEASON.cirrus[c.month] * (1 - wxNow.gray * 0.6);
     skyU.uRay.value =
-      wxNow.gray > 0.3 && wxNow.gray < 0.8 && wxNow.rain < 0.3 ? Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3) : 0;
+      wxNow.gray > 0.25 && wxNow.gray < 0.8 && wxNow.rain < 0.3
+        ? Math.max(Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3), day > 0.3 ? 0.55 * (1 - Math.abs(wxNow.gray - 0.5) * 3) : 0)
+        : 0;
     {
       const dn = Math.floor(c.t / DAY),
         hr = Math.abs(Math.sin(dn * 12.9898) * 43758.5453) % 1;
@@ -92,7 +94,9 @@ function updateSkyLight(dt, t, c, W) {
     skyU.uStar.value = SEASON.stars[c.month] * (1 - wxNow.gray * 0.8);
     skyU.uHzS.value = SEASON.springHaze[c.month] * Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3.5);
     waterU.uLowSun.value = (c.month >= 8 && c.month <= 11 ? 1 : 0.4) * Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3) * (day > 0 ? 1 : 0) * (1 - wxNow.gray);
-    skyU.uMp.value = (((Math.floor(c.t / DAY) % 8) + 8) % 8) / 8 + 0.0625;
+    skyU.uMp.value = ((((c.t / DAY) % 29.53) + 29.53) % 29.53) / 29.53;
+    // 天の川：夏の、月の細い晴れた夜ほど濃い
+    skyU.uMw.value = (0.55 + 0.9 * Math.max(0, 1 - Math.abs(c.month - 7) / 2.5)) * (0.3 + 0.7 * Math.abs(skyU.uMp.value - 0.5) * 2);
     skyU.uCu.value = SEASON.cumulus[c.month] * (1 - wxNow.gray * 0.8) * (wxNow.rain > 0.3 ? 0 : 1);
     skyU.uDark.value = wxNow.dark;
     skyDome.position.copy(camera.position);
