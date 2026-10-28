@@ -74,6 +74,8 @@ float cb=fbm(cp+vec2(.05,.03));
 float cb2=fbm(cp-uSunD.xz*.06);
 vec3 cc=(1.-.42*smoothstep(.45,.9,cb)+.18*smoothstep(.0,.3,cb-cb2))*mix(mix(vec3(1.),uTop*1.6,smoothstep(.25,0.,uSunD.y+.1)),uHor*.9,.35)*mix(mix(vec3(1.,.52,.38),vec3(1.,.72,.55),smoothstep(-.05,.12,uSunD.y)),vec3(1.),smoothstep(.05,.35,uSunD.y))*(1.+.35*smoothstep(.3,.0,uSunD.y)*smoothstep(-.12,.0,uSunD.y))*(1.-uDark*.6)+uSunC2*pow(sd,4.)*.4;
 c=mix(c,cc,cl*.85);
+// 雲の銀の縁：太陽の近くの雲の輪郭が白く光る
+{float edge=smoothstep(.0,.25,cl)*smoothstep(.75,.2,cl);c+=uSunC2*edge*(pow(sd,10.)*1.4+pow(sd,60.)*1.2)*smoothstep(-.02,.1,uSunD.y)*(1.-uDark*.8);}
 if(uCu>.01){vec2 q=vec2(atan(vD.z,vD.x)*3.2+uT*.0015,vD.y*9.);
 float hgt=fbm(vec2(q.x*1.3,1.7))*.55+.12;
 float base=.035;
@@ -102,6 +104,11 @@ ly=mix(ly,vec3(.72,.66,.9),smoothstep(.06,.22,y));
 c=mix(c,ly*mix(1.,.8,smoothstep(.0,.3,y)),lw*.45*smoothstep(.45,.0,y));
 }
  c+=uHor*.22*exp(-y*45.)*(1.-uDark)*smoothstep(-.1,.15,uSunD.y);
+ // 明け方の色の層：地平の橙から桃、紫、藍へ細かく重なる
+ {float dw=smoothstep(-.2,-.06,uSunD.y)*smoothstep(.06,-.02,uSunD.y)*(1.-uDark)*mix(.5,1.,smoothstep(-.3,.6,dot(normalize(vec3(vD.x,0.,vD.z)),normalize(vec3(uSunD.x,0.,uSunD.z)+1e-4))));
+ vec3 l1=vec3(1.,.55,.28),l2=vec3(.98,.62,.6),l3=vec3(.62,.52,.78),l4=vec3(.2,.24,.48);
+ vec3 dc2=mix(l1,l2,smoothstep(.0,.05,y));dc2=mix(dc2,l3,smoothstep(.05,.14,y));dc2=mix(dc2,l4,smoothstep(.14,.4,y));
+ c=mix(c,dc2,dw*.55*smoothstep(.6,.0,y));}
  c+=vec3(.1,.1,.09)*exp(-y*16.)*smoothstep(-.1,.2,uSunD.y)*(1.-uDark);
  if(uSnowCap>.01){float west=smoothstep(-.15,-.75,vD.x);float sc=smoothstep(.45,.7,fbm(vec2(atan(vD.z,vD.x)*5.+uT*.003,vD.y*14.)))*smoothstep(.03,.07,vD.y)*smoothstep(.26,.1,vD.y);c=mix(c,vec3(.58,.61,.66)*(1.-uDark*.7),clamp(sc*west*1.8,0.,.95)*uSnowCap);c=mix(c,vec3(.68,.7,.74)*(1.-uDark*.7),uSnowCap*.35*smoothstep(.5,.0,y));}
  if(uShaft>.01){float az=atan(vD.z,vD.x);float sh_=smoothstep(.55,.85,fbm(vec2(az*2.2,uT*.002)))*smoothstep(.62,.9,fbm(vec2(az*9.,vD.y*3.+uT*.01)))*smoothstep(.0,.03,vD.y)*smoothstep(.2,.05,vD.y);c=mix(c,vec3(.48,.52,.58)*(1.-uDark*.5),sh_*uShaft*.7);}
@@ -112,7 +119,8 @@ c=mix(c,ly*mix(1.,.8,smoothstep(.0,.3,y)),lw*.45*smoothstep(.45,.0,y));
  vec2 sp_=vD.xz/(vD.y+.25);
 float h1=fract(sin(dot(floor(sp_*160.),vec2(12.9,78.2)))*43758.5),h2=fract(sin(dot(floor(sp_*70.),vec2(39.3,11.1)))*24634.6);
  vec2 f1=fract(sp_*160.)-.5,f2=fract(sp_*70.)-.5;
-float st=step(.992,h1)*(.3+.7*fract(h1*91.))*smoothstep(.25,.0,length(f1))+step(.997,h2)*1.3*smoothstep(.22,.0,length(f2));
+float tw_=.55+.45*sin(uT*(3.+fract(h1*53.)*5.)+h1*90.);tw_=mix(1.,tw_,1.-smoothstep(.05,.45,y));
+float st=tw_*step(.992,h1)*(.3+.7*fract(h1*91.))*smoothstep(.25,.0,length(f1))+step(.997,h2)*1.3*smoothstep(.22,.0,length(f2));
  vec3 mwd=normalize(vec3(.55,.35,-.75));
 float mw=exp(-pow(dot(vD,mwd)*4.,2.))*(.55+.45*fbm(vD.xz*9.+vD.y*4.))*uMw*(.75+.5*smoothstep(.35,.75,fbm(vD.xz*22.+3.)));
  st+=step(.97,h1)*mw*.9*smoothstep(.25,.0,length(f1));

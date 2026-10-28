@@ -114,6 +114,14 @@ function updateSkyLight(dt, t, c, W) {
   scene.fog.near = wxNow.fog[0] * (1 - mist * 0.8) * (1 - mornH * 0.2) * airQ;
   scene.fog.far = wxNow.fog[1] * (day < 0.05 && wxNow.fog[1] > 3000 ? 1.8 : 1) * airQ;
   scene.fog.far *= (1 - mist * 0.6) * (1 - mornH * 0.1);
+  {
+    // 雨上がり：雨のあと10分ほどは空気が澄んで、遠くまでくっきり見える
+    if (wxNow.rain > 0.3) G.afterRain = 1;
+    else G.afterRain = Math.max(0, (G.afterRain || 0) - dt / 600);
+    const ar = wxNow.rain < 0.1 ? G.afterRain : 0;
+    scene.fog.near *= 1 + ar * 0.8;
+    scene.fog.far *= 1 + ar * 0.7;
+  }
   waterU.uFog.value.set(scene.fog.near, scene.fog.far);
   waterU.uFoam.value = Math.max(0, wxNow.wave - 1.2) * 0.9;
   {
@@ -191,6 +199,14 @@ function updateSkyLight(dt, t, c, W) {
   sun.color.setRGB(1, 1 - 0.3 * warm - 0.04, 1 - 0.55 * warm - 0.1);
   sun.intensity = (0.3 + 1.35 * day) * (1 - wxNow.gray * 0.6) + fl * 2;
   hemi.intensity = (0.38 + 0.42 * day) * (1 - wxNow.dark * 0.4) + fl;
+  {
+    // 満月の夜は青白く明るく、新月の夜は暗い
+    const full = 1 - Math.abs(skyU.uMp.value - 0.5) * 2,
+      nt = Math.max(0, 1 - day * 8);
+    hemi.intensity *= 1 + nt * ((full - 0.5) * 0.7) * (1 - wxNow.gray * 0.8);
+    // 影の柔らかさ：昼はくっきり、朝夕と曇りはぼんやり
+    sun.shadow.radius = 1.2 + (1 - Math.min(1, day * 1.6)) * 4 + wxNow.gray * 5;
+  }
   hemi.color.set(day < 0.1 ? 0x8a9ac8 : 0xb9d3f2); // 晴れた日の影は空の青を映す
   if (day < 0.05) sun.color.setRGB(0.7, 0.78, 1);
   waterU.uSunC.value.copy(sun.color).multiplyScalar((day > 0 ? 0.9 : 0.35) * (1 - wxNow.gray));

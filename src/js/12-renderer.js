@@ -29,7 +29,7 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.08;
 G.exp = 1;
 renderer.shadowMap.enabled = !MOBILE_;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.PCFShadowMap; // radius で影の柔らかさを変える
 renderer.setPixelRatio(Math.min(devicePixelRatio, MOBILE ? 1.5 : 2));
 const scene = new THREE.Scene(),
   camera = new THREE.PerspectiveCamera(50, 1, 0.5, 12000);

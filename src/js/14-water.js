@@ -288,6 +288,9 @@ float r=length(cf-o),rad=ph*.45;
 rr+=smoothstep(.04,.0,abs(r-rad))*(1.-ph)*step(.35,h);
 }rr*=uRainR*.55*smoothstep(160.,8.,length(cameraPosition-vP));
 }foam+=wlf*.32;
+// 建物の周りの小さな渦：風下側に流れの乱れが巻く
+{vec2 dv=vP.xz-uHouse.xy;float ang=atan(dv.y,dv.x);vec2 wd=normalize(uWd+1e-4);float down=smoothstep(-.2,.8,dot(normalize(dv+1e-4),wd));
+float sw=sin(ang*4.+ub*.9-uT2*1.6)*sin(ub*.5+uT2*.7);foam+=smoothstep(.7,.95,sw)*down*smoothstep(uHouse.z*.95,uHouse.z*1.2,ub)*smoothstep(uHouse.z*3.,uHouse.z*1.4,ub)*.16*(1.-uCalm*.5);}
 foam+=rr;
 // ── 明るさ：時刻、空の映り込み、浅瀬の濡れた石、遠くで空と溶ける ──
 body*=.55+.6*clamp(uSun.y*2.+.1,0.,1.);
@@ -307,6 +310,8 @@ k++)for(int j=-1;
 j<=1;
 j++)rf+=texture2D(uRefl,ruv+vec2(float(j)*.003,float(k)*.0018)*(1.-uCalm*.65));
 rf/=21.;
+// 夜の灯りの映り込み：明るい灯りほど水面に縦長の筋になって揺れる
+{float nt=smoothstep(.0,-.12,uSun.y);if(nt>.01){vec3 sk=vec3(0.);for(int k=-8;k<=8;k++){vec4 s=texture2D(uRefl,ruv+vec2(sin(float(k)*1.7+uT2*2.)*.002*(1.-uCalm*.5),float(k)*.007));sk=max(sk,(s.rgb/max(s.a,.001))*s.a*(1.-abs(float(k))/9.));}rf.rgb+=max(sk-.35,0.)*1.4*nt*rf.a;}}
 float fogR=1.-smoothstep(uFog.x*.5,uFog.y*.55,dc);
 float lr=dot(rf.rgb/max(rf.a,.001),vec3(.3,.59,.11)),lfg=dot(uFogC,vec3(.3,.59,.11));
 float keep=max(smoothstep(lfg-.03,lfg-.18,lr),smoothstep(lfg+.04,lfg+.25,lr));
