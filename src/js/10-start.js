@@ -32,11 +32,12 @@ for (const bd of okB) {
       nx = -(b[1] - a[1]) / L,
       ny = (b[0] - a[0]) / L;
     let ok = false;
-    for (const off of [125, 250, 400, 600]) {
+    // カメラは建物から約300m（実寸）離れて回るので、岸や島から十分離れた所に放つ
+    for (const off of [500, 700, 950]) {
       for (const sg of [1, -1]) {
         const x = px + nx * off * sg,
           y = py + ny * off * sg;
-        if (inMain(x, y) && depth(x, y) > 1.5 && Math.abs(distShore(x, y) - off) < off * 0.5) {
+        if (inMain(x, y) && depth(x, y) > 1.5 && distShore(x, y) > 420 && Math.abs(distShore(x, y) - off) < off * 0.5) {
           starts.push([x, y]);
           n++;
           ok = true;

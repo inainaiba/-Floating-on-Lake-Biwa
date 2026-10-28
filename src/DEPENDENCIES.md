@@ -512,7 +512,7 @@
   - 11-state.js：`B`、`STATE`、`camX`、`camZ`
   - 12-renderer.js：`camera`
   - 14-water.js：`water`、`waveH`
-  - 16-terrain.js：`VEX`
+  - 16-terrain.js：`VEX`、`isleH`
   - 18-buildings.js：`house`
   - 20-villages-layout.js：`terrainAt`
   - 29-controls.js：`dist`、`distT`、`pitch`、`ptrs`、`yaw`、`yawT`

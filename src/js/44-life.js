@@ -521,7 +521,7 @@ G.life = (() => {
     });
     eri.castShadow = false;
     scene.add(eri);
-    G.eri = eri;
+    G.eriMesh = eri;
   }
   function update(dt, t, c, day, wxNow) {
     const cx = camera.position.x,

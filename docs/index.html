@@ -605,11 +605,12 @@ for (const bd of okB) {
       nx = -(b[1] - a[1]) / L,
       ny = (b[0] - a[0]) / L;
     let ok = false;
-    for (const off of [125, 250, 400, 600]) {
+    // カメラは建物から約300m（実寸）離れて回るので、岸や島から十分離れた所に放つ
+    for (const off of [500, 700, 950]) {
       for (const sg of [1, -1]) {
         const x = px + nx * off * sg,
           y = py + ny * off * sg;
-        if (inMain(x, y) && depth(x, y) > 1.5 && Math.abs(distShore(x, y) - off) < off * 0.5) {
+        if (inMain(x, y) && depth(x, y) > 1.5 && distShore(x, y) > 420 && Math.abs(distShore(x, y) - off) < off * 0.5) {
           starts.push([x, y]);
           n++;
           ok = true;
@@ -9028,7 +9029,7 @@ G.life = (() => {
     });
     eri.castShadow = false;
     scene.add(eri);
-    G.eri = eri;
+    G.eriMesh = eri;
   }
   function update(dt, t, c, day, wxNow) {
     const cx = camera.position.x,
@@ -9909,10 +9910,11 @@ function updateCamera(dt, t, hx, hz) {
   const lookUp = STATE === "lake" && pitch < 0.04 ? Math.tan(Math.min(1.2, 0.04 - pitch)) * hd : 0;
   camera.position.set(camX + Math.sin(yaw) * hd, ch, camZ + Math.cos(yaw) * hd);
   {
-    const gh =
-      (inLake(camera.position.x / S, camera.position.z / S)
-        ? 0
-        : terrainAt(camera.position.x / S, camera.position.z / S) * S * VEX) + 1.5;
+    const qx = camera.position.x / S,
+      qz = camera.position.z / S,
+      ih = typeof isleH === "function" ? isleH(qx, qz) : null;
+    // 陸や島の上に回り込んだときは、地面より上に保つ
+    const gh = Math.max(inLake(qx, qz) ? 0 : terrainAt(qx, qz) * S * VEX, ih === null ? 0 : ih) + 1.5;
     if (camera.position.y < gh) camera.position.y = gh;
   }
   camera.lookAt(camX, (STATE === "lake" ? 2 : house.h * 0.45) + lookUp, camZ);
