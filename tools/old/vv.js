@@ -1,6 +1,0 @@
-const {chromium}=require('playwright');(async()=>{const b=await chromium.launch({args:['--use-gl=swiftshader']});const p=await b.newPage({viewport:{width:800,height:500}});
-const errs=[];p.on('pageerror',e=>errs.push(e.message));await p.route('**/three.module.js',r=>r.fulfill({path:process.cwd()+'/node_modules/three/build/three.module.js'}));
-let h=require('fs').readFileSync('floating.html','utf8').replace("requestAnimationFrame(frame);\nrequestAnimationFrame(()=>",
-"{const[ix,iy]=ll(135.925,35.112);B.x=ix+350;B.y=iy-150;camX=B.x*S;camZ=B.y*S;yaw=1.4;pitch=.18;dist=60;}\nrequestAnimationFrame(frame);\nrequestAnimationFrame(()=>");
-require('fs').writeFileSync('dbg.html',h);await p.goto('file://'+process.cwd()+'/dbg.html?month=5&wx=0&phase=0.62&phase=0.4&wx=0&b=2');await p.waitForTimeout(1500);
-await p.evaluate(()=>document.getElementById('title').click());await p.waitForTimeout(3000);await p.evaluate(()=>document.getElementById('go').click());await p.waitForTimeout(500);await p.evaluate(()=>{});await p.waitForTimeout(2500);await p.screenshot({path:'v1.png',timeout:90000});await p.evaluate(()=>document.getElementById('view').click());await p.waitForTimeout(1200);await p.screenshot({path:'v2.png',timeout:90000});console.log(errs.join('\n')||'ok');await b.close();})();

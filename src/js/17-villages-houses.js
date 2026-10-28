@@ -519,8 +519,8 @@ for (let i = 0; i < houses.length; i++) {
   skirt.setColorAt(i, cc.clone().multiplyScalar(0.85));
 }
 for (const m of [walls, walls2, roofs, roofs2, skirt]) {
-  m.castShadow = HQ;
-  m.receiveShadow = HQ;
+  m.castShadow = QUALITY.treeShadow;
+  m.receiveShadow = QUALITY.treeShadow;
 }
 scene.add(walls, walls2, roofs, roofs2, skirt);
 for (const o of [walls, walls2, roofs, roofs2, skirt]) {
@@ -679,9 +679,9 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
     }),
     9,
     9,
-    HQ ? 500 : 300,
-    HQ ? 800 : 480,
-    HQ,
+    QUALITY.nearTrees[0],
+    QUALITY.nearTrees[1],
+    QUALITY.treeShadow,
   );
 }
 {

@@ -2,7 +2,7 @@
 function resize() {
   const w = innerWidth,
     h = innerHeight,
-    d = Math.min(devicePixelRatio, HQ ? 2.5 : 2) * resScale;
+    d = Math.min(devicePixelRatio, QUALITY.pixelMax) * resScale;
   renderer.setPixelRatio(d);
   renderer.setSize(w, h, false);
   camera.aspect = w / h;

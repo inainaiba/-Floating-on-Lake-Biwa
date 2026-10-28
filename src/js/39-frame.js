@@ -7,7 +7,7 @@ function frame(now) {
     const f = fpsN / fpsT;
     const old = resScale;
     if (f < 38) resScale = Math.max(0.5, resScale - 0.1);
-    else if (f > 57) resScale = Math.min(HQ ? 1 : 0.9, resScale + 0.05);
+    else if (f > 57) resScale = Math.min(QUALITY.resMax, resScale + 0.05);
     if (old !== resScale) resize();
     fpsN = 0;
     fpsT = 0;
@@ -566,7 +566,7 @@ function frame(now) {
     camera.setViewOffset(w, h, 0, h * 0.2, w, h);
   }
   {
-    const q = 5000 / (HQ ? 420 : MOBILE ? 180 : 300);
+    const q = 5000 / (QUALITY.waterGrid);
     water.position.x = Math.round(camX / q) * q;
     water.position.z = Math.round(camZ / q) * q;
   }
@@ -646,7 +646,7 @@ c+=gr*(.022-.01*l);
     }
     const w = renderer.domElement.width,
       h = renderer.domElement.height,
-      rs = HQ ? 0.75 : 0.5;
+      rs = QUALITY.reflection;
     if (G.rf.width !== Math.floor(w * rs)) G.rf.setSize(Math.floor(w * rs), Math.floor(h * rs));
     const rc = G.rc;
     const wy = water.position.y;
@@ -709,6 +709,16 @@ if (Q.has("debug")) {
     B.x = h.x; B.y = h.y; camX = h.x * S; camZ = h.y * S;
     G.lock = [h.x * S, h.y * S];
     yaw = yawT = yw; pitch = pt; dist = distT = ds; STATE = "lake";
+  };
+  // 同じページのまま、月・時刻・天気・建物を切り替える（確認用）
+  window.__scene = (q) => {
+    if (q.month !== undefined) MO = String(q.month);
+    if (q.phase !== undefined) PH = String(q.phase);
+    if (q.wx !== undefined) WXQ = String(q.wx);
+    if (q.b !== undefined && q.b !== CUST.b) {
+      CUST.b = q.b;
+      buildHouse();
+    }
   };
   window.__set = (lo, la, dx, dy, yw, pt, ds) => {
     G.lock = null;

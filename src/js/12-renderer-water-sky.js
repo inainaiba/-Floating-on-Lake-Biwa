@@ -14,8 +14,17 @@ const QUAL =
       : "mid");
 const HQ = QUAL === "high",
   LQ = QUAL === "low";
-let resScale = HQ ? 1 : LQ ? 0.6 : 0.85;
 const MOBILE = matchMedia("(pointer:coarse)").matches;
+/* 画質の表：高（high）・中（mid）・低（low）で何を省くか。重いときはここを調整する
+   ?q=high / mid / low で強制できる。中と低はスマホ（MOBILE）だと水面の網目をさらに粗くする */
+const QUALITY_TABLE = {
+  high: { resStart: 1, resMax: 1, pixelMax: 2.5, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], reflection: 0.75, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1 },
+  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1 },
+  low: { resStart: 0.6, resMax: 0.9, pixelMax: 2, shadowMap: 512, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 3500, fireworkBurst: 0.55 },
+};
+const QUALITY = { ...(QUALITY_TABLE[QUAL] || QUALITY_TABLE.mid) };
+if (!HQ && MOBILE) QUALITY.waterGrid = 180;
+let resScale = QUALITY.resStart;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.08;
 G.exp = 1;
@@ -149,12 +158,12 @@ scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 1.2);
 scene.add(sun);
 sun.castShadow = true;
-sun.shadow.mapSize.set(HQ ? 2048 : LQ ? 512 : 1024, HQ ? 2048 : LQ ? 512 : 1024);
+sun.shadow.mapSize.set(QUALITY.shadowMap, QUALITY.shadowMap);
 Object.assign(sun.shadow.camera, {
-  left: HQ ? -90 : -40,
-  right: HQ ? 90 : 40,
-  top: HQ ? 90 : 40,
-  bottom: HQ ? -90 : -40,
+  left: -QUALITY.shadowRange,
+  right: QUALITY.shadowRange,
+  top: QUALITY.shadowRange,
+  bottom: -QUALITY.shadowRange,
   near: 1,
   far: 300,
 });
@@ -262,7 +271,7 @@ const waterU = {
   uMurk: { value: 0 },
 };
 const water = new THREE.Mesh(
-  new THREE.PlaneGeometry(5000, 5000, HQ ? 420 : MOBILE ? 180 : 300, HQ ? 420 : MOBILE ? 180 : 300).rotateX(
+  new THREE.PlaneGeometry(5000, 5000, QUALITY.waterGrid, QUALITY.waterGrid).rotateX(
     -Math.PI / 2,
   ),
   new THREE.ShaderMaterial({
@@ -372,6 +381,9 @@ float fr=.02+.98*pow(1.-max(dot(N,V),0.),5.);
 vec2 uv=(vP.xz-uBox.xy)/uBox.zw;
 float dep=texture2D(uDepth,uv).r*255./6.;
 float sh=exp(-dep/3.);
+// ── 水の色の重なり（上から順に塗り重ねる）──
+// ① 沖と浅い水の基本色（PALETTE.waterDeep / waterShallow）　② 風の筋で暗く
+// ③ 浅瀬：湖底が透ける（lakeBedSand/Light）　④ 浅瀬と沖の間の青緑（shoalTeal）　⑤ 浅瀬の光の網目
 vec3 body=mix(uDeep,uShal,sh*.8);
 {vec2 wd=normalize(uWd+1e-4),wp=vec2(dot(vP0.xz,wd),dot(vP0.xz,vec2(-wd.y,wd.x)));
 float ws=(1.-uCalm)*smoothstep(.45,.75,fract(sin(dot(floor(vec2(wp.x*.006-uT2*.05,wp.y*.03)),vec2(5.1,3.7)))*91.))*smoothstep(.2,.8,sin(wp.y*.045+sin(wp.x*.004)*3.)*.5+.5);
@@ -390,6 +402,7 @@ i<16;
 i++){vec2 d=vP.xz-uMouth[i].xy;
 tb+=uMouth[i].w*exp(-dot(d,d)/(uMouth[i].z*uMouth[i].z));
 }body=mix(body,vec3(.52,.42,.28),clamp(tb,0.,.85));
+// ── 反射：空の色・太陽のきらめき・月の照り返し ──
 vec3 R=reflect(-V,N);
 float rs=max(dot(R,uSun),0.);
 float mr=max(dot(R,normalize(vec3(-uSun.x,abs(uSun.y)+.2,-uSun.z))),0.);
@@ -401,6 +414,7 @@ vec3 skyR=mix(uSky*1.12,uSky*.78,pow(clamp(R.y,0.,1.),.5))+vec3(1.,.6,.35)*exp(-
 float lowR=smoothstep(.09,.0,R.y);
 skyR+=vec3(.25,.16,.06)*lowR*smoothstep(.0,-.15,uSun.y)*.25*(.5+.5*sin(vP.x*.9+sin(vP.z*.3)*3.));
 skyR*=1.+.1*(fract(sin(dot(floor((vP.xz+R.xz*200.)*.01),vec2(1.7,9.2)))*43.)-.5)*(1.-lowR);
+// ── 建物のまわり：喫水の陰、波の斜面の陰影、建物の影、水際の泡 ──
 float ub=length(vP.xz-uHouse.xy);
 body*=1.-.38*smoothstep(uHouse.z*1.15,uHouse.z*.3,ub);
 body*=.9+.22*clamp(dot(N,normalize(vec3(uSun.x,1.2,uSun.z))),0.,1.);
@@ -409,6 +423,7 @@ float hs=smoothstep(uHouse.z*1.,uHouse.z*.4,length(vP.xz-so));
 body*=1.-hs*.28*clamp(uSun.y*3.,0.,1.);
 }float wlf=exp(-pow((ub-uHouse.z*.92)/(.6+uHouse.z*.05),2.))*(.55+.45*sin(atan(vP.z-uHouse.y,vP.x-uHouse.x)*9.+uT2*1.3))*(.5+.5*fract(sin(dot(floor(vP0.xz*3.),vec2(3.7,8.1)))*91.));
 skyR=mix(skyR,vec3(.18,.26,.2),lowR*.65);
+// ── 泡：白波・岸の波打ち際・雨の波紋・遠くの白波 ──
 float wfoam=smoothstep(.12,.8,wf)*(.35+.65*fract(sin(dot(floor(vP0.xz*5.),vec2(7.,3.)))*91.));
 float foam=wfoam*.55+uFoam*smoothstep(.12,.3,1.-N.y)*.8+smoothstep(.06,.12,1.-N.y)*uFoam*.25;
 float swn=sin(dot(vP0.xz,vec2(.6,.8))*.9-uT*1.4+sin(vP0.x*.21)*2.)*.5+.5;
@@ -434,6 +449,7 @@ rr+=smoothstep(.04,.0,abs(r-rad))*(1.-ph)*step(.35,h);
 }rr*=uRainR*.35*smoothstep(70.,8.,length(cameraPosition-vP));
 }foam+=wlf*.32;
 foam+=rr;
+// ── 明るさ：時刻、空の映り込み、浅瀬の濡れた石、遠くで空と溶ける ──
 body*=.55+.6*clamp(uSun.y*2.+.1,0.,1.);
 body+=uSky*.14;
 float sss=pow(max(dot(V,-uSun+N*.5),0.),3.)*max(vP.y,0.)*.25;
@@ -441,6 +457,7 @@ body+=vec3(.1,.18,.12)*sss;
 float graz=pow(1.-max(V.y,0.),3.);
 N=normalize(mix(N,vec3(0.,1.,0.),graz*.3*smoothstep(60.,400.,dc)));
 body=mix(body,body*vec3(.75,.85,.95),graz*.5);
+// ── 山や建物の映り込み（静かな日ほど鮮明に）──
 vec4 tp=uTM*vec4(vP.x,uWy,vP.z,1.);
 vec2 ruv=tp.xy/tp.w+N.xz*vec2(.04,.08)*(1.2-uCalm*.7)*(.35+.65*smoothstep(1400.,40.,dc));
 vec4 rf=vec4(0.);
@@ -461,6 +478,7 @@ vec3 Lf=normalize(uFW[i].xyz-vP);
 float dd=max(dot(R,Lf),0.);
 skyR+=uFWc[i]*uFW[i].w*(pow(dd,180.)*1.6+pow(dd,30.)*.25);
 }
+// ── 合成：水の色と反射を混ぜ、灯り・花火・霧・遠景の霞を重ねる ──
  vec3 c=mix(body,skyR*mix(vec3(.9,.95,1.),vec3(1.05),graz),min(1.,fr*(1.05-uRainR*.3)+.03))+uSunC*sp+foam+uSunC*.04*pow(max(dot(-V,uSun),0.),2.);
 float ws_=smoothstep(.6,1.,sin(dot(vP0.xz,vec2(.011,.017))+sin(vP0.x*.004)*3.)*.5+.5)*.04*(1.-smoothstep(300.,1500.,dc));
 c+=ws_;

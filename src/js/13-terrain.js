@@ -152,8 +152,8 @@ function landH(x, y) {
   return 4 + m;
 }
 const TM = 26000,
-  TW = HQ ? 520 : 360,
-  TH = HQ ? 650 : 450,
+  TW = QUALITY.terrain[0],
+  TH = QUALITY.terrain[1],
   tx0 = minX - TM,
   ty0 = minY - TM,
   tdx = (maxX - minX + 2 * TM) / (TW - 1),

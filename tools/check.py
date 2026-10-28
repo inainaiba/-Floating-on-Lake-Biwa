@@ -57,24 +57,28 @@ def shoot(idx):
     errs = []
     with sync_playwright() as p:
         b = p.chromium.launch(args=['--use-gl=swiftshader'])
-        pg = b.new_page(viewport={'width': 800, 'height': 500})
+        pg = b.new_page(viewport={'width': 640, 'height': 400})
         pg.on('pageerror', lambda e: errs.append(str(e)))
         if three.exists():
             pg.route('**/three.module.js', lambda r: r.fulfill(path=str(three)))
+        loaded = False
         for i in idx:
             name, q, v, bnum = SCENES[i]
-            pg.goto(f'http://127.0.0.1:{port}/docs/index.html?debug&b={bnum}&{q}')
-            pg.evaluate("()=>{try{localStorage.setItem('floating.hint2','1')}catch(e){}}")
-            pg.wait_for_timeout(1500)
-            pg.evaluate("()=>document.getElementById('title').click()")
-            pg.wait_for_timeout(400)
-            pg.evaluate("()=>document.getElementById('go').click()")
+            if not loaded:
+                pg.goto(f'http://127.0.0.1:{port}/docs/index.html?debug&b={bnum}&{q}')
+                pg.evaluate("()=>{try{localStorage.setItem('floating.hint2','1')}catch(e){}}")
+                pg.wait_for_timeout(900)
+                pg.evaluate("()=>document.getElementById('title').click()")
+                pg.wait_for_timeout(200)
+                pg.evaluate("()=>document.getElementById('go').click()")
+                loaded = True
+            sc = dict(kv.split('=') for kv in q.split('&'))
             try:
-                pg.evaluate('v=>__set(...v)', v)
+                pg.evaluate('a=>{__scene(a[0]);__set(...a[1])}', [{'month': int(sc['month']), 'phase': float(sc['phase']), 'wx': int(sc['wx']), 'b': bnum}, v])
             except Exception:
                 errs.append('視点を動かせませんでした（読み込み時のエラーの可能性）')
                 break
-            pg.wait_for_timeout(2500)
+            pg.wait_for_timeout(1800)
             pg.screenshot(path=str(OUT / f'{i:02d}.png'), timeout=180000)
             print(f'  {i:02d} {name}')
         b.close()
@@ -96,7 +100,7 @@ def sheet(idx):
         y = row * (H + 22)
         diff = None
         if bp.exists():
-            base = Image.open(bp).convert('RGB')
+            base = Image.open(bp).convert('RGB').resize(now.size)
             diff = sum(ImageChops.difference(base, now).convert('L').histogram()[40:]) / (now.width * now.height)
             img.paste(base.resize((W, H)), (0, y + 20))
         img.paste(now.resize((W, H)), (W + 12, y + 20))

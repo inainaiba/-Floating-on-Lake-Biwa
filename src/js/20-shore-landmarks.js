@@ -99,9 +99,9 @@ scene.add(brk);
     tr.map(([x, y, s], i) => [x, y, 0.6 + terrainAt(x, y) * S * VEX, s * 1.1, i * 0.71]),
     10,
     13,
-    HQ ? 500 : 300,
-    HQ ? 800 : 480,
-    HQ,
+    QUALITY.nearTrees[0],
+    QUALITY.nearTrees[1],
+    QUALITY.treeShadow,
   );
   const M = new THREE.Matrix4();
   const sandTex = (() => {

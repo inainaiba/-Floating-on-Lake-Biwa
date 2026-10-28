@@ -37,6 +37,8 @@ def top_level(src):
 def analyze():
     files = sorted(J.glob('*.js'))
     defs, raw = {}, {}
+    global funcs
+    funcs = set()
     errors = []
     for f in files:
         s = strip(f.read_text())
@@ -56,7 +58,9 @@ def analyze():
                 n = part.split('=')[0].strip()
                 if re.fullmatch(r'[A-Za-z_$][\w$]*', n):
                     names.add(n)
-        names |= set(FUNC.findall(tl))
+        fn = set(FUNC.findall(tl))
+        names |= fn
+        funcs.update(fn)
         for n in names:
             if n in defs:
                 errors.append(f'{n} を {defs[n]} と {f.name} の両方で作っている')
@@ -64,7 +68,11 @@ def analyze():
     order = [f.name for f in files]
     uses, wins = {}, {}
     for f in order:
-        ids = set(re.findall(r'(?<![.\w$])([A-Za-z_$][\w$]*)', raw[f]))
+        src = re.sub(r'(?<![.\w$])([A-Za-z_$][\w$]*)\s*:(?!:)', ' ', raw[f])  # オブジェクトのキーは除く
+        local = set(re.findall(r'(?:const|let|var)\s+([A-Za-z_$][\w$]*)', src)) | set(re.findall(r',\s*([A-Za-z_$][\w$]*)\s*=(?!=)', src))
+        local |= set(x for args in re.findall(r'\(([\w$,\s]*)\)\s*=>', src) for x in re.findall(r'[A-Za-z_$][\w$]*', args))
+        local |= set(x for args in re.findall(r'function\s*[\w$]*\s*\(([^)]*)\)', src) for x in re.findall(r'[A-Za-z_$][\w$]*', args))
+        ids = set(re.findall(r'(?<![.\w$])([A-Za-z_$][\w$]*)', src)) - (local - set(n for n, g in defs.items() if g == f))
         uses[f] = sorted((n, defs[n]) for n in ids if n in defs and defs[n] != f)
         for m in WIN.finditer(raw[f]):
             wins.setdefault(m.group(1), set()).add(f)
@@ -85,13 +93,18 @@ def write():
         if by:
             L.append('- 使う：')
             for g in sorted(by):
-                later = '（後ろの部品）' if order.index(g) > order.index(f) else ''
-                L.append(f'  - {g}{later}：' + '、'.join(f'`{n}`' for n in by[g]))
+                later = order.index(g) > order.index(f)
+                risky = [n for n in by[g] if n not in funcs] if later else []
+                tag = ('（後ろの部品・要注意）' if risky else '（後ろの部品・関数なので可）') if later else ''
+                L.append(f'  - {g}{tag}：' + '、'.join(f'`{n}`' for n in by[g]))
         L.append('')
     L += ['## 共有の値（window.__xxx）', '']
     for k in sorted(wins):
         L.append(f'- `{k}`：' + '、'.join(sorted(wins[k])))
     (R / 'src/DEPENDENCIES.md').write_text('\n'.join(L) + '\n')
+    for l in L:
+        if '要注意' in l:
+            print('注意：前の部品が後ろの部品の値を使っています →', l.strip())
     return errors
 
 

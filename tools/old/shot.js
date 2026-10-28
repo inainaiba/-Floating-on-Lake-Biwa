@@ -1,7 +1,0 @@
-const {chromium}=require('playwright');(async()=>{const b=await chromium.launch({args:['--use-gl=swiftshader']});const p=await b.newPage({viewport:{width:800,height:500}});
-const errs=[];p.on('pageerror',e=>{errs.push(e.message);console.log('ERR',e.message)});await p.route('**/three.module.js',r=>r.fulfill({path:process.cwd()+'/node_modules/three/build/three.module.js'}));
-let h=require('fs').readFileSync('floating.html','utf8').replace("requestAnimationFrame(frame);\nrequestAnimationFrame(()=>","window.__setH=(k,yw,pt,ds)=>{const h=houses[k];B.x=h.x+Math.cos(h.rot+1.57)*0;B.y=h.y;camX=h.x*S;camZ=h.y*S;window.__lock=[h.x*S,h.y*S];yaw=yawT=yw;pitch=pt;dist=distT=ds;STATE='lake';};window.__set=(lo,la,dx,dy,yw,pt,ds)=>{window.__lock=null;const[x,y]=ll(lo,la);B.x=x+dx;B.y=y+dy;B.vx=B.vy=0;camX=B.x*S;camZ=B.y*S;yaw=yawT=yw;pitch=pt;dist=distT=ds;};\nrequestAnimationFrame(frame);\nrequestAnimationFrame(()=>");require('fs').writeFileSync('dbg.html',h);
-const views=JSON.parse(process.argv[2]);await p.goto('file://'+process.cwd()+'/dbg.html?debug&b='+process.env.BB+'&'+(process.argv[3]||'phase=0.42&month=5'));await p.waitForTimeout(1500);
-await p.evaluate(()=>document.getElementById('title').click());await p.waitForTimeout(500);await p.evaluate(()=>document.getElementById('go').click());
-for(let i=0;i<views.length;i++){await p.evaluate(v=>v[0]==='H'?__setH(...v.slice(1)):__set(...v),views[i]);await p.waitForTimeout(2500);await p.screenshot({path:'w'+i+'.png',timeout:90000});}
-console.log(errs.join('\n')||'ok');await b.close();})();

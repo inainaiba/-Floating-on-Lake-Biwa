@@ -1,7 +1,0 @@
-const {chromium}=require('playwright');(async()=>{const b=await chromium.launch({args:['--use-gl=swiftshader']});const p=await b.newPage();
-await p.route('**/three.module.js',r=>r.fulfill({path:process.cwd()+'/node_modules/three/build/three.module.js'}));
-const t=require('fs').readFileSync('template.html','utf8').replace('__LAKE__',require('fs').readFileSync('lake.json','utf8')).replace('__RELIEF__',require('fs').readFileSync('relief.json','utf8')).replace("requestAnimationFrame(frame);\nrequestAnimationFrame(()=>","window.__bs=boatState;window.ROUTE_OFF=ROUTE_OFF;\nrequestAnimationFrame(frame);\nrequestAnimationFrame(()=>");require('fs').writeFileSync('dbg.html',t);
-await p.goto('file://'+process.cwd()+'/dbg.html');await p.waitForTimeout(3000);
-const r=await p.evaluate(()=>{const ev=()=>{let min=1e9;for(let k=0;k<1500;k++){const ph=.28+k/1500*.62;const bs=__bs({t:ph*1416,month:5,phase:ph}).filter(b=>b.kind!=='fish');for(let i=0;i<bs.length;i++)for(let j=i+1;j<bs.length;j++){if(!bs[i].moving&&!bs[j].moving)continue;min=Math.min(min,Math.hypot(bs[i].x-bs[j].x,bs[i].y-bs[j].y));}}return min;};
- let best=[ev(),ROUTE_OFF.slice()];for(let it=0;it<250;it++){const o=ROUTE_OFF.slice();for(let i=0;i<5;i++)ROUTE_OFF[i]=Math.round(Math.random()*20)/20;const m=ev();if(m>best[0])best=[m,ROUTE_OFF.slice()];else for(let i=0;i<5;i++)ROUTE_OFF[i]=o[i];}return best;});
-console.log(JSON.stringify(r));await b.close();})();

@@ -1,6 +1,0 @@
-const {chromium}=require('playwright');(async()=>{const b=await chromium.launch({args:['--use-gl=swiftshader']});const p=await b.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
-await p.route('**/three.module.js',r=>r.fulfill({path:process.cwd()+'/node_modules/three/build/three.module.js'}));
-let h=require('fs').readFileSync('floating.html','utf8').replace("requestAnimationFrame(frame);\nrequestAnimationFrame(()=>","window.__bs=boatState;window.inLake=inLake;\nrequestAnimationFrame(frame);\nrequestAnimationFrame(()=>");require('fs').writeFileSync('dbg.html',h);
-await p.goto('file://'+process.cwd()+'/dbg.html');await p.waitForTimeout(3000);
-const r=await p.evaluate(()=>{let min=1e9,land=0;for(let k=0;k<3000;k++){const ph=.28+k/3000*.62;const bs=__bs({t:ph*1416,month:5,phase:ph}).filter(b=>b.kind!=='fish');for(const b of bs)if(!inLake(b.x,b.y))land++;for(let i=0;i<bs.length;i++)for(let j=i+1;j<bs.length;j++){if(!bs[i].moving&&!bs[j].moving)continue;{const d=Math.hypot(bs[i].x-bs[j].x,bs[i].y-bs[j].y);if(d<min){min=d;window.__w=[ph.toFixed(3),bs[i].id,bs[j].id,bs[i].moving,bs[j].moving];}}}}return[min,land,window.__w];});
-console.log('min sep m',Math.round(r[0]),'land',r[1],JSON.stringify(r[2]),errs.join(';')||'ok');await b.close();})();

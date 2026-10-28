@@ -55,8 +55,8 @@ function treeFade(m, near, far) {
       sel,
       kd === "cedar" ? 12 : 10,
       kd === "cedar" ? 7 : 11,
-      HQ ? 900 : 600,
-      HQ ? 1300 : 900,
+      QUALITY.forest[0],
+      QUALITY.forest[1],
       false,
     );
   }

@@ -133,202 +133,7 @@ function NEAR_TREE_MAT() {
   return new THREE.MeshLambertMaterial({ vertexColors: true, map: LEAFTX });
 }
 
-// ==== 01-trees.js ====
-/* ---------- 木：描いた葉と枝の絵を十字に組んだ板で、自然な輪郭とすき間を出す ---------- */
-function paintTree(kind, seed) {
-  const W = 256,
-    H = 256,
-    c = document.createElement("canvas");
-  c.width = W;
-  c.height = H;
-  const g = c.getContext("2d");
-  const R = rnd(seed);
-  const leaf = (x, y, r, col, a) => {
-    g.fillStyle = col;
-    g.globalAlpha = a;
-    g.beginPath();
-    for (let k = 0; k < 7; k++) {
-      const ang = R() * 6.28,
-        rr = r * (0.3 + R() * 0.7);
-      g.moveTo(x + Math.cos(ang) * rr, y + Math.sin(ang) * rr);
-      g.arc(x + Math.cos(ang) * rr, y + Math.sin(ang) * rr, r * (0.25 + R() * 0.35), 0, 7);
-    }
-    g.fill();
-    g.globalAlpha = 1;
-  };
-  const shade = (y, cy, top) => {
-    const k = Math.max(0, Math.min(1, (y - top) / (H - top)));
-    return k;
-  };
-  const trunkCol = "#3e3226";
-  g.strokeStyle = trunkCol;
-  g.lineCap = "round";
-  let clusters = [];
-  if (kind === "pine") {
-    // 幹は曲がり、枝先に平たい葉の雲
-    let x = W / 2 + (R() - 0.5) * 20,
-      y = H;
-    g.lineWidth = 7;
-    g.beginPath();
-    g.moveTo(x, y);
-    const pts = [];
-    for (let i = 0; i < 6; i++) {
-      x += (R() - 0.5) * 28 + (i > 2 ? 8 : 0);
-      y -= 26 + R() * 8;
-      g.lineTo(x, y);
-      pts.push([x, y]);
-    }
-    g.stroke();
-    for (let i = 1; i < pts.length; i++) {
-      const [px, py] = pts[i];
-      for (const sd of [-1, 1]) {
-        if (R() < 0.3) continue;
-        const ex = px + sd * (30 + R() * 55),
-          ey = py - 10 + R() * 14;
-        g.lineWidth = 3;
-        g.beginPath();
-        g.moveTo(px, py);
-        g.quadraticCurveTo((px + ex) / 2, py - 14, ex, ey);
-        g.stroke();
-        clusters.push([ex, ey - 4, 22 + R() * 14, 0.45]);
-      }
-    }
-    clusters.push([x, y - 6, 26, 0.45]);
-  } else if (kind === "cedar") {
-    g.lineWidth = 5;
-    g.beginPath();
-    g.moveTo(W / 2, H);
-    g.lineTo(W / 2, 30);
-    g.stroke();
-    for (let y = 40; y < H - 20; y += 9) {
-      const w = ((y - 30) / (H - 50)) * 95 + 8;
-      clusters.push([W / 2 + (R() - 0.5) * w * 0.6, y, 8 + w * 0.25, 1]);
-      clusters.push([W / 2 - w * 0.5 + R() * w, y + 4, 6 + w * 0.18, 1]);
-    }
-  } else {
-    // 広葉樹：幹から分かれる枝と、丸く重なる葉の房
-    const tx = W / 2 + (R() - 0.5) * 10;
-    g.lineWidth = 8;
-    g.beginPath();
-    g.moveTo(tx, H);
-    g.lineTo(tx, H * 0.55);
-    g.stroke();
-    for (let b = 0; b < 5; b++) {
-      const ang = -Math.PI / 2 + (R() - 0.5) * 1.8,
-        L = 50 + R() * 55,
-        ex = tx + Math.cos(ang) * L,
-        ey = H * 0.55 + Math.sin(ang) * L;
-      g.lineWidth = 3 + R() * 2;
-      g.beginPath();
-      g.moveTo(tx, H * 0.6);
-      g.quadraticCurveTo(tx + (ex - tx) * 0.4, H * 0.5, ex, ey);
-      g.stroke();
-      clusters.push([ex, ey, 30 + R() * 18, 1]);
-    }
-    for (let i = 0; i < 8; i++) clusters.push([tx + (R() - 0.5) * 150, 40 + R() * 110, 22 + R() * 20, 1]);
-  }
-  const top = Math.min(...clusters.map((c) => c[1] - c[2]));
-  const base = kind === "pine" ? [54, 78, 52] : kind === "cedar" ? [44, 66, 48] : [78, 108, 60];
-  for (const [cx, cy, r, f] of clusters) {
-    const n = Math.floor(r * 1.4);
-    for (let i = 0; i < n; i++) {
-      const a = R() * 6.28,
-        q = Math.sqrt(R()) * r,
-        x = cx + Math.cos(a) * q,
-        y = cy + Math.sin(a) * q * (kind === "pine" ? 0.45 : 0.85);
-      const lit = 1 - shade(y, cy, top) * 0.55 + (x < cx ? 0.1 : -0.05) + (y < cy ? 0.12 : -0.12);
-      const v = (0.75 + R() * 0.35) * lit;
-      const col = `rgb(${(base[0] * v) | 0},${(base[1] * v) | 0},${(base[2] * v) | 0})`;
-      leaf(x, y, 3 + R() * 4, col, 0.9);
-    }
-  }
-  const tx = new THREE.CanvasTexture(c);
-  tx.colorSpace = THREE.SRGBColorSpace;
-  tx.anisotropy = 4;
-  return tx;
-}
-function cardTreeGeom(h, w, n = 3) {
-  const ps = [],
-    uv = [],
-    nm = [],
-    idx = [];
-  for (let k = 0; k < n; k++) {
-    const a = (k * Math.PI) / n,
-      cx = (Math.cos(a) * w) / 2,
-      cz = (Math.sin(a) * w) / 2,
-      o = k * 4;
-    ps.push(-cx, 0, -cz, cx, 0, cz, cx, h, cz, -cx, h, -cz);
-    uv.push(0, 0, 1, 0, 1, 1, 0, 1);
-    for (let i = 0; i < 4; i++) nm.push(0, 1, 0);
-    idx.push(o, o + 1, o + 2, o, o + 2, o + 3);
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.Float32BufferAttribute(ps, 3));
-  g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
-  g.setAttribute("normal", new THREE.Float32BufferAttribute(nm, 3));
-  g.setIndex(idx);
-  return g;
-}
-var TREE_TEX = {};
-function treeTex(kind, v) {
-  const k = kind + v;
-  return TREE_TEX[k] || (TREE_TEX[k] = paintTree(kind, (kind.length * 97 + v * 31) | 0));
-}
-function cardTreeMat(kind, v, near, far) {
-  const m = new THREE.MeshBasicMaterial({
-    map: treeTex(kind, v),
-    alphaTest: 0.45,
-    alphaToCoverage: true,
-    side: THREE.DoubleSide,
-  });
-  m.userData.card = 1;
-  m.userData.kind = kind;
-  (G.cards = G.cards || []).push(m);
-  m.onBeforeCompile = (sh) => {
-    sh.uniforms.uT = reedU.uT;
-    sh.uniforms.uW = reedU.uW;
-    sh.vertexShader = sh.vertexShader
-      .replace("#include <common>", "#include <common>\nuniform float uT;uniform vec2 uW;")
-      .replace(
-        "#include <begin_vertex>",
-        "#include <begin_vertex>\nvec4 tw=modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.);float td=length(cameraPosition.xz-tw.xz);transformed*=1.-smoothstep(" +
-          near.toFixed(1) +
-          "," +
-          far.toFixed(1) +
-          ",td);float hh=position.y/10.;transformed.xz+=uW*.25*hh*hh*sin(uT*1.1+tw.x*.2+tw.z*.17);",
-      );
-  };
-  return m;
-}
-// 種類ごとに3枚の絵を描き分け、木ごとにどれかを使う
-function cardForest(kind, list, hgt, wid, near, far, shadow) {
-  for (let v = 0; v < 3; v++) {
-    const sel = list.filter((_, i) => i % 3 === v);
-    if (!sel.length) continue;
-    const I = new THREE.InstancedMesh(
-        cardTreeGeom(hgt, wid, kind === "cedar" ? 2 : 3),
-        cardTreeMat(kind, v, near, far),
-        sel.length,
-      ),
-      M = new THREE.Matrix4(),
-      c = new THREE.Color();
-    sel.forEach(([x, y, gy, s, r], i) => {
-      M.compose(
-        new THREE.Vector3(x * S, gy, y * S),
-        new THREE.Quaternion().setFromEuler(new THREE.Euler(0, r * 6.28, 0)),
-        new THREE.Vector3(s, s * (0.85 + ((i * 7) % 5) * 0.06), s),
-      );
-      I.setMatrixAt(i, M);
-      I.setColorAt(i, c.setRGB(1, 1, 1).multiplyScalar(1.05 + ((i * 13) % 7) * 0.04));
-    });
-    I.castShadow = !!shadow;
-    I.userData.kind = kind;
-    scene.add(I);
-    (G.forest = G.forest || []).push(I);
-  }
-}
-
-// ==== 02-settings.js ====
+// ==== 01-settings.js ====
 /* ---------- 設定（試作用の調整値：URLの ?scale=10&speed=20 で変更） ---------- */
 const Q = new URLSearchParams(location.search);
 const S = 1 / (+Q.get("scale") || 5); // 湖の縮尺（長さ）
@@ -345,7 +150,7 @@ LAKE.ports = LAKE.ports.filter(([x, y]) => {
   return m < 1500 * 1500;
 });
 
-// ==== 03-season.js ====
+// ==== 02-season.js ====
 /* ---------- 季節の表：1〜12月（添字0〜11）。景色の季節変化はここで調整する ---------- */
 //            1月 2月 3月 4月 5月 6月 7月 8月 9月 10月 11月 12月
 const SEASON = {
@@ -389,7 +194,7 @@ const PALETTE = {
 // GLSL の vec3(...) 表記にする
 const v3 = (c) => `vec3(${c.map((x) => (Number.isInteger(x) ? x + "." : String(x))).join(",")})`;
 
-// ==== 04-coords.js ====
+// ==== 03-coords.js ====
 /* ---------- 座標 ---------- */
 const LAT0 = 35.25,
   LON0 = 136.08,
@@ -397,11 +202,11 @@ const LAT0 = 35.25,
   KY = 110540;
 const ll = (lon, lat) => [(lon - LON0) * KX, (LAT0 - lat) * KY]; // 実寸m, x東 y南
 
-// ==== 05-clock.js ====
+// ==== 04-clock.js ====
 /* ---------- 共有時計：一日≈23分36秒、12日で一年 ---------- */
 const DAY = 1416,
   EPOCH = Date.UTC(2026, 0, 1);
-const PH = Q.get("phase"),
+let PH = Q.get("phase"),
   MO = Q.get("month");
 function clock() {
   const t = (Date.now() - EPOCH) / 1000,
@@ -409,7 +214,7 @@ function clock() {
   return { t, month: MO !== null ? +MO : ((d % 12) + 12) % 12, phase: PH !== null ? +PH : (t % DAY) / DAY };
 }
 
-// ==== 06-lake.js ====
+// ==== 05-lake.js ====
 /* ---------- 湖の形 ---------- */
 const outer = LAKE.outer,
   islands = LAKE.islands;
@@ -423,7 +228,7 @@ function inPoly(x, y, poly) {
   return c;
 }
 
-// ==== 07-inner-lakes.js ====
+// ==== 06-inner-lakes.js ====
 /* ---------- 内湖：現存する内湖は田舟だけが入れる浅い水面。干拓された内湖は遠景に点線で残す（位置と形は概略） ---------- */
 function blob(lon, lat, rx, ry, rot, seed) {
   const [cx, cy] = ll(lon, lat),
@@ -499,7 +304,7 @@ const bridgeY = (() => {
   return b.reduce((s, p) => s + p[1], 0) / b.length;
 })();
 
-// ==== 08-depth.js ====
+// ==== 07-depth.js ====
 /* ---------- 水深の簡易モデル（作品用・測量成果ではない） ---------- */
 const CELL = 400,
   GW = Math.ceil((maxX - minX) / CELL) + 1,
@@ -568,7 +373,7 @@ function depth(x, y) {
   );
 }
 
-// ==== 09-weather.js ====
+// ==== 08-weather.js ====
 /* ---------- 天気：7種類。一日を4区間に分け、共通時計から決まる擬似乱数で抽選（全員が同じ天気） ---------- */
 const WX_NAMES = ["晴れ", "曇り", "霧", "小雨", "大雨", "嵐", "雪"];
 const WX_P = [
@@ -627,7 +432,7 @@ const WX = [
     white: 0.2,
   },
 ];
-const WXQ = Q.get("wx");
+let WXQ = Q.get("wx");
 function wxPick(seg) {
   if (WXQ !== null) return +WXQ;
   const day = Math.floor(seg / 4),
@@ -668,7 +473,7 @@ function weather(c) {
 // 水位（月ごとの目安。cm。試作の前に滋賀県の資料で確かめる）
 const LEVEL = [-15, -10, 0, 10, 5, -10, -20, -30, -35, -30, -25, -20];
 
-// ==== 10-wind.js ====
+// ==== 09-wind.js ====
 /* ---------- 12か月の風（吹いてくる方角°・m/s）と環流の強さ ---------- */
 const WIND = [
   [315, 4.5],
@@ -746,7 +551,7 @@ function reedFree0() {
   return false;
 }
 
-// ==== 11-start.js ====
+// ==== 10-start.js ====
 /* ---------- 放つ場所：湖上の数百か所から ---------- */
 function rnd(seed) {
   return () => {
@@ -799,7 +604,7 @@ for (const bd of okB) {
 const okS = starts.filter(([x, y]) => !reedFree0(x, y));
 const st = (okS.length ? okS : starts)[Math.floor(Math.random() * (okS.length || starts.length))];
 
-// ==== 12-state.js ====
+// ==== 11-state.js ====
 /* ---------- 建物の状態（座標は実寸m。描画時に縮尺Sをかける） ---------- */
 const B = {
   x: st[0],
@@ -814,8 +619,22 @@ const B = {
 };
 let STATE = "title";
 const steer = { x: 0, y: 0 };
+// カメラの注視点（毎フレームで建物を追う）
+let camX = B.x * S,
+  camZ = B.y * S;
+// 訪ねたブイ（この端末にだけ記録）
+const VIS = new Set(
+  (() => {
+    try {
+      return JSON.parse(localStorage.getItem("floating.visited.v1") || "[]");
+    } catch (_) {
+      return [];
+    }
+  })(),
+);
+G.VIS = VIS;
 
-// ==== 13-renderer-water-sky.js ====
+// ==== 12-renderer-water-sky.js ====
 /* ---------- three.js：近景 ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("gl"), antialias: true });
 const MOBILE_ = matchMedia("(pointer:coarse)").matches;
@@ -832,8 +651,17 @@ const QUAL =
       : "mid");
 const HQ = QUAL === "high",
   LQ = QUAL === "low";
-let resScale = HQ ? 1 : LQ ? 0.6 : 0.85;
 const MOBILE = matchMedia("(pointer:coarse)").matches;
+/* 画質の表：高（high）・中（mid）・低（low）で何を省くか。重いときはここを調整する
+   ?q=high / mid / low で強制できる。中と低はスマホ（MOBILE）だと水面の網目をさらに粗くする */
+const QUALITY_TABLE = {
+  high: { resStart: 1, resMax: 1, pixelMax: 2.5, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], reflection: 0.75, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1 },
+  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1 },
+  low: { resStart: 0.6, resMax: 0.9, pixelMax: 2, shadowMap: 512, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 3500, fireworkBurst: 0.55 },
+};
+const QUALITY = { ...(QUALITY_TABLE[QUAL] || QUALITY_TABLE.mid) };
+if (!HQ && MOBILE) QUALITY.waterGrid = 180;
+let resScale = QUALITY.resStart;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.08;
 G.exp = 1;
@@ -967,12 +795,12 @@ scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 1.2);
 scene.add(sun);
 sun.castShadow = true;
-sun.shadow.mapSize.set(HQ ? 2048 : LQ ? 512 : 1024, HQ ? 2048 : LQ ? 512 : 1024);
+sun.shadow.mapSize.set(QUALITY.shadowMap, QUALITY.shadowMap);
 Object.assign(sun.shadow.camera, {
-  left: HQ ? -90 : -40,
-  right: HQ ? 90 : 40,
-  top: HQ ? 90 : 40,
-  bottom: HQ ? -90 : -40,
+  left: -QUALITY.shadowRange,
+  right: QUALITY.shadowRange,
+  top: QUALITY.shadowRange,
+  bottom: -QUALITY.shadowRange,
   near: 1,
   far: 300,
 });
@@ -1080,7 +908,7 @@ const waterU = {
   uMurk: { value: 0 },
 };
 const water = new THREE.Mesh(
-  new THREE.PlaneGeometry(5000, 5000, HQ ? 420 : MOBILE ? 180 : 300, HQ ? 420 : MOBILE ? 180 : 300).rotateX(
+  new THREE.PlaneGeometry(5000, 5000, QUALITY.waterGrid, QUALITY.waterGrid).rotateX(
     -Math.PI / 2,
   ),
   new THREE.ShaderMaterial({
@@ -1190,6 +1018,9 @@ float fr=.02+.98*pow(1.-max(dot(N,V),0.),5.);
 vec2 uv=(vP.xz-uBox.xy)/uBox.zw;
 float dep=texture2D(uDepth,uv).r*255./6.;
 float sh=exp(-dep/3.);
+// ── 水の色の重なり（上から順に塗り重ねる）──
+// ① 沖と浅い水の基本色（PALETTE.waterDeep / waterShallow）　② 風の筋で暗く
+// ③ 浅瀬：湖底が透ける（lakeBedSand/Light）　④ 浅瀬と沖の間の青緑（shoalTeal）　⑤ 浅瀬の光の網目
 vec3 body=mix(uDeep,uShal,sh*.8);
 {vec2 wd=normalize(uWd+1e-4),wp=vec2(dot(vP0.xz,wd),dot(vP0.xz,vec2(-wd.y,wd.x)));
 float ws=(1.-uCalm)*smoothstep(.45,.75,fract(sin(dot(floor(vec2(wp.x*.006-uT2*.05,wp.y*.03)),vec2(5.1,3.7)))*91.))*smoothstep(.2,.8,sin(wp.y*.045+sin(wp.x*.004)*3.)*.5+.5);
@@ -1208,6 +1039,7 @@ i<16;
 i++){vec2 d=vP.xz-uMouth[i].xy;
 tb+=uMouth[i].w*exp(-dot(d,d)/(uMouth[i].z*uMouth[i].z));
 }body=mix(body,vec3(.52,.42,.28),clamp(tb,0.,.85));
+// ── 反射：空の色・太陽のきらめき・月の照り返し ──
 vec3 R=reflect(-V,N);
 float rs=max(dot(R,uSun),0.);
 float mr=max(dot(R,normalize(vec3(-uSun.x,abs(uSun.y)+.2,-uSun.z))),0.);
@@ -1219,6 +1051,7 @@ vec3 skyR=mix(uSky*1.12,uSky*.78,pow(clamp(R.y,0.,1.),.5))+vec3(1.,.6,.35)*exp(-
 float lowR=smoothstep(.09,.0,R.y);
 skyR+=vec3(.25,.16,.06)*lowR*smoothstep(.0,-.15,uSun.y)*.25*(.5+.5*sin(vP.x*.9+sin(vP.z*.3)*3.));
 skyR*=1.+.1*(fract(sin(dot(floor((vP.xz+R.xz*200.)*.01),vec2(1.7,9.2)))*43.)-.5)*(1.-lowR);
+// ── 建物のまわり：喫水の陰、波の斜面の陰影、建物の影、水際の泡 ──
 float ub=length(vP.xz-uHouse.xy);
 body*=1.-.38*smoothstep(uHouse.z*1.15,uHouse.z*.3,ub);
 body*=.9+.22*clamp(dot(N,normalize(vec3(uSun.x,1.2,uSun.z))),0.,1.);
@@ -1227,6 +1060,7 @@ float hs=smoothstep(uHouse.z*1.,uHouse.z*.4,length(vP.xz-so));
 body*=1.-hs*.28*clamp(uSun.y*3.,0.,1.);
 }float wlf=exp(-pow((ub-uHouse.z*.92)/(.6+uHouse.z*.05),2.))*(.55+.45*sin(atan(vP.z-uHouse.y,vP.x-uHouse.x)*9.+uT2*1.3))*(.5+.5*fract(sin(dot(floor(vP0.xz*3.),vec2(3.7,8.1)))*91.));
 skyR=mix(skyR,vec3(.18,.26,.2),lowR*.65);
+// ── 泡：白波・岸の波打ち際・雨の波紋・遠くの白波 ──
 float wfoam=smoothstep(.12,.8,wf)*(.35+.65*fract(sin(dot(floor(vP0.xz*5.),vec2(7.,3.)))*91.));
 float foam=wfoam*.55+uFoam*smoothstep(.12,.3,1.-N.y)*.8+smoothstep(.06,.12,1.-N.y)*uFoam*.25;
 float swn=sin(dot(vP0.xz,vec2(.6,.8))*.9-uT*1.4+sin(vP0.x*.21)*2.)*.5+.5;
@@ -1252,6 +1086,7 @@ rr+=smoothstep(.04,.0,abs(r-rad))*(1.-ph)*step(.35,h);
 }rr*=uRainR*.35*smoothstep(70.,8.,length(cameraPosition-vP));
 }foam+=wlf*.32;
 foam+=rr;
+// ── 明るさ：時刻、空の映り込み、浅瀬の濡れた石、遠くで空と溶ける ──
 body*=.55+.6*clamp(uSun.y*2.+.1,0.,1.);
 body+=uSky*.14;
 float sss=pow(max(dot(V,-uSun+N*.5),0.),3.)*max(vP.y,0.)*.25;
@@ -1259,6 +1094,7 @@ body+=vec3(.1,.18,.12)*sss;
 float graz=pow(1.-max(V.y,0.),3.);
 N=normalize(mix(N,vec3(0.,1.,0.),graz*.3*smoothstep(60.,400.,dc)));
 body=mix(body,body*vec3(.75,.85,.95),graz*.5);
+// ── 山や建物の映り込み（静かな日ほど鮮明に）──
 vec4 tp=uTM*vec4(vP.x,uWy,vP.z,1.);
 vec2 ruv=tp.xy/tp.w+N.xz*vec2(.04,.08)*(1.2-uCalm*.7)*(.35+.65*smoothstep(1400.,40.,dc));
 vec4 rf=vec4(0.);
@@ -1279,6 +1115,7 @@ vec3 Lf=normalize(uFW[i].xyz-vP);
 float dd=max(dot(R,Lf),0.);
 skyR+=uFWc[i]*uFW[i].w*(pow(dd,180.)*1.6+pow(dd,30.)*.25);
 }
+// ── 合成：水の色と反射を混ぜ、灯り・花火・霧・遠景の霞を重ねる ──
  vec3 c=mix(body,skyR*mix(vec3(.9,.95,1.),vec3(1.05),graz),min(1.,fr*(1.05-uRainR*.3)+.03))+uSunC*sp+foam+uSunC*.04*pow(max(dot(-V,uSun),0.),2.);
 float ws_=smoothstep(.6,1.,sin(dot(vP0.xz,vec2(.011,.017))+sin(vP0.x*.004)*3.)*.5+.5)*.04*(1.-smoothstep(300.,1500.,dc));
 c+=ws_;
@@ -1323,7 +1160,7 @@ scene.add(water);
   scene.add(land);
 }
 
-// ==== 14-terrain.js ====
+// ==== 13-terrain.js ====
 /* ---------- 山並み：地形図を参考にした作品用の地形（標高は実寸。表示は縮尺Sに合わせ、高さを1.5倍に強調） ---------- */
 const VEX = 2.2,
   VFAR = 1.0;
@@ -1478,8 +1315,8 @@ function landH(x, y) {
   return 4 + m;
 }
 const TM = 26000,
-  TW = HQ ? 520 : 360,
-  TH = HQ ? 650 : 450,
+  TW = QUALITY.terrain[0],
+  TH = QUALITY.terrain[1],
   tx0 = minX - TM,
   ty0 = minY - TM,
   tdx = (maxX - minX + 2 * TM) / (TW - 1),
@@ -1904,6 +1741,201 @@ const innerReeds = new THREE.InstancedMesh(reedGeo, reedMat(), innerReedPts.leng
 scene.add(innerReeds);
 // 遠景の線画とヨシ帯の判定にも加える
 scene.add(reeds);
+
+// ==== 14-trees.js ====
+/* ---------- 木：描いた葉と枝の絵を十字に組んだ板で、自然な輪郭とすき間を出す ---------- */
+function paintTree(kind, seed) {
+  const W = 256,
+    H = 256,
+    c = document.createElement("canvas");
+  c.width = W;
+  c.height = H;
+  const g = c.getContext("2d");
+  const R = rnd(seed);
+  const leaf = (x, y, r, col, a) => {
+    g.fillStyle = col;
+    g.globalAlpha = a;
+    g.beginPath();
+    for (let k = 0; k < 7; k++) {
+      const ang = R() * 6.28,
+        rr = r * (0.3 + R() * 0.7);
+      g.moveTo(x + Math.cos(ang) * rr, y + Math.sin(ang) * rr);
+      g.arc(x + Math.cos(ang) * rr, y + Math.sin(ang) * rr, r * (0.25 + R() * 0.35), 0, 7);
+    }
+    g.fill();
+    g.globalAlpha = 1;
+  };
+  const shade = (y, cy, top) => {
+    const k = Math.max(0, Math.min(1, (y - top) / (H - top)));
+    return k;
+  };
+  const trunkCol = "#3e3226";
+  g.strokeStyle = trunkCol;
+  g.lineCap = "round";
+  let clusters = [];
+  if (kind === "pine") {
+    // 幹は曲がり、枝先に平たい葉の雲
+    let x = W / 2 + (R() - 0.5) * 20,
+      y = H;
+    g.lineWidth = 7;
+    g.beginPath();
+    g.moveTo(x, y);
+    const pts = [];
+    for (let i = 0; i < 6; i++) {
+      x += (R() - 0.5) * 28 + (i > 2 ? 8 : 0);
+      y -= 26 + R() * 8;
+      g.lineTo(x, y);
+      pts.push([x, y]);
+    }
+    g.stroke();
+    for (let i = 1; i < pts.length; i++) {
+      const [px, py] = pts[i];
+      for (const sd of [-1, 1]) {
+        if (R() < 0.3) continue;
+        const ex = px + sd * (30 + R() * 55),
+          ey = py - 10 + R() * 14;
+        g.lineWidth = 3;
+        g.beginPath();
+        g.moveTo(px, py);
+        g.quadraticCurveTo((px + ex) / 2, py - 14, ex, ey);
+        g.stroke();
+        clusters.push([ex, ey - 4, 22 + R() * 14, 0.45]);
+      }
+    }
+    clusters.push([x, y - 6, 26, 0.45]);
+  } else if (kind === "cedar") {
+    g.lineWidth = 5;
+    g.beginPath();
+    g.moveTo(W / 2, H);
+    g.lineTo(W / 2, 30);
+    g.stroke();
+    for (let y = 40; y < H - 20; y += 9) {
+      const w = ((y - 30) / (H - 50)) * 95 + 8;
+      clusters.push([W / 2 + (R() - 0.5) * w * 0.6, y, 8 + w * 0.25, 1]);
+      clusters.push([W / 2 - w * 0.5 + R() * w, y + 4, 6 + w * 0.18, 1]);
+    }
+  } else {
+    // 広葉樹：幹から分かれる枝と、丸く重なる葉の房
+    const tx = W / 2 + (R() - 0.5) * 10;
+    g.lineWidth = 8;
+    g.beginPath();
+    g.moveTo(tx, H);
+    g.lineTo(tx, H * 0.55);
+    g.stroke();
+    for (let b = 0; b < 5; b++) {
+      const ang = -Math.PI / 2 + (R() - 0.5) * 1.8,
+        L = 50 + R() * 55,
+        ex = tx + Math.cos(ang) * L,
+        ey = H * 0.55 + Math.sin(ang) * L;
+      g.lineWidth = 3 + R() * 2;
+      g.beginPath();
+      g.moveTo(tx, H * 0.6);
+      g.quadraticCurveTo(tx + (ex - tx) * 0.4, H * 0.5, ex, ey);
+      g.stroke();
+      clusters.push([ex, ey, 30 + R() * 18, 1]);
+    }
+    for (let i = 0; i < 8; i++) clusters.push([tx + (R() - 0.5) * 150, 40 + R() * 110, 22 + R() * 20, 1]);
+  }
+  const top = Math.min(...clusters.map((c) => c[1] - c[2]));
+  const base = kind === "pine" ? [54, 78, 52] : kind === "cedar" ? [44, 66, 48] : [78, 108, 60];
+  for (const [cx, cy, r, f] of clusters) {
+    const n = Math.floor(r * 1.4);
+    for (let i = 0; i < n; i++) {
+      const a = R() * 6.28,
+        q = Math.sqrt(R()) * r,
+        x = cx + Math.cos(a) * q,
+        y = cy + Math.sin(a) * q * (kind === "pine" ? 0.45 : 0.85);
+      const lit = 1 - shade(y, cy, top) * 0.55 + (x < cx ? 0.1 : -0.05) + (y < cy ? 0.12 : -0.12);
+      const v = (0.75 + R() * 0.35) * lit;
+      const col = `rgb(${(base[0] * v) | 0},${(base[1] * v) | 0},${(base[2] * v) | 0})`;
+      leaf(x, y, 3 + R() * 4, col, 0.9);
+    }
+  }
+  const tx = new THREE.CanvasTexture(c);
+  tx.colorSpace = THREE.SRGBColorSpace;
+  tx.anisotropy = 4;
+  return tx;
+}
+function cardTreeGeom(h, w, n = 3) {
+  const ps = [],
+    uv = [],
+    nm = [],
+    idx = [];
+  for (let k = 0; k < n; k++) {
+    const a = (k * Math.PI) / n,
+      cx = (Math.cos(a) * w) / 2,
+      cz = (Math.sin(a) * w) / 2,
+      o = k * 4;
+    ps.push(-cx, 0, -cz, cx, 0, cz, cx, h, cz, -cx, h, -cz);
+    uv.push(0, 0, 1, 0, 1, 1, 0, 1);
+    for (let i = 0; i < 4; i++) nm.push(0, 1, 0);
+    idx.push(o, o + 1, o + 2, o, o + 2, o + 3);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(ps, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  g.setAttribute("normal", new THREE.Float32BufferAttribute(nm, 3));
+  g.setIndex(idx);
+  return g;
+}
+var TREE_TEX = {};
+function treeTex(kind, v) {
+  const k = kind + v;
+  return TREE_TEX[k] || (TREE_TEX[k] = paintTree(kind, (kind.length * 97 + v * 31) | 0));
+}
+function cardTreeMat(kind, v, near, far) {
+  const m = new THREE.MeshBasicMaterial({
+    map: treeTex(kind, v),
+    alphaTest: 0.45,
+    alphaToCoverage: true,
+    side: THREE.DoubleSide,
+  });
+  m.userData.card = 1;
+  m.userData.kind = kind;
+  (G.cards = G.cards || []).push(m);
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uT = reedU.uT;
+    sh.uniforms.uW = reedU.uW;
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", "#include <common>\nuniform float uT;uniform vec2 uW;")
+      .replace(
+        "#include <begin_vertex>",
+        "#include <begin_vertex>\nvec4 tw=modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.);float td=length(cameraPosition.xz-tw.xz);transformed*=1.-smoothstep(" +
+          near.toFixed(1) +
+          "," +
+          far.toFixed(1) +
+          ",td);float hh=position.y/10.;transformed.xz+=uW*.25*hh*hh*sin(uT*1.1+tw.x*.2+tw.z*.17);",
+      );
+  };
+  return m;
+}
+// 種類ごとに3枚の絵を描き分け、木ごとにどれかを使う
+function cardForest(kind, list, hgt, wid, near, far, shadow) {
+  for (let v = 0; v < 3; v++) {
+    const sel = list.filter((_, i) => i % 3 === v);
+    if (!sel.length) continue;
+    const I = new THREE.InstancedMesh(
+        cardTreeGeom(hgt, wid, kind === "cedar" ? 2 : 3),
+        cardTreeMat(kind, v, near, far),
+        sel.length,
+      ),
+      M = new THREE.Matrix4(),
+      c = new THREE.Color();
+    sel.forEach(([x, y, gy, s, r], i) => {
+      M.compose(
+        new THREE.Vector3(x * S, gy, y * S),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(0, r * 6.28, 0)),
+        new THREE.Vector3(s, s * (0.85 + ((i * 7) % 5) * 0.06), s),
+      );
+      I.setMatrixAt(i, M);
+      I.setColorAt(i, c.setRGB(1, 1, 1).multiplyScalar(1.05 + ((i * 13) % 7) * 0.04));
+    });
+    I.castShadow = !!shadow;
+    I.userData.kind = kind;
+    scene.add(I);
+    (G.forest = G.forest || []).push(I);
+  }
+}
 
 // ==== 15-buildings.js ====
 /* ---------- 建物：10種類（水土空間 note「水上建築」の浮遊型を抽象化） ---------- */
@@ -3722,8 +3754,8 @@ for (let i = 0; i < houses.length; i++) {
   skirt.setColorAt(i, cc.clone().multiplyScalar(0.85));
 }
 for (const m of [walls, walls2, roofs, roofs2, skirt]) {
-  m.castShadow = HQ;
-  m.receiveShadow = HQ;
+  m.castShadow = QUALITY.treeShadow;
+  m.receiveShadow = QUALITY.treeShadow;
 }
 scene.add(walls, walls2, roofs, roofs2, skirt);
 for (const o of [walls, walls2, roofs, roofs2, skirt]) {
@@ -3882,9 +3914,9 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
     }),
     9,
     9,
-    HQ ? 500 : 300,
-    HQ ? 800 : 480,
-    HQ,
+    QUALITY.nearTrees[0],
+    QUALITY.nearTrees[1],
+    QUALITY.treeShadow,
   );
 }
 {
@@ -4398,9 +4430,9 @@ scene.add(brk);
     tr.map(([x, y, s], i) => [x, y, 0.6 + terrainAt(x, y) * S * VEX, s * 1.1, i * 0.71]),
     10,
     13,
-    HQ ? 500 : 300,
-    HQ ? 800 : 480,
-    HQ,
+    QUALITY.nearTrees[0],
+    QUALITY.nearTrees[1],
+    QUALITY.treeShadow,
   );
   const M = new THREE.Matrix4();
   const sandTex = (() => {
@@ -5031,8 +5063,8 @@ function treeFade(m, near, far) {
       sel,
       kd === "cedar" ? 12 : 10,
       kd === "cedar" ? 7 : 11,
-      HQ ? 900 : 600,
-      HQ ? 1300 : 900,
+      QUALITY.forest[0],
+      QUALITY.forest[1],
       false,
     );
   }
@@ -6248,7 +6280,7 @@ $("shot").onclick = () => $("shot").classList.remove("on");
 function resize() {
   const w = innerWidth,
     h = innerHeight,
-    d = Math.min(devicePixelRatio, HQ ? 2.5 : 2) * resScale;
+    d = Math.min(devicePixelRatio, QUALITY.pixelMax) * resScale;
   renderer.setPixelRatio(d);
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
@@ -6266,9 +6298,7 @@ resize();
 let fpsN = 0,
   fpsT = 0,
   last = performance.now(),
-  trailT = 0,
-  camX = B.x * S,
-  camZ = B.y * S;
+  trailT = 0;
 
 // ==== 31-torii.js ====
 {
@@ -6333,7 +6363,7 @@ let fpsN = 0,
 // ==== 32-fireworks.js ====
 var FW;
 FW = (() => {
-  const NP = HQ ? 9000 : LQ ? 3500 : 6000,
+  const NP = QUALITY.fireworks,
     K = 3,
     P0 = 0.8,
     DUR = 200,
@@ -6570,7 +6600,7 @@ FW = (() => {
   };
   const burst = (x, y, z, e) => {
     const n = Math.round(
-        (e.sub === "kamuro" ? 220 : e.sub === "ring" ? 110 : e.sub === "chrys" ? 240 : 200) * (LQ ? 0.55 : 1),
+        (e.sub === "kamuro" ? 220 : e.sub === "ring" ? 110 : e.sub === "chrys" ? 240 : 200) * (QUALITY.fireworkBurst),
       ),
       sp = e.R;
     let ax = R_() - 0.5,
@@ -6872,16 +6902,6 @@ FW = (() => {
 G.FW = FW;
 
 // ==== 33-buoys.js ====
-const VIS = new Set(
-  (() => {
-    try {
-      return JSON.parse(localStorage.getItem("floating.visited.v1") || "[]");
-    } catch (_) {
-      return [];
-    }
-  })(),
-);
-G.VIS = VIS;
 G.buoys = (() => {
   const LIST = [{"no": 1, "name": "浜知内", "form": "湖岸集落", "lat": 35.444156, "lon": 136.056241, "url": "https://youtu.be/jjFq9K2AmFY?si=ufqVeeX_aVCmUB1L"}, {"no": 2, "name": "浜知内", "form": "湖岸集落", "lat": 35.446439, "lon": 136.062465, "url": "https://youtu.be/1q7oIvVAhCM?si=JCi4PO1bhpbcEzYL"}, {"no": 3, "name": "海津", "form": "湖岸集落", "lat": 35.461269, "lon": 136.072577, "url": "https://youtu.be/UecpbkkTf38?si=8kMHi1T8pavBmZiB"}, {"no": 4, "name": "海津", "form": "湖岸集落", "lat": 35.46238, "lon": 136.07379, "url": "https://youtu.be/3BciUsr56RY?si=USmvr0XFcvHuJpDf"}, {"no": 5, "name": "大浦", "form": "湖岸集落", "lat": 35.484785, "lon": 136.120448, "url": "https://youtu.be/RPWBh-YWeXI?si=yzinTdO_bGTATR_z"}, {"no": 6, "name": "菅浦", "form": "湖岸集落", "lat": 35.456246, "lon": 136.137561, "url": "https://youtu.be/KuxpeiXOm5A?si=TWLwF5i7osQL98zF"}, {"no": 7, "name": "菅浦", "form": "湖岸集落", "lat": 35.455925, "lon": 136.140885, "url": "https://youtu.be/cxg_TUoD-Uc?si=exvsJGoimMebB4l_"}, {"no": 8, "name": "月出", "form": "湖岸集落", "lat": 35.494527, "lon": 136.162925, "url": "https://youtu.be/ZY6gUO0k0J4?si=IBHugHzqHOz3rlVO"}, {"no": 9, "name": "塩津", "form": "湖岸集落", "lat": 35.510984, "lon": 136.164903, "url": "https://youtu.be/1aK3fGYMvKw?si=cHjH5d7C_L18Bh8J"}, {"no": 10, "name": "飯浦", "form": "湖岸集落", "lat": 35.501305, "lon": 136.182189, "url": "https://youtu.be/pag9WEgjz1E?si=olEjCrr9BNBoxBoZ"}, {"no": 11, "name": "山梨子", "form": "湖岸集落", "lat": 35.494821, "lon": 136.186563, "url": "https://youtu.be/tFQ_NWmhTrg?si=AD3k2vKpihTJxUIs"}, {"no": 12, "name": "片山", "form": "湖岸集落", "lat": 35.459456, "lon": 136.193088, "url": "https://youtu.be/zXBxAdKKC1g?si=xvg8R6GwvDf05Kvk"}, {"no": 13, "name": "片山", "form": "湖岸集落", "lat": 35.456818, "lon": 136.19376, "url": "https://youtu.be/fb8DIJxNSwM?si=TnK-Qp26e1AOG2wT"}, {"no": 14, "name": "尾上", "form": "湖岸集落", "lat": 35.455371, "lon": 136.186533, "url": "https://youtu.be/0A8pNpCq_Lw?si=ljvSDHyMREGWHgx1"}, {"no": 15, "name": "尾上", "form": "湖岸集落", "lat": 35.455756, "lon": 136.18831, "url": "https://youtu.be/jSQpETXCC40?si=RTUJtfseuhQZchTv"}];
   const red = new THREE.MeshStandardMaterial({
@@ -7730,7 +7750,7 @@ function frame(now) {
     const f = fpsN / fpsT;
     const old = resScale;
     if (f < 38) resScale = Math.max(0.5, resScale - 0.1);
-    else if (f > 57) resScale = Math.min(HQ ? 1 : 0.9, resScale + 0.05);
+    else if (f > 57) resScale = Math.min(QUALITY.resMax, resScale + 0.05);
     if (old !== resScale) resize();
     fpsN = 0;
     fpsT = 0;
@@ -8289,7 +8309,7 @@ function frame(now) {
     camera.setViewOffset(w, h, 0, h * 0.2, w, h);
   }
   {
-    const q = 5000 / (HQ ? 420 : MOBILE ? 180 : 300);
+    const q = 5000 / (QUALITY.waterGrid);
     water.position.x = Math.round(camX / q) * q;
     water.position.z = Math.round(camZ / q) * q;
   }
@@ -8369,7 +8389,7 @@ c+=gr*(.022-.01*l);
     }
     const w = renderer.domElement.width,
       h = renderer.domElement.height,
-      rs = HQ ? 0.75 : 0.5;
+      rs = QUALITY.reflection;
     if (G.rf.width !== Math.floor(w * rs)) G.rf.setSize(Math.floor(w * rs), Math.floor(h * rs));
     const rc = G.rc;
     const wy = water.position.y;
@@ -8432,6 +8452,16 @@ if (Q.has("debug")) {
     B.x = h.x; B.y = h.y; camX = h.x * S; camZ = h.y * S;
     G.lock = [h.x * S, h.y * S];
     yaw = yawT = yw; pitch = pt; dist = distT = ds; STATE = "lake";
+  };
+  // 同じページのまま、月・時刻・天気・建物を切り替える（確認用）
+  window.__scene = (q) => {
+    if (q.month !== undefined) MO = String(q.month);
+    if (q.phase !== undefined) PH = String(q.phase);
+    if (q.wx !== undefined) WXQ = String(q.wx);
+    if (q.b !== undefined && q.b !== CUST.b) {
+      CUST.b = q.b;
+      buildHouse();
+    }
   };
   window.__set = (lo, la, dx, dy, yw, pt, ds) => {
     G.lock = null;

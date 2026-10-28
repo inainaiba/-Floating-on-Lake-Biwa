@@ -1,6 +1,6 @@
 var FW;
 FW = (() => {
-  const NP = HQ ? 9000 : LQ ? 3500 : 6000,
+  const NP = QUALITY.fireworks,
     K = 3,
     P0 = 0.8,
     DUR = 200,
@@ -237,7 +237,7 @@ FW = (() => {
   };
   const burst = (x, y, z, e) => {
     const n = Math.round(
-        (e.sub === "kamuro" ? 220 : e.sub === "ring" ? 110 : e.sub === "chrys" ? 240 : 200) * (LQ ? 0.55 : 1),
+        (e.sub === "kamuro" ? 220 : e.sub === "ring" ? 110 : e.sub === "chrys" ? 240 : 200) * (QUALITY.fireworkBurst),
       ),
       sp = e.R;
     let ax = R_() - 0.5,

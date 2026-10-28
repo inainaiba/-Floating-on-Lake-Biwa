@@ -56,7 +56,7 @@ const WX = [
     white: 0.2,
   },
 ];
-const WXQ = Q.get("wx");
+let WXQ = Q.get("wx");
 function wxPick(seg) {
   if (WXQ !== null) return +WXQ;
   const day = Math.floor(seg / 4),

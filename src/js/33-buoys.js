@@ -1,13 +1,3 @@
-const VIS = new Set(
-  (() => {
-    try {
-      return JSON.parse(localStorage.getItem("floating.visited.v1") || "[]");
-    } catch (_) {
-      return [];
-    }
-  })(),
-);
-G.VIS = VIS;
 G.buoys = (() => {
   const LIST = __BUOYS__;
   const red = new THREE.MeshStandardMaterial({
