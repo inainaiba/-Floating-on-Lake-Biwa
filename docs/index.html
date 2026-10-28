@@ -261,7 +261,7 @@ const LOOK = {
     okishima: true, // 沖島の集落
     floatingLeaves: true, // 水に浮かぶ花びら・落ち葉
     fireflies: true, // 蛍
-    debussy: true, // 自然音によるドビュッシー的な響き（水滴・風の鳴り・光のきらめき）
+    debussy: false, // 自然音によるドビュッシー的な響き（水滴・風の鳴り・光のきらめき）
     debussyDrops: false, // その中の水滴の「ぽつ」という音（ふだんの水滴・動機・きらめき）
   },
   debussyVol: 0.6, // ドビュッシー的な響きの層の音量
@@ -6454,7 +6454,7 @@ G.deb = (() => {
 
   function init() {
     const ac = SND.ctx;
-    if (!ac || S_.ac) return;
+    if (!ac || S_.ac || !LOOK.show.debussy) return; // 止めているときは音の部品も作らない
     S_.ac = ac;
     // ⑦ 小さく、幅の狭い強弱：この層だけの音量と、ゆるい圧縮
     S_.out = ac.createGain();

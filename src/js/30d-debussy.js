@@ -30,7 +30,7 @@ G.deb = (() => {
 
   function init() {
     const ac = SND.ctx;
-    if (!ac || S_.ac) return;
+    if (!ac || S_.ac || !LOOK.show.debussy) return; // 止めているときは音の部品も作らない
     S_.ac = ac;
     // ⑦ 小さく、幅の狭い強弱：この層だけの音量と、ゆるい圧縮
     S_.out = ac.createGain();
