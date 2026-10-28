@@ -71,6 +71,15 @@ def build():
     html = (html.replace('__LAKE__', (r / 'data/lake.json').read_text())
                 .replace('__RELIEF__', (r / 'data/relief.json').read_text())
                 .replace('__BUOYS__', json.dumps(B, ensure_ascii=False)))
+    # 文法の確認：node があれば、組み立てたコードを読み込めるか確かめる（壊れたまま公開しないため）
+    import subprocess, shutil, tempfile
+    if shutil.which('node'):
+        with tempfile.NamedTemporaryFile('w', suffix='.mjs', delete=False) as f:
+            f.write(script.replace('__LAKE__', '{}').replace('__RELIEF__', '{}').replace('__BUOYS__', '[]'))
+        res = subprocess.run(['node', '--check', f.name], capture_output=True, text=True)
+        if res.returncode:
+            print(res.stderr.split('SyntaxError')[0][-400:] + 'SyntaxError' + res.stderr.split('SyntaxError')[-1][:200])
+            raise SystemExit('コードに文法の誤りがあるため、組み立てを中止しました')
     (r / 'docs/index.html').write_text(html)
     print(f'built docs/index.html  部品 {len(parts)} 個 / ブイ {len(B)} 個')
 

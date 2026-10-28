@@ -333,7 +333,7 @@ float face=pow(max(dot(normalize(nrm.xz+1e-4),sd2),0.),2.)*smoothstep(.05,.5,1.-
 diffuseColor.rgb+=vec3(1.,.55,.3)*face*low*smoothstep(40.,180.,vH)*.35;
 }diffuseColor.rgb=mix(diffuseColor.rgb,uHaze*1.1,clamp(hz,0.,1.)*.85);
 diffuseColor.rgb*=1.+.12*hz;
-}${}`,
+}`,
     );
 };
 const terr = new THREE.Mesh(terrGeo, terrMat);
