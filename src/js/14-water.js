@@ -118,8 +118,8 @@ vec3 q=p;
 float dc=length(cameraPosition.xz-p.xz);
 for(int i=0;
 i<3;
-i++){vec2 d=uW[i].xy;
-float k=uW[i].z,w=uW[i].w,A=uA[i].x,Qs=uA[i].y/(k*A*3.+1e-4);
+i++){float fi=float(i);float ra=.28*sin(p.x*.0017+fi*1.7)*sin(p.z*.0013+fi*2.3);vec2 d=mat2(cos(ra),-sin(ra),sin(ra),cos(ra))*uW[i].xy;
+float k=uW[i].z,w=uW[i].w,A=uA[i].x*(.62+.38*sin(dot(p.xz,vec2(.0021,.0016))*(1.+fi*.7)+fi*2.)*sin(dot(p.xz,vec2(-.0014,.0023))*(1.+fi*.4)+fi)),Qs=uA[i].y/(k*A*3.+1e-4);
 float f=k*dot(d,p.xz)-w*uT+sin(dot(p.xz,vec2(.013,.017))*(1.+float(i)))*2.;
 float att=1.-smoothstep(120.,500.,dc);
 q.x+=Qs*A*d.x*cos(f)*att;
@@ -254,7 +254,8 @@ float mr=max(dot(R,normalize(vec3(-uSun.x,max(-uSun.y*.9+.02,.02),-uSun.z))),0.)
 float msp=(.25+.75*(1.-abs(uMp2-.5)*2.))*(pow(mr,300.)*1.4+pow(mr,40.)*.12*step(.75,fract(sin(dot(floor(vP0.xz*4.),vec2(4.1,7.3))+uT2*1.5)*99.)))*smoothstep(.0,-.15,uSun.y);
 float gh=fract(sin(dot(floor(vP0.xz*6.),vec2(4.1,7.3)))*99.);
 float glit=step(.72,gh)*smoothstep(.45,.1,length(fract(vP0.xz*6.)-.5))*pow(.5+.5*sin(uT2*(2.+gh*3.)+gh*40.),4.)*pow(rs,14.)*5.5*smoothstep(900.,10.,dc)+step(.9,fract(sin(dot(floor(vP0.xz*1.5),vec2(7.7,3.1)))*91.))*pow(.5+.5*sin(uT2*3.+gh*20.),6.)*pow(rs,40.)*3.*smoothstep(2500.,200.,dc);
-float sp=glit+msp+pow(rs,900.)*2.*smoothstep(500.,30.,dc)*(.6+.8*fract(sin(dot(floor(vP0.xz*3.),vec2(4.1,7.3))+uT2*2.)*99.))+pow(rs,60.)*.6*smoothstep(.35,0.,uSun.y)+pow(rs,60.)*.22+pow(rs,8.)*.05;
+float sp=glit+msp+pow(rs,900.)*2.*smoothstep(500.,30.,dc)*(.6+.8*fract(sin(dot(floor(vP0.xz*3.),vec2(4.1,7.3))+uT2*2.)*99.))+pow(rs,60.)*.6*smoothstep(.35,0.,uSun.y)+pow(rs,60.)*.22+pow(rs,8.)*.05
++pow(rs,250.)*smoothstep(700.,3000.,dc)*1.6*step(.55,fract(sin(dot(floor(vP0.xz*.35),vec2(4.1,7.3))+floor(uT2*3.))*99.))*clamp(uSun.y*4.,0.,1.);
 vec3 skyR=mix(uSky*1.12,uSky*.78,pow(clamp(R.y,0.,1.),.5))+vec3(1.,.6,.35)*exp(-max(R.y,0.)*12.)*smoothstep(.05,-.15,uSun.y)*.3+vec3(.8,.85,1.)*step(.996,fract(sin(dot(floor(R.xz/(R.y+.25)*300.),vec2(12.9,78.2)))*43758.5))*smoothstep(.05,-.15,uSun.y)*smoothstep(.05,.25,R.y)*.6+vec3(.02,.03,.05)*smoothstep(.05,-.1,uSun.y);
 float lowR=smoothstep(.09,.0,R.y);
 skyR+=vec3(.25,.16,.06)*lowR*smoothstep(.0,-.15,uSun.y)*.25*(.5+.5*sin(vP.x*.9+sin(vP.z*.3)*3.));
@@ -267,7 +268,7 @@ float hs=smoothstep(uHouse.z*1.,uHouse.z*.4,length(vP.xz-hso));
 body*=(1.-.38*smoothstep(uHouse.z*1.15,uHouse.z*.3,ub))*(.9+.22*clamp(dot(N,normalize(vec3(uSun.x,1.2,uSun.z))),0.,1.))*(1.-hs*.28*clamp(uSun.y*3.,0.,1.));
 // 浅瀬では建物の影が湖底に落ち、水深の分だけ日の向こうへずれる
 {float shal=smoothstep(5.,.3,dep);vec2 bo=hso-normalize(uSun.xz+1e-4)*dep*1.8/max(uSun.y,.3);float bsh=smoothstep(uHouse.z*1.1,uHouse.z*.35,length(vP.xz-bo));body*=1.-bsh*.38*shal*clamp(uSun.y*3.,0.,1.);}
-{float msh=0.;vec2 sdir=normalize(uSun.xz+1e-4);for(int k=1;k<=6;k++){vec2 q=(vP.xz+sdir*float(k)*55.-uBox.xy)/uBox.zw;float d2=texture2D(uDepth,q).r;msh=max(msh,step(d2,.002)*(1.-float(k)/7.));}body*=1.-msh*.4*uLowSun;}
+{float msh=0.;vec2 sdir=normalize(uSun.xz+1e-4);float stp=55.*(1.+6.*(1.-clamp(uSun.y*4.,0.,1.)));for(int k=1;k<=10;k++){vec2 q=(vP.xz+sdir*float(k)*stp-uBox.xy)/uBox.zw;float d2=texture2D(uDepth,q).r;msh=max(msh,step(d2,.002)*(1.-float(k)/11.));}body*=1.-msh*.5*uLowSun;skyR*=1.-msh*.35*uLowSun;}
 {float gp=smoothstep(.6,.72,.5+.5*sin((vP.x-uT2*5.)*.0024+sin(vP.z*.0019)*2.3)*sin((vP.z+uT2*2.5)*.0021+sin(vP.x*.0017)*1.9));body*=1.+gp*.85*uGap;skyR*=1.+gp*.55*uGap;}
 float wlf=exp(-pow((ub-uHouse.z*.92)/(.6+uHouse.z*.05),2.))*(.55+.45*sin(atan(vP.z-uHouse.y,vP.x-uHouse.x)*9.+uT2*1.3))*(.5+.5*fract(sin(dot(floor(vP0.xz*3.),vec2(3.7,8.1)))*91.));
 skyR=mix(skyR,vec3(.18,.26,.2),lowR*.65);
@@ -285,7 +286,8 @@ foam+=(1.-uCalm)*smoothstep(.3,1.,1.-uCalm)*step(.985,fract(sin(dot(floor(vec2(d
 body=mix(body,vec3(.48,.56,.42),smoothstep(.5,0.,dep)*.3);
 {vec2 sq=vP0.xz*1.6,si=floor(sq);
 float sn=fract(sin(dot(si,vec2(7.1,3.9)))*91.),sd2=length(fract(sq)-.5);
-vec3 stone=mix(vec3(.55,.48,.36),vec3(.38,.36,.4),sn)*(1.-smoothstep(.3,.5,sd2)*.4);
+float sandy=smoothstep(.4,.6,wf_(vP0.xz*.0012+3.7));
+vec3 stone=mix(mix(vec3(.55,.48,.36),vec3(.38,.36,.4),sn)*(1.-smoothstep(.3,.5,sd2)*.4),mix(vec3(.78,.72,.6),vec3(.84,.79,.68),sn),sandy);
 body=mix(body,stone,smoothstep(.45,0.,dep)*.55);
 }body*=1.-.15*smoothstep(.6,.1,dep);
 body+=vec3(.05,.06,.04)*smoothstep(.4,0.,dep)*pow(abs(sin(vP0.x*1.7+uT2)*sin(vP0.z*1.9-uT2*.8)),3.)*clamp(uSun.y*3.,0.,1.);
@@ -301,7 +303,7 @@ rr+=smoothstep(.04,.0,abs(r-rad))*(1.-ph)*step(.35,h);
 }foam+=wlf*.32;
 // 建物の周りの小さな渦：風下側に流れの乱れが巻く
 {vec2 dv=vP.xz-uHouse.xy;float ang=atan(dv.y,dv.x);vec2 wd=normalize(uWd+1e-4);float down=smoothstep(-.2,.8,dot(normalize(dv+1e-4),wd));
-float sw=sin(ang*4.+ub*.9-uT2*1.6)*sin(ub*.5+uT2*.7);foam+=smoothstep(.7,.95,sw)*down*smoothstep(uHouse.z*.95,uHouse.z*1.2,ub)*smoothstep(uHouse.z*3.,uHouse.z*1.4,ub)*.08*(1.-uCalm*.5);}
+float sw=sin(ang*4.+ub*.9-uT2*1.6)*sin(ub*.5+uT2*.7);foam+=0.*smoothstep(.7,.95,sw)*down*smoothstep(uHouse.z*.95,uHouse.z*1.2,ub)*smoothstep(uHouse.z*3.,uHouse.z*1.4,ub)*.08*(1.-uCalm*.5);}
 foam+=rr;
 // ── 明るさ：時刻、空の映り込み、浅瀬の濡れた石、遠くで空と溶ける ──
 body*=.55+.6*clamp(uSun.y*2.+.1,0.,1.);

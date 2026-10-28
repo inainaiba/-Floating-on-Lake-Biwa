@@ -237,7 +237,7 @@ terrMat.onBeforeCompile = (sh) => {
     )
     .replace(
       "#include <fog_fragment>",
-      "float hz=smoothstep(900.,5600.,length(cameraPosition.xz-vXZ));hz=max(hz,uLow*.45*smoothstep(800.,5000.,length(cameraPosition.xz-vXZ)));gl_FragColor.rgb=mix(gl_FragColor.rgb,uHaze*vec3(.85,.92,1.04),hz*.5);\n#include <fog_fragment>",
+      "float hz=pow(smoothstep(500.,6200.,length(cameraPosition.xz-vXZ)),.85)*1.25;hz=max(hz,uLow*.45*smoothstep(800.,5000.,length(cameraPosition.xz-vXZ)));gl_FragColor.rgb=mix(gl_FragColor.rgb,uHaze*vec3(.85,.92,1.04),hz*.5);\n#include <fog_fragment>",
     );
   sh.fragmentShader = sh.fragmentShader
     .replace(

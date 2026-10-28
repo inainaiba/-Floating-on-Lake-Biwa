@@ -674,9 +674,9 @@ const MOBILE = matchMedia("(pointer:coarse)").matches;
 /* 画質の表：高（high）・中（mid）・低（low）で何を省くか。重いときはここを調整する
    ?q=high / mid / low で強制できる。中と低はスマホ（MOBILE）だと水面の網目をさらに粗くする */
 const QUALITY_TABLE = {
-  high: { resStart: 1, resMax: 1, pixelMax: 2.5, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], reflection: 1, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1, dof: 0 },
-  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1, dof: 0 },
-  low: { resStart: 0.6, resMax: 0.9, pixelMax: 2, shadowMap: 512, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 3500, fireworkBurst: 0.55, dof: 0 },
+  high: { resStart: 1, resMax: 1, pixelMax: 2.5, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], reflection: 1, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1, dof: 0, msaa: 4 },
+  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1, dof: 0, msaa: 2 },
+  low: { resStart: 0.6, resMax: 0.9, pixelMax: 2, shadowMap: 512, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 3500, fireworkBurst: 0.55, dof: 0, msaa: 0 },
 };
 const QUALITY = { ...(QUALITY_TABLE[QUAL] || QUALITY_TABLE.mid) };
 if (!HQ && MOBILE) QUALITY.waterGrid = 180;
@@ -780,7 +780,7 @@ if(uCu>.01){vec2 q=vec2(atan(vD.z,vD.x)*3.2+uT*.0015,vD.y*9.);
 float hgt=fbm(vec2(q.x*1.3,1.7))*.55+.12;
 float base=.035;
 float m_=smoothstep(.0,.04,vD.y-base)*smoothstep(hgt+.02,hgt-.06,vD.y)*smoothstep(.42,.62,fbm(q*vec2(1.6,1.)+5.));
-float sh_=smoothstep(base+.18,base,vD.y)*.35+(1.-smoothstep(.0,.5,fbm(q*2.3+2.)))*.25;
+float sh_=smoothstep(base+.2,base,vD.y)*.55+(1.-smoothstep(.0,.5,fbm(q*2.3+2.)))*.3-smoothstep(.45,.9,fbm(q*1.7+vec2(uSunD.x,uSunD.z)*2.))*.2;
 vec3 cu=mix(vec3(1.),vec3(.72,.76,.84),sh_);
 {float hv=clamp((vD.y-base)/max(hgt-base,.02),0.,1.);float dusk=smoothstep(.35,.0,uSunD.y)*smoothstep(-.14,-.02,uSunD.y+.0)*1.;vec3 top=mix(vec3(1.,.55,.42),vec3(1.,.74,.5),smoothstep(-.05,.1,uSunD.y));vec3 bot=vec3(.62,.56,.74);vec3 dc=mix(bot,top,smoothstep(.15,.85,hv))*(1.+.25*pow(max(dot(normalize(vec3(vD.x,0.,vD.z)),normalize(vec3(uSunD.x,0.,uSunD.z))),0.),2.));cu=mix(cu,dc,max(dusk,smoothstep(.35,.0,uSunD.y)*.85));cu*=1.-uDark*.6;}
 c=mix(c,cu,m_*uCu);
@@ -807,7 +807,7 @@ c=mix(c,ly*mix(1.,.8,smoothstep(.0,.3,y)),lw*.45*smoothstep(.45,.0,y));
 }
  c+=uHor*.22*exp(-y*45.)*(1.-uDark)*smoothstep(-.1,.15,uSunD.y);
  // 明け方の色の層：地平の橙から桃、紫、藍へ細かく重なる
- {float dw=smoothstep(-.2,-.06,uSunD.y)*smoothstep(.06,-.02,uSunD.y)*(1.-uDark)*mix(.5,1.,smoothstep(-.3,.6,dot(normalize(vec3(vD.x,0.,vD.z)),normalize(vec3(uSunD.x,0.,uSunD.z)+1e-4))));
+ {float dw=smoothstep(-.32,-.08,uSunD.y)*smoothstep(.06,-.02,uSunD.y)*(1.-uDark)*mix(.5,1.,smoothstep(-.3,.6,dot(normalize(vec3(vD.x,0.,vD.z)),normalize(vec3(uSunD.x,0.,uSunD.z)+1e-4))));
  vec3 l1=vec3(1.,.55,.28),l2=vec3(.98,.62,.6),l3=vec3(.62,.52,.78),l4=vec3(.2,.24,.48);
  vec3 dc2=mix(l1,l2,smoothstep(.0,.05,y));dc2=mix(dc2,l3,smoothstep(.05,.14,y));dc2=mix(dc2,l4,smoothstep(.14,.4,y));
  c=mix(c,dc2,dw*.55*smoothstep(.6,.0,y));}
@@ -978,8 +978,8 @@ vec3 q=p;
 float dc=length(cameraPosition.xz-p.xz);
 for(int i=0;
 i<3;
-i++){vec2 d=uW[i].xy;
-float k=uW[i].z,w=uW[i].w,A=uA[i].x,Qs=uA[i].y/(k*A*3.+1e-4);
+i++){float fi=float(i);float ra=.28*sin(p.x*.0017+fi*1.7)*sin(p.z*.0013+fi*2.3);vec2 d=mat2(cos(ra),-sin(ra),sin(ra),cos(ra))*uW[i].xy;
+float k=uW[i].z,w=uW[i].w,A=uA[i].x*(.62+.38*sin(dot(p.xz,vec2(.0021,.0016))*(1.+fi*.7)+fi*2.)*sin(dot(p.xz,vec2(-.0014,.0023))*(1.+fi*.4)+fi)),Qs=uA[i].y/(k*A*3.+1e-4);
 float f=k*dot(d,p.xz)-w*uT+sin(dot(p.xz,vec2(.013,.017))*(1.+float(i)))*2.;
 float att=1.-smoothstep(120.,500.,dc);
 q.x+=Qs*A*d.x*cos(f)*att;
@@ -1114,7 +1114,8 @@ float mr=max(dot(R,normalize(vec3(-uSun.x,max(-uSun.y*.9+.02,.02),-uSun.z))),0.)
 float msp=(.25+.75*(1.-abs(uMp2-.5)*2.))*(pow(mr,300.)*1.4+pow(mr,40.)*.12*step(.75,fract(sin(dot(floor(vP0.xz*4.),vec2(4.1,7.3))+uT2*1.5)*99.)))*smoothstep(.0,-.15,uSun.y);
 float gh=fract(sin(dot(floor(vP0.xz*6.),vec2(4.1,7.3)))*99.);
 float glit=step(.72,gh)*smoothstep(.45,.1,length(fract(vP0.xz*6.)-.5))*pow(.5+.5*sin(uT2*(2.+gh*3.)+gh*40.),4.)*pow(rs,14.)*5.5*smoothstep(900.,10.,dc)+step(.9,fract(sin(dot(floor(vP0.xz*1.5),vec2(7.7,3.1)))*91.))*pow(.5+.5*sin(uT2*3.+gh*20.),6.)*pow(rs,40.)*3.*smoothstep(2500.,200.,dc);
-float sp=glit+msp+pow(rs,900.)*2.*smoothstep(500.,30.,dc)*(.6+.8*fract(sin(dot(floor(vP0.xz*3.),vec2(4.1,7.3))+uT2*2.)*99.))+pow(rs,60.)*.6*smoothstep(.35,0.,uSun.y)+pow(rs,60.)*.22+pow(rs,8.)*.05;
+float sp=glit+msp+pow(rs,900.)*2.*smoothstep(500.,30.,dc)*(.6+.8*fract(sin(dot(floor(vP0.xz*3.),vec2(4.1,7.3))+uT2*2.)*99.))+pow(rs,60.)*.6*smoothstep(.35,0.,uSun.y)+pow(rs,60.)*.22+pow(rs,8.)*.05
++pow(rs,250.)*smoothstep(700.,3000.,dc)*1.6*step(.55,fract(sin(dot(floor(vP0.xz*.35),vec2(4.1,7.3))+floor(uT2*3.))*99.))*clamp(uSun.y*4.,0.,1.);
 vec3 skyR=mix(uSky*1.12,uSky*.78,pow(clamp(R.y,0.,1.),.5))+vec3(1.,.6,.35)*exp(-max(R.y,0.)*12.)*smoothstep(.05,-.15,uSun.y)*.3+vec3(.8,.85,1.)*step(.996,fract(sin(dot(floor(R.xz/(R.y+.25)*300.),vec2(12.9,78.2)))*43758.5))*smoothstep(.05,-.15,uSun.y)*smoothstep(.05,.25,R.y)*.6+vec3(.02,.03,.05)*smoothstep(.05,-.1,uSun.y);
 float lowR=smoothstep(.09,.0,R.y);
 skyR+=vec3(.25,.16,.06)*lowR*smoothstep(.0,-.15,uSun.y)*.25*(.5+.5*sin(vP.x*.9+sin(vP.z*.3)*3.));
@@ -1127,7 +1128,7 @@ float hs=smoothstep(uHouse.z*1.,uHouse.z*.4,length(vP.xz-hso));
 body*=(1.-.38*smoothstep(uHouse.z*1.15,uHouse.z*.3,ub))*(.9+.22*clamp(dot(N,normalize(vec3(uSun.x,1.2,uSun.z))),0.,1.))*(1.-hs*.28*clamp(uSun.y*3.,0.,1.));
 // 浅瀬では建物の影が湖底に落ち、水深の分だけ日の向こうへずれる
 {float shal=smoothstep(5.,.3,dep);vec2 bo=hso-normalize(uSun.xz+1e-4)*dep*1.8/max(uSun.y,.3);float bsh=smoothstep(uHouse.z*1.1,uHouse.z*.35,length(vP.xz-bo));body*=1.-bsh*.38*shal*clamp(uSun.y*3.,0.,1.);}
-{float msh=0.;vec2 sdir=normalize(uSun.xz+1e-4);for(int k=1;k<=6;k++){vec2 q=(vP.xz+sdir*float(k)*55.-uBox.xy)/uBox.zw;float d2=texture2D(uDepth,q).r;msh=max(msh,step(d2,.002)*(1.-float(k)/7.));}body*=1.-msh*.4*uLowSun;}
+{float msh=0.;vec2 sdir=normalize(uSun.xz+1e-4);float stp=55.*(1.+6.*(1.-clamp(uSun.y*4.,0.,1.)));for(int k=1;k<=10;k++){vec2 q=(vP.xz+sdir*float(k)*stp-uBox.xy)/uBox.zw;float d2=texture2D(uDepth,q).r;msh=max(msh,step(d2,.002)*(1.-float(k)/11.));}body*=1.-msh*.5*uLowSun;skyR*=1.-msh*.35*uLowSun;}
 {float gp=smoothstep(.6,.72,.5+.5*sin((vP.x-uT2*5.)*.0024+sin(vP.z*.0019)*2.3)*sin((vP.z+uT2*2.5)*.0021+sin(vP.x*.0017)*1.9));body*=1.+gp*.85*uGap;skyR*=1.+gp*.55*uGap;}
 float wlf=exp(-pow((ub-uHouse.z*.92)/(.6+uHouse.z*.05),2.))*(.55+.45*sin(atan(vP.z-uHouse.y,vP.x-uHouse.x)*9.+uT2*1.3))*(.5+.5*fract(sin(dot(floor(vP0.xz*3.),vec2(3.7,8.1)))*91.));
 skyR=mix(skyR,vec3(.18,.26,.2),lowR*.65);
@@ -1145,7 +1146,8 @@ foam+=(1.-uCalm)*smoothstep(.3,1.,1.-uCalm)*step(.985,fract(sin(dot(floor(vec2(d
 body=mix(body,vec3(.48,.56,.42),smoothstep(.5,0.,dep)*.3);
 {vec2 sq=vP0.xz*1.6,si=floor(sq);
 float sn=fract(sin(dot(si,vec2(7.1,3.9)))*91.),sd2=length(fract(sq)-.5);
-vec3 stone=mix(vec3(.55,.48,.36),vec3(.38,.36,.4),sn)*(1.-smoothstep(.3,.5,sd2)*.4);
+float sandy=smoothstep(.4,.6,wf_(vP0.xz*.0012+3.7));
+vec3 stone=mix(mix(vec3(.55,.48,.36),vec3(.38,.36,.4),sn)*(1.-smoothstep(.3,.5,sd2)*.4),mix(vec3(.78,.72,.6),vec3(.84,.79,.68),sn),sandy);
 body=mix(body,stone,smoothstep(.45,0.,dep)*.55);
 }body*=1.-.15*smoothstep(.6,.1,dep);
 body+=vec3(.05,.06,.04)*smoothstep(.4,0.,dep)*pow(abs(sin(vP0.x*1.7+uT2)*sin(vP0.z*1.9-uT2*.8)),3.)*clamp(uSun.y*3.,0.,1.);
@@ -1161,7 +1163,7 @@ rr+=smoothstep(.04,.0,abs(r-rad))*(1.-ph)*step(.35,h);
 }foam+=wlf*.32;
 // 建物の周りの小さな渦：風下側に流れの乱れが巻く
 {vec2 dv=vP.xz-uHouse.xy;float ang=atan(dv.y,dv.x);vec2 wd=normalize(uWd+1e-4);float down=smoothstep(-.2,.8,dot(normalize(dv+1e-4),wd));
-float sw=sin(ang*4.+ub*.9-uT2*1.6)*sin(ub*.5+uT2*.7);foam+=smoothstep(.7,.95,sw)*down*smoothstep(uHouse.z*.95,uHouse.z*1.2,ub)*smoothstep(uHouse.z*3.,uHouse.z*1.4,ub)*.08*(1.-uCalm*.5);}
+float sw=sin(ang*4.+ub*.9-uT2*1.6)*sin(ub*.5+uT2*.7);foam+=0.*smoothstep(.7,.95,sw)*down*smoothstep(uHouse.z*.95,uHouse.z*1.2,ub)*smoothstep(uHouse.z*3.,uHouse.z*1.4,ub)*.08*(1.-uCalm*.5);}
 foam+=rr;
 // ── 明るさ：時刻、空の映り込み、浅瀬の濡れた石、遠くで空と溶ける ──
 body*=.55+.6*clamp(uSun.y*2.+.1,0.,1.);
@@ -1482,7 +1484,7 @@ terrMat.onBeforeCompile = (sh) => {
     )
     .replace(
       "#include <fog_fragment>",
-      "float hz=smoothstep(900.,5600.,length(cameraPosition.xz-vXZ));hz=max(hz,uLow*.45*smoothstep(800.,5000.,length(cameraPosition.xz-vXZ)));gl_FragColor.rgb=mix(gl_FragColor.rgb,uHaze*vec3(.85,.92,1.04),hz*.5);\n#include <fog_fragment>",
+      "float hz=pow(smoothstep(500.,6200.,length(cameraPosition.xz-vXZ)),.85)*1.25;hz=max(hz,uLow*.45*smoothstep(800.,5000.,length(cameraPosition.xz-vXZ)));gl_FragColor.rgb=mix(gl_FragColor.rgb,uHaze*vec3(.85,.92,1.04),hz*.5);\n#include <fog_fragment>",
     );
   sh.fragmentShader = sh.fragmentShader
     .replace(
@@ -8814,7 +8816,7 @@ G.life = (() => {
     }
     // トンボ
     const summer = c.month >= 5 && c.month <= 9 && day > 0.25 && wxNow.rain < 0.2;
-    dfly.visible = summer && !isFar;
+    dfly.visible = false; // 整理：トンボは出さない
     if (summer) {
       if (!dAt || Math.hypot(dAt[0] - cx, dAt[1] - cz) > 250) {
         dAt = [cx, cz];
@@ -8921,7 +8923,7 @@ G.life = (() => {
       const Wd = G.W || { x: 0, y: 0, s: 0 },
         ws = Wd.s || Math.hypot(Wd.x, Wd.y),
         str = Math.min(1, Math.max(0, (ws - 5) / 5)) * (wxNow.snow > 0.5 ? 0.3 : 1);
-      spray.visible = str > 0.01;
+      spray.visible = false; // 整理：しぶきの粒は出さない
       if (spray.visible) {
         const cx = camera.position.x,
           cz = camera.position.z,
@@ -9337,7 +9339,7 @@ function updateSkyLight(dt, t, c, W) {
     waterU.uGap.value = wxNow.gray > 0.45 && wxNow.rain < 0.3 ? Math.min(1, day * 3) * wxNow.gray : 0;
     skyU.uStar.value = SEASON.stars[c.month] * (1 - wxNow.gray * 0.8);
     skyU.uHzS.value = SEASON.springHaze[c.month] * Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3.5);
-    waterU.uLowSun.value = (c.month >= 8 && c.month <= 11 ? 1 : 0.4) * Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3) * (day > 0 ? 1 : 0) * (1 - wxNow.gray);
+    waterU.uLowSun.value = (c.month >= 8 && c.month <= 11 ? 1 : 0.75) * Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3) * (day > 0 ? 1 : 0) * (1 - wxNow.gray);
     skyU.uMp.value = ((((c.t / DAY) % 29.53) + 29.53) % 29.53) / 29.53;
     // 天の川：夏の、月の細い晴れた夜ほど濃い
     skyU.uMw.value = (0.55 + 0.9 * Math.max(0, 1 - Math.abs(c.month - 7) / 2.5)) * (0.3 + 0.7 * Math.abs(skyU.uMp.value - 0.5) * 2);
@@ -9490,7 +9492,9 @@ function updateSkyLight(dt, t, c, W) {
     terrMat.userData.sh.uniforms.uAut.value = SEASON.autumn[c.month];
   }
   const night = day < 0.05;
-  house.light.intensity = night ? 9 * CUST.bright : 0;
+  // 灯りの揺らぎ：ろうそくのように、ごくわずかに
+  const flick = 0.95 + 0.03 * Math.sin(t * 7.1) + 0.02 * Math.sin(t * 13.7 + Math.sin(t * 2.3));
+  house.light.intensity = night ? 9 * CUST.bright * flick : 0;
   {
     const hp = house.lamp.getWorldPosition(new THREE.Vector3()),
       lc = new THREE.Color(LIGHT_COLORS[CUST.light]);
@@ -9506,7 +9510,7 @@ function updateSkyLight(dt, t, c, W) {
     house.halo.scale.setScalar(2.4 * (1 + (wxNow.white || 0) * 3.5));
   }
   for (const g of glassMats)
-    g.emissive.set(night ? LIGHT_COLORS[CUST.light] : 0).multiplyScalar(night ? CUST.bright * (g === G.glowMat ? 1.9 : 0.8) : 0);
+    g.emissive.set(night ? LIGHT_COLORS[CUST.light] : 0).multiplyScalar(night ? CUST.bright * (g === G.glowMat ? 1.9 : 0.8) * flick : 0);
   portLamps.visible = night || day < 0.12;
   windows.material.size = 3.4 * (1 + (wxNow.white || 0) * 1.6);
   if (G.street) G.street.material.size = 2.4 * (1 + (wxNow.white || 0) * 1.8);
@@ -9705,8 +9709,8 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
     water.position.z = Math.round(camZ / q) * q;
   }
   if (!G.rt) {
-    G.rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
-    G.rt.depthTexture = new THREE.DepthTexture(1, 1);
+    // 後処理の前の描画もマルチサンプルで滑らかに（細い部材や遠景のちらつきを抑える）
+    G.rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: QUALITY.msaa });
     G.gq = new THREE.Mesh(
       new THREE.PlaneGeometry(2, 2),
       new THREE.ShaderMaterial({
@@ -9845,7 +9849,7 @@ c+=gr*(.022-.01*l);
   {
     const u = G.gq.material.uniforms,
       fd = camera.position.distanceTo(house.position);
-    u.tZ.value = G.rt.depthTexture;
+    u.tZ.value = null;
     u.uN.value = camera.near;
     u.uF.value = camera.far;
     u.uFoc.value = fd;

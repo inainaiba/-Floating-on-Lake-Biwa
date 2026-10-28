@@ -492,7 +492,7 @@ G.life = (() => {
     }
     // トンボ
     const summer = c.month >= 5 && c.month <= 9 && day > 0.25 && wxNow.rain < 0.2;
-    dfly.visible = summer && !isFar;
+    dfly.visible = false; // 整理：トンボは出さない
     if (summer) {
       if (!dAt || Math.hypot(dAt[0] - cx, dAt[1] - cz) > 250) {
         dAt = [cx, cz];
@@ -599,7 +599,7 @@ G.life = (() => {
       const Wd = G.W || { x: 0, y: 0, s: 0 },
         ws = Wd.s || Math.hypot(Wd.x, Wd.y),
         str = Math.min(1, Math.max(0, (ws - 5) / 5)) * (wxNow.snow > 0.5 ? 0.3 : 1);
-      spray.visible = str > 0.01;
+      spray.visible = false; // 整理：しぶきの粒は出さない
       if (spray.visible) {
         const cx = camera.position.x,
           cz = camera.position.z,

@@ -6,8 +6,8 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
     water.position.z = Math.round(camZ / q) * q;
   }
   if (!G.rt) {
-    G.rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
-    G.rt.depthTexture = new THREE.DepthTexture(1, 1);
+    // 後処理の前の描画もマルチサンプルで滑らかに（細い部材や遠景のちらつきを抑える）
+    G.rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: QUALITY.msaa });
     G.gq = new THREE.Mesh(
       new THREE.PlaneGeometry(2, 2),
       new THREE.ShaderMaterial({
@@ -146,7 +146,7 @@ c+=gr*(.022-.01*l);
   {
     const u = G.gq.material.uniforms,
       fd = camera.position.distanceTo(house.position);
-    u.tZ.value = G.rt.depthTexture;
+    u.tZ.value = null;
     u.uN.value = camera.near;
     u.uF.value = camera.far;
     u.uFoc.value = fd;

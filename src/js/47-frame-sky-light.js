@@ -98,7 +98,7 @@ function updateSkyLight(dt, t, c, W) {
     waterU.uGap.value = wxNow.gray > 0.45 && wxNow.rain < 0.3 ? Math.min(1, day * 3) * wxNow.gray : 0;
     skyU.uStar.value = SEASON.stars[c.month] * (1 - wxNow.gray * 0.8);
     skyU.uHzS.value = SEASON.springHaze[c.month] * Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3.5);
-    waterU.uLowSun.value = (c.month >= 8 && c.month <= 11 ? 1 : 0.4) * Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3) * (day > 0 ? 1 : 0) * (1 - wxNow.gray);
+    waterU.uLowSun.value = (c.month >= 8 && c.month <= 11 ? 1 : 0.75) * Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3) * (day > 0 ? 1 : 0) * (1 - wxNow.gray);
     skyU.uMp.value = ((((c.t / DAY) % 29.53) + 29.53) % 29.53) / 29.53;
     // 天の川：夏の、月の細い晴れた夜ほど濃い
     skyU.uMw.value = (0.55 + 0.9 * Math.max(0, 1 - Math.abs(c.month - 7) / 2.5)) * (0.3 + 0.7 * Math.abs(skyU.uMp.value - 0.5) * 2);
@@ -251,7 +251,9 @@ function updateSkyLight(dt, t, c, W) {
     terrMat.userData.sh.uniforms.uAut.value = SEASON.autumn[c.month];
   }
   const night = day < 0.05;
-  house.light.intensity = night ? 9 * CUST.bright : 0;
+  // 灯りの揺らぎ：ろうそくのように、ごくわずかに
+  const flick = 0.95 + 0.03 * Math.sin(t * 7.1) + 0.02 * Math.sin(t * 13.7 + Math.sin(t * 2.3));
+  house.light.intensity = night ? 9 * CUST.bright * flick : 0;
   {
     const hp = house.lamp.getWorldPosition(new THREE.Vector3()),
       lc = new THREE.Color(LIGHT_COLORS[CUST.light]);
@@ -267,7 +269,7 @@ function updateSkyLight(dt, t, c, W) {
     house.halo.scale.setScalar(2.4 * (1 + (wxNow.white || 0) * 3.5));
   }
   for (const g of glassMats)
-    g.emissive.set(night ? LIGHT_COLORS[CUST.light] : 0).multiplyScalar(night ? CUST.bright * (g === G.glowMat ? 1.9 : 0.8) : 0);
+    g.emissive.set(night ? LIGHT_COLORS[CUST.light] : 0).multiplyScalar(night ? CUST.bright * (g === G.glowMat ? 1.9 : 0.8) * flick : 0);
   portLamps.visible = night || day < 0.12;
   windows.material.size = 3.4 * (1 + (wxNow.white || 0) * 1.6);
   if (G.street) G.street.material.size = 2.4 * (1 + (wxNow.white || 0) * 1.8);
