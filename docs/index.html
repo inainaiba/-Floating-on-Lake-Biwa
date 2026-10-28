@@ -5707,7 +5707,7 @@ function drawFar(boats = [], wxNow = null, W = null) {
         fx.fillRect(X(mx + Math.cos(a) * q), Y(my + Math.sin(a) * q), dpr, dpr);
       }
     } // 濁りは点
-    const nR = Math.floor(wxNow.rain * 500),
+    const nR = 0, // 地図には雨を描かない
       sl = W ? Math.atan2(W.x, 10) : 0;
     fx.beginPath();
     for (let i = 0; i < nR; i++) {
