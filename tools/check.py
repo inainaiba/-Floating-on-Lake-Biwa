@@ -1,7 +1,7 @@
 """見た目の確認：決まった場面を撮影し、前回の基準と並べて比べる。
 
 使い方（リポジトリの直下で）
-  python3 tools/check.py            全場面（12）を撮る
+  python3 tools/check.py            全場面（18）を撮る
   python3 tools/check.py --quick    代表の4場面だけ撮る
   python3 tools/check.py --accept   今回の撮影を新しい基準にする
 
@@ -35,6 +35,13 @@ SCENES = [
     ('浜知内のブイ',       'month=5&phase=0.4&wx=0', [136.05537, 35.4446699, 120, 0, 1.57, 0.2, 60], 0),
     ('海津大崎の桜',       'month=3&phase=0.4&wx=0', [136.072254, 35.46257, 600, 600, 0.6, 0.1, 90], 1),
     ('近づいた建物',       'month=6&phase=0.45&wx=0', [136.03, 35.22, 0, 0, 0.7, 0.25, 60], 4),
+    # 季節の出来事と画面（6つ目の要素：時計 t や操作 act）
+    ('大津の花火',         'month=7&phase=0.86&wx=0', [135.875, 35.04, 0, 0, 3.14, -0.05, 70], 0, {}),
+    ('ヨシ焼き（3月）',    'month=2&phase=0.45&wx=0', [135.9295, 35.124, 500, 0, 1.57, 0.05, 70], 0, {}),
+    ('蛍（6月の夜）',      'month=5&phase=0.95&wx=0', [135.9295, 35.124, 300, 0, 1.57, 0.1, 60], 0, {}),
+    ('虹（雨上がりの午後）', 'month=6&phase=0.64&wx=0', [136.03, 35.22, 0, 0, 0.7, -0.25, 80], 0, {'t': 1001416}),
+    ('全体地図',           'month=6&phase=0.45&wx=0', [136.05537, 35.4446699, 120, 0, 1.57, 0.2, 60], 0, {'act': 'map'}),
+    ('建物の選択画面',     'month=6&phase=0.45&wx=0', [136.03, 35.22, 0, 0, 0.7, 0.2, 60], 0, {'act': 'select'}),
 ]
 QUICK = [0, 1, 2, 3]
 
@@ -63,23 +70,34 @@ def shoot(idx):
             pg.route('**/three.module.js', lambda r: r.fulfill(path=str(three)))
         loaded = False
         for i in idx:
-            name, q, v, bnum = SCENES[i]
+            name, q, v, bnum = SCENES[i][:4]
+            ex = SCENES[i][4] if len(SCENES[i]) > 4 else {}
             if not loaded:
                 pg.goto(f'http://127.0.0.1:{port}/docs/index.html?debug&b={bnum}&{q}')
                 pg.evaluate("()=>{try{localStorage.setItem('floating.hint2','1')}catch(e){}}")
                 pg.wait_for_timeout(900)
                 pg.evaluate("()=>document.getElementById('title').click()")
-                pg.wait_for_timeout(200)
+                pg.wait_for_timeout(1500)
+                sel = [k for k in idx if len(SCENES[k]) > 4 and SCENES[k][4].get('act') == 'select']
+                if sel:   # 選択画面は湖に出る前にしか撮れないので、最初に撮る
+                    pg.screenshot(path=str(OUT / f'{sel[0]:02d}.png'), timeout=180000)
+                    print(f'  {sel[0]:02d} {SCENES[sel[0]][0]}')
                 pg.evaluate("()=>document.getElementById('go').click()")
                 loaded = True
+            if ex.get('act') == 'select':
+                continue
             sc = dict(kv.split('=') for kv in q.split('&'))
             try:
-                pg.evaluate('a=>{__scene(a[0]);__set(...a[1])}', [{'month': int(sc['month']), 'phase': float(sc['phase']), 'wx': int(sc['wx']), 'b': bnum, 't': 1000000}, v])
+                pg.evaluate('a=>{__scene(a[0]);__set(...a[1])}', [{'month': int(sc['month']), 'phase': float(sc['phase']), 'wx': int(sc['wx']), 'b': bnum, 't': ex.get('t', 1000000)}, v])
             except Exception:
                 errs.append('視点を動かせませんでした（読み込み時のエラーの可能性）')
                 break
+            if ex.get('act') == 'map':
+                pg.evaluate("()=>document.getElementById('view').click()")
             pg.wait_for_timeout(1800)
             pg.screenshot(path=str(OUT / f'{i:02d}.png'), timeout=180000)
+            if ex.get('act') == 'map':
+                pg.evaluate("()=>document.getElementById('view').click()")
             print(f'  {i:02d} {name}')
         b.close()
     srv.shutdown()

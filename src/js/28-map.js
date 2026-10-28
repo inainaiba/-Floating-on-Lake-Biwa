@@ -52,7 +52,7 @@ function fzAt(k, qx, qy) {
   }
   far._map = [w / 2 + FZ.px + (ox0 - w / 2) * z, h / 2 + FZ.py + (oy0 - h / 2) * z, s2];
 }
-function drawFar(boats = [], X_ = null, W = null) {
+function drawFar(boats = [], wxNow = null, W = null) {
   const w = far.width,
     h = far.height,
     dpr = far._dpr;
@@ -233,8 +233,8 @@ function drawFar(boats = [], X_ = null, W = null) {
     fx.restore();
   }
   fx.strokeStyle = "#d9542b";
-  fx.lineWidth = (X_ && X_.storm > 0.5 ? 2.2 : 1.8) * dpr;
-  const jt = X_ ? X_.storm * 2 * dpr : 0;
+  fx.lineWidth = (wxNow && wxNow.storm > 0.5 ? 2.2 : 1.8) * dpr;
+  const jt = wxNow ? wxNow.storm * 2 * dpr : 0;
   fx.beginPath();
   B.trail.forEach(([x, y], i) =>
     i
@@ -243,31 +243,31 @@ function drawFar(boats = [], X_ = null, W = null) {
   );
   fx.lineTo(X(B.x), Y(B.y));
   fx.stroke();
-  if (X_) {
+  if (wxNow) {
     const R = rnd(Math.floor(performance.now() / 120));
     fx.strokeStyle = "rgba(27,27,27,.35)";
     fx.fillStyle = "rgba(27,27,27,.35)";
     fx.lineWidth = 0.6 * dpr;
     for (const [mx, my] of LAKE.mouths) {
-      const n = Math.floor(X_.turb * 40);
+      const n = Math.floor(wxNow.turb * 40);
       for (let i = 0; i < n; i++) {
         const a = R() * 6.28,
-          q = Math.sqrt(R()) * (800 + X_.turb * 2500);
+          q = Math.sqrt(R()) * (800 + wxNow.turb * 2500);
         fx.fillRect(X(mx + Math.cos(a) * q), Y(my + Math.sin(a) * q), dpr, dpr);
       }
     } // 濁りは点
-    const nR = Math.floor(X_.rain * 500),
+    const nR = Math.floor(wxNow.rain * 500),
       sl = W ? Math.atan2(W.x, 10) : 0;
     fx.beginPath();
     for (let i = 0; i < nR; i++) {
       const x = R() * w,
         y = R() * h,
-        L = (4 + X_.rain * 6) * dpr;
+        L = (4 + wxNow.rain * 6) * dpr;
       fx.moveTo(x, y);
       fx.lineTo(x + Math.sin(sl) * L, y + L);
     }
     fx.stroke(); // 雨は斜線
-    const nS = Math.floor(X_.snow * 400 + (X_.white || 0) * 1500);
+    const nS = Math.floor(wxNow.snow * 400 + (wxNow.white || 0) * 1500);
     for (let i = 0; i < nS; i++) fx.fillRect(R() * w, R() * h, 1.4 * dpr, 1.4 * dpr);
   } // 雪と霧は点描
   fx.fillStyle = "rgba(27,27,27,.45)";

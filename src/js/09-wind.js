@@ -15,26 +15,26 @@ const WIND = [
 ];
 const GYRE = [0.35, 0.3, 0.4, 0.6, 0.9, 1, 1, 1, 0.9, 0.7, 0.5, 0.4];
 function wind(c) {
-  const X_ = weather(c);
+  const wxNow = weather(c);
   const calmT =
     Math.max(
       Math.max(0, 1 - Math.abs(c.phase - 0.27) / 0.07),
       Math.max(0, 1 - Math.abs(c.phase - 0.78) / 0.07),
     ) * 0.75;
-  const hk = c.month === 2 ? Math.max(0, 1 - Math.abs(c.phase - 0.6) / 0.07) : 0;
+  const hiraHakko = c.month === 2 ? Math.max(0, 1 - Math.abs(c.phase - 0.6) / 0.07) : 0;
   const [d0, s1] = WIND[c.month],
-    d = d0 * (1 - hk) + 300 * hk,
-    s0 = s1 * (1 + 1.7 * hk),
-    s = s0 * X_.wind * (1 - calmT),
+    d = d0 * (1 - hiraHakko) + 300 * hiraHakko,
+    s0 = s1 * (1 + 1.7 * hiraHakko),
+    s = s0 * wxNow.wind * (1 - calmT),
     g = 1 + 0.35 * Math.sin(c.t / 37) + 0.2 * Math.sin(c.t / 11.3),
     a = ((d + 15 * Math.sin(c.t / 53)) * Math.PI) / 180;
   return {
     x: -Math.sin(a) * s * g,
     y: Math.cos(a) * s * g,
     s: s * g,
-    wave: X_.wave * (1 + hk * 0.9),
-    wx: X_,
-    hk,
+    wave: wxNow.wave * (1 + hiraHakko * 0.9),
+    wx: wxNow,
+    hk: hiraHakko,
   };
 } // 吹いていく向き（y南）
 const gyres = [

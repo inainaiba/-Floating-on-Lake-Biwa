@@ -1,5 +1,5 @@
 /* ---------- 毎フレーム⑤：描画（映り込み → 本描画 → 色の仕上げ） ---------- */
-function renderFrame(c, W, X_, day, sa) {
+function renderFrame(c, W, wxNow, day, sunAngle) {
   {
     const q = 5000 / (QUALITY.waterGrid);
     water.position.x = Math.round(camX / q) * q;
@@ -119,16 +119,16 @@ c+=gr*(.022-.01*l);
     waterU.uRefl.value = G.rf.texture;
     waterU.uWy.value = wy;
     waterU.uRes.value.set(w, h);
-    waterU.uCalm.value = Math.max(0, 1 - W.s / 6) * (X_.rain > 0.3 ? 0.3 : 1);
+    waterU.uCalm.value = Math.max(0, 1 - W.s / 6) * (wxNow.rain > 0.3 ? 0.3 : 1);
   }
   renderer.setRenderTarget(G.rt);
   renderer.render(scene, camera);
   renderer.setRenderTarget(null);
   G.gq.material.uniforms.tD.value = G.rt.texture;
   G.gq.material.uniforms.uTm.value = (performance.now() / 1000) % 100;
-  G.gq.material.uniforms.uDay.value = Math.min(1, day * 2.5) * (1 - X_.dark);
-  G.gq.material.uniforms.uMorn.value = Math.max(0, 1 - Math.abs(c.phase - 0.34) / 0.08) * (1 - X_.gray * 0.5);
-  G.gq.material.uniforms.uWarm.value = Math.max(0, 1 - Math.abs(Math.sin(sa)) * 2.2);
+  G.gq.material.uniforms.uDay.value = Math.min(1, day * 2.5) * (1 - wxNow.dark);
+  G.gq.material.uniforms.uMorn.value = Math.max(0, 1 - Math.abs(c.phase - 0.34) / 0.08) * (1 - wxNow.gray * 0.5);
+  G.gq.material.uniforms.uWarm.value = Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 2.2);
   {
     const tm = renderer.toneMapping;
     renderer.toneMapping = THREE.NoToneMapping;

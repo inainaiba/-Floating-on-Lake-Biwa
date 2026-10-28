@@ -504,13 +504,13 @@ const snowMesh = new THREE.Points(
 );
 snowMesh.frustumCulled = false;
 scene.add(snowMesh);
-function updatePrecip(X_, W, dt, t) {
+function updatePrecip(wxNow, W, dt, t) {
   const cx = camera.position.x,
     cz = camera.position.z;
-  rainMesh.material.opacity = Math.min(0.35, X_.rain * 0.4);
-  rainMesh.visible = X_.rain > 0.02;
-  snowMesh.material.opacity = X_.snow * 0.9;
-  snowMesh.visible = X_.snow > 0.02;
+  rainMesh.material.opacity = Math.min(0.35, wxNow.rain * 0.4);
+  rainMesh.visible = wxNow.rain > 0.02;
+  snowMesh.material.opacity = wxNow.snow * 0.9;
+  snowMesh.visible = wxNow.snow > 0.02;
   if (rainMesh.visible) {
     const p = precipGeo.attributes.position.array,
       vy = 28 * dt,

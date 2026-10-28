@@ -7,14 +7,14 @@ function updateSkyLight(dt, t, c, W) {
     waterU.uA.value[i].set(v.A, v.Qs);
   });
   waterU.uT.value = t;
-  const X_ = W.wx;
-  const sa = (c.phase - 0.25) * 2 * Math.PI,
-    day = Math.max(0, Math.sin(sa));
-  const sElev = SEASON.sunHeight[c.month];
-  const sd_ = new THREE.Vector3(
-    Math.cos(sa) * 0.8,
-    Math.sin(sa) * sElev,
-    0.45 + 0.25 * (1 - sElev),
+  const wxNow = W.wx;
+  const sunAngle = (c.phase - 0.25) * 2 * Math.PI,
+    day = Math.max(0, Math.sin(sunAngle));
+  const sunHeight = SEASON.sunHeight[c.month];
+  const sunDirSky = new THREE.Vector3(
+    Math.cos(sunAngle) * 0.8,
+    Math.sin(sunAngle) * sunHeight,
+    0.45 + 0.25 * (1 - sunHeight),
   ).normalize();
   const sky = skyAt(c.phase);
   {
@@ -23,11 +23,11 @@ function updateSkyLight(dt, t, c, W) {
       sky.r * 0.3 + sky.g * 0.59 + sky.b * 0.11,
       sky.r * 0.3 + sky.g * 0.59 + sky.b * 0.11,
     );
-    sky.lerp(g, X_.gray).multiplyScalar(1 - X_.dark * 0.5);
-    if (X_.white)
-      sky.lerp(new THREE.Color(0xdcdfe0).multiplyScalar(0.35 + 0.65 * Math.min(1, day * 3 + 0.2)), X_.white);
+    sky.lerp(g, wxNow.gray).multiplyScalar(1 - wxNow.dark * 0.5);
+    if (wxNow.white)
+      sky.lerp(new THREE.Color(0xdcdfe0).multiplyScalar(0.35 + 0.65 * Math.min(1, day * 3 + 0.2)), wxNow.white);
   }
-  if (X_.storm > 0.5 && t > nextFlash && !isFar) {
+  if (wxNow.storm > 0.5 && t > nextFlash && !isFar) {
     flash = 1;
     nextFlash = t + 6 + Math.random() * 14;
   }
@@ -37,18 +37,18 @@ function updateSkyLight(dt, t, c, W) {
   {
     const top = sky
       .clone()
-      .lerp(new THREE.Color(0x2f73c8), 0.6 * Math.min(1, day * 2) * (1 - X_.gray))
+      .lerp(new THREE.Color(0x2f73c8), 0.6 * Math.min(1, day * 2) * (1 - wxNow.gray))
       .lerp(new THREE.Color(0x7d8fc0), 0.85 * (1 - Math.min(1, day * 2.5)));
-    const hor = sky.clone().lerp(new THREE.Color(0xe9eef2), 0.5 * Math.min(1, day * 2) * (1 - X_.gray * 0.5));
+    const hor = sky.clone().lerp(new THREE.Color(0xe9eef2), 0.5 * Math.min(1, day * 2) * (1 - wxNow.gray * 0.5));
     skyU.uTop.value.copy(top);
     skyU.uHor.value.copy(hor);
-    skyU.uSunD.value.copy(sd_);
+    skyU.uSunD.value.copy(sunDirSky);
     skyU.uSunC2.value.copy(sun.color).multiplyScalar(day > 0 ? 1 : 0);
     skyU.uT.value = t;
-    skyU.uCloud.value = 0.5 + X_.gray * 0.5;
-    skyU.uCi.value = SEASON.cirrus[c.month] * (1 - X_.gray * 0.6);
+    skyU.uCloud.value = 0.5 + wxNow.gray * 0.5;
+    skyU.uCi.value = SEASON.cirrus[c.month] * (1 - wxNow.gray * 0.6);
     skyU.uRay.value =
-      X_.gray > 0.3 && X_.gray < 0.8 && X_.rain < 0.3 ? Math.max(0, 1 - Math.abs(Math.sin(sa)) * 3) : 0;
+      wxNow.gray > 0.3 && wxNow.gray < 0.8 && wxNow.rain < 0.3 ? Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3) : 0;
     {
       const dn = Math.floor(c.t / DAY),
         hr = Math.abs(Math.sin(dn * 12.9898) * 43758.5453) % 1;
@@ -56,8 +56,8 @@ function updateSkyLight(dt, t, c, W) {
         c.month >= 4 &&
         c.month <= 8 &&
         hr < 0.35 &&
-        X_.rain < 0.2 &&
-        X_.gray < 0.5 &&
+        wxNow.rain < 0.2 &&
+        wxNow.gray < 0.5 &&
         c.phase > 0.58 &&
         c.phase < 0.7
           ? Math.min(1, (c.phase - 0.58) / 0.02, (0.7 - c.phase) / 0.02) * 0.9
@@ -71,8 +71,8 @@ function updateSkyLight(dt, t, c, W) {
       skyU.uLt.value = G.lt * (Math.random() < 0.7 ? 1 : 0.3);
     }
     skyU.uMp.value = (((Math.floor(c.t / DAY) % 8) + 8) % 8) / 8 + 0.0625;
-    skyU.uCu.value = SEASON.cumulus[c.month] * (1 - X_.gray * 0.8) * (X_.rain > 0.3 ? 0 : 1);
-    skyU.uDark.value = X_.dark;
+    skyU.uCu.value = SEASON.cumulus[c.month] * (1 - wxNow.gray * 0.8) * (wxNow.rain > 0.3 ? 0 : 1);
+    skyU.uDark.value = wxNow.dark;
     skyDome.position.copy(camera.position);
   }
   renderer.toneMappingExposure = 1.04 + (1 - Math.min(1, day * 3)) * 0.25;
@@ -84,23 +84,23 @@ function updateSkyLight(dt, t, c, W) {
       : 0;
   const mornH = Math.max(0, 1 - Math.abs(c.phase - 0.34) / 0.08);
   const airQ = SEASON.airClarity[c.month];
-  scene.fog.near = X_.fog[0] * (1 - mist * 0.8) * (1 - mornH * 0.2) * airQ;
-  scene.fog.far = X_.fog[1] * (day < 0.05 && X_.fog[1] > 3000 ? 1.8 : 1) * airQ;
+  scene.fog.near = wxNow.fog[0] * (1 - mist * 0.8) * (1 - mornH * 0.2) * airQ;
+  scene.fog.far = wxNow.fog[1] * (day < 0.05 && wxNow.fog[1] > 3000 ? 1.8 : 1) * airQ;
   scene.fog.far *= (1 - mist * 0.6) * (1 - mornH * 0.1);
   waterU.uFog.value.set(scene.fog.near, scene.fog.far);
-  waterU.uFoam.value = Math.max(0, X_.wave - 1.2) * 0.9;
-  waterU.uRainR.value = X_.rain;
+  waterU.uFoam.value = Math.max(0, wxNow.wave - 1.2) * 0.9;
+  waterU.uRainR.value = wxNow.rain;
   waterU.uT2.value = t;
-  updatePrecip(X_, W, dt, t);
-  W_SENSE = X_.sense;
+  updatePrecip(wxNow, W, dt, t);
+  W_SENSE = wxNow.sense;
   // 河口の濁り
   LAKE.mouths.slice(0, 16).forEach(([x, y], i) => {
     const [fx_, fy_] = flow(x, y, c);
     waterU.uMouth.value[i].set(
       (x + fx_ * 900) * S,
       (y + fy_ * 900) * S,
-      (300 + X_.turb * 1500) * S,
-      X_.turb * 0.75,
+      (300 + wxNow.turb * 1500) * S,
+      wxNow.turb * 0.75,
     );
   });
   // 水位（見えやすいよう誇張）
@@ -115,7 +115,7 @@ function updateSkyLight(dt, t, c, W) {
     }
     reedU.uT.value = t;
     {
-      const br = (0.07 + 0.61 * Math.min(1, day * 2.5)) * (1 - X_.gray * 0.25) + fl;
+      const br = (0.07 + 0.61 * Math.min(1, day * 2.5)) * (1 - wxNow.gray * 0.25) + fl;
       {
         const st = new THREE.Color(FOREST_TINT[c.month]);
         for (const m of G.cards || []) {
@@ -145,20 +145,20 @@ function updateSkyLight(dt, t, c, W) {
   waterU.uSky.value.copy(sky);
   waterU.uFogC.value.copy(skyU.uHor.value);
   const sd = new THREE.Vector3(
-    Math.cos(sa) * 0.8,
-    Math.max(0.05, Math.sin(sa) * sElev),
-    0.45 + 0.25 * (1 - sElev),
+    Math.cos(sunAngle) * 0.8,
+    Math.max(0.05, Math.sin(sunAngle) * sunHeight),
+    0.45 + 0.25 * (1 - sunHeight),
   ).normalize();
   waterU.uSun.value.copy(sd);
   sun.position.copy(sd).multiplyScalar(100).add(house.position);
   sun.target.position.copy(house.position);
   const warm = 1 - Math.min(1, day * 2.5);
   sun.color.setRGB(1, 1 - 0.3 * warm - 0.04, 1 - 0.55 * warm - 0.1);
-  sun.intensity = (0.3 + 1.35 * day) * (1 - X_.gray * 0.6) + fl * 2;
-  hemi.intensity = (0.38 + 0.42 * day) * (1 - X_.dark * 0.4) + fl;
+  sun.intensity = (0.3 + 1.35 * day) * (1 - wxNow.gray * 0.6) + fl * 2;
+  hemi.intensity = (0.38 + 0.42 * day) * (1 - wxNow.dark * 0.4) + fl;
   hemi.color.set(day < 0.1 ? 0x8a9ac8 : 0xcfe3f0);
   if (day < 0.05) sun.color.setRGB(0.7, 0.78, 1);
-  waterU.uSunC.value.copy(sun.color).multiplyScalar((day > 0 ? 0.9 : 0.35) * (1 - X_.gray));
+  waterU.uSunC.value.copy(sun.color).multiplyScalar((day > 0 ? 0.9 : 0.35) * (1 - wxNow.gray));
   if (terrMat.userData.haze)
     terrMat.userData.haze.value
       .copy(skyU.uHor.value)
@@ -174,16 +174,16 @@ function updateSkyLight(dt, t, c, W) {
       su.uCSh.value = waterU.uCSh.value;
     }
     terrMat.userData.sh.uniforms.uSpr.value = SEASON.greenery[c.month];
-    waterU.uCSh.value = Math.max(0, skyU.uCu.value * 1.2 + 0.3) * (1 - X_.gray * 0.7);
+    waterU.uCSh.value = Math.max(0, skyU.uCu.value * 1.2 + 0.3) * (1 - wxNow.gray * 0.7);
     waterU.uMist.value =
       Math.max(0, 1 - Math.abs(c.phase - 0.27) / 0.06) *
-      (X_.rain > 0.3 ? 0 : 1) *
+      (wxNow.rain > 0.3 ? 0 : 1) *
       (c.month >= 8 || c.month <= 4 ? 1 : 0.6);
     waterU.uMp2.value = skyU.uMp.value;
-    waterU.uSD.value += ((X_.snow > 0.5 ? 1 : 0) * 0.85 - waterU.uSD.value) * (WXQ !== null ? 1 : 0.01);
+    waterU.uSD.value += ((wxNow.snow > 0.5 ? 1 : 0) * 0.85 - waterU.uSD.value) * (WXQ !== null ? 1 : 0.01);
     {
       const u = terrMat.userData.sh.uniforms.uSL,
-        tg = (c.month >= 11 || c.month <= 1) && X_.snow > 0.5 ? 1 : 0;
+        tg = (c.month >= 11 || c.month <= 1) && wxNow.snow > 0.5 ? 1 : 0;
       u.value = WXQ !== null ? tg : u.value + (tg - u.value) * 0.002;
     }
     terrMat.userData.sh.uniforms.uWin.value = SEASON.winterTint[c.month];
@@ -242,5 +242,5 @@ function updateSkyLight(dt, t, c, W) {
     paddySeason(c.month, sky);
     paddySeason._m = c.month;
   }
-  return { X_, day, night, sa };
+  return { wxNow, day, night, sunAngle };
 }

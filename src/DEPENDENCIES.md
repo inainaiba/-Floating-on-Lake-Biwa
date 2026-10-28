@@ -7,7 +7,7 @@
 ## 00-head.js
 - 作る：`G`、`LEAFTX`、`NEAR_TREE_MAT`、`mkLeaf`
 - 使う：
-  - 20-villages-houses.js（後ろの部品・関数なので可）：`cvTex`
+  - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
 ## 01-settings.js
 - 作る：`LAKE`、`Q`、`RM`、`S`、`SPEED`
@@ -129,7 +129,7 @@
   - 01-settings.js：`Q`
   - 12-renderer.js：`scene`
   - 16-terrain.js：`reedPts`
-  - 20-villages-houses.js（後ろの部品・関数なので可）：`cvTex`
+  - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
 ## 19-boats.js
 - 作る：`FISH`、`P`、`PN`、`PORT`、`REED_YEAR`、`ROUTES`、`ROUTE_OFF`、`WAKE_N`、`WP`、`W_SENSE`、`astar`、`avoid`、`boatMeshes`、`boatState`、`clearLine`、`fishPorts`、`flash`、`makeBoat`、`nearestIn`、`nextFlash`、`pPos`、`portLamps`、`precipGeo`、`rainMesh`、`routePos`、`sPos`、`smB`、`smP`、`smoke`、`smokeGeo`、`snowGeo`、`snowMesh`、`updateBoats`、`updatePrecip`、`wake`、`wakeBob`、`wakeI`、`wakeP`
@@ -144,27 +144,39 @@
   - 14-water.js：`waveH`
   - 16-terrain.js：`REED_SITES`
   - 18-buildings.js：`house`、`s0`
-  - 20-villages-houses.js（後ろの部品・関数なので可）：`cvTex`
+  - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
-## 20-villages-houses.js
-- 作る：`ROOF_COLS`、`VILLAGES`、`atlasMat`、`breaks`、`cvTex`、`houses`、`isLand`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`roofs`、`roofs2`、`skirt`、`terrainAt`、`wallAt`、`wallAt2`、`wallG`、`wallGA`、`wallGB`、`wallM`、`wallM2`、`wallTex`、`wallVar`、`walls`、`walls2`
+## 20-villages-layout.js
+- 作る：`ROOF_COLS`、`VILLAGES`、`breaks`、`cvTex`、`houses`、`isLand`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`terrainAt`、`wallG`、`wallM`、`wallTex`
 - 使う：
-  - 00-head.js：`G`、`NEAR_TREE_MAT`
-  - 01-settings.js：`S`
+  - 00-head.js：`G`
   - 03-coords.js：`ll`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inInner`、`inLake`、`maxY`、`minY`
   - 07-depth.js：`depth`、`distShore`
   - 10-start.js：`rnd`
-  - 12-renderer.js：`QUALITY`、`scene`
-  - 16-terrain.js：`TH`、`TW`、`VEX`、`tdx`、`tdy`、`terrH`、`tx0`、`ty0`
-  - 17-trees.js：`cardForest`
-  - 18-buildings.js：`buildHouse`、`inReeds`
+  - 16-terrain.js：`TH`、`TW`、`tdx`、`tdy`、`terrH`、`tx0`、`ty0`
+  - 18-buildings.js：`buildHouse`
   - 19-boats.js：`PORT`
-  - 24-harbors.js（後ろの部品・関数なので可）：`lumpy`
-  - 25-forests.js（後ろの部品・関数なので可）：`treeFade`
 
-## 21-village-lights-roads.js
+## 21-villages-walls-roofs.js
+- 作る：`atlasMat`、`roofs`、`roofs2`、`skirt`、`wallAt`、`wallAt2`、`wallGA`、`wallGB`、`wallM2`、`wallVar`、`walls`、`walls2`
+- 使う：
+  - 00-head.js：`G`、`NEAR_TREE_MAT`
+  - 01-settings.js：`S`
+  - 05-lake.js：`outer`
+  - 06-inner-lakes.js：`inLake`
+  - 07-depth.js：`distShore`
+  - 10-start.js：`rnd`
+  - 12-renderer.js：`QUALITY`、`scene`
+  - 16-terrain.js：`VEX`
+  - 17-trees.js：`cardForest`
+  - 18-buildings.js：`inReeds`
+  - 20-villages-layout.js：`ROOF_COLS`、`cvTex`、`houses`、`roads`、`roofGab`、`roofHip`、`roofM`、`terrainAt`、`wallG`
+  - 25-harbors.js（後ろの部品・関数なので可）：`lumpy`
+  - 26-forests.js（後ろの部品・関数なので可）：`treeFade`
+
+## 22-village-lights-roads.js
 - 作る：`winGeo`、`windows`、`wp`
 - 使う：
   - 01-settings.js：`S`
@@ -172,18 +184,18 @@
   - 07-depth.js：`distShore`
   - 12-renderer.js：`scene`
   - 16-terrain.js：`VEX`
-  - 20-villages-houses.js：`houses`、`roads`、`terrainAt`
+  - 20-villages-layout.js：`houses`、`roads`、`terrainAt`
 
-## 22-paddies.js
+## 23-paddies.js
 - 作る：`PADDY`、`ghI`、`paddyI`、`paddyM`、`paddySeason`
 - 使う：
   - 01-settings.js：`S`
   - 02-season.js：`SEASON`
   - 12-renderer.js：`scene`
   - 16-terrain.js：`VEX`
-  - 20-villages-houses.js：`cvTex`、`paddies`、`terrainAt`
+  - 20-villages-layout.js：`cvTex`、`paddies`、`terrainAt`
 
-## 23-shore-landmarks.js
+## 24-shore-landmarks.js
 - 作る：`brk`、`shoreTrees`、`treeI`、`treeM`、`treeSeason`
 - 使う：
   - 00-head.js：`G`
@@ -198,11 +210,11 @@
   - 17-trees.js：`cardForest`
   - 18-buildings.js：`inReeds`
   - 19-boats.js：`PORT`
-  - 20-villages-houses.js：`ROOF_COLS`、`breaks`、`cvTex`、`houses`、`roofHip`、`roofM`、`terrainAt`
-  - 24-harbors.js（後ろの部品・関数なので可）：`treeGeom`
-  - 25-forests.js（後ろの部品・関数なので可）：`treeFade`
+  - 20-villages-layout.js：`ROOF_COLS`、`breaks`、`cvTex`、`houses`、`roofHip`、`roofM`、`terrainAt`
+  - 25-harbors.js（後ろの部品・関数なので可）：`treeGeom`
+  - 26-forests.js（後ろの部品・関数なので可）：`treeFade`
 
-## 24-harbors.js
+## 25-harbors.js
 - 作る：`TREE_MAT`、`lumpy`、`treeGeom`
 - 使う：
   - 00-head.js：`G`、`LEAFTX`、`NEAR_TREE_MAT`
@@ -213,7 +225,7 @@
   - 12-renderer.js：`scene`
   - 19-boats.js：`PORT`
 
-## 25-forests.js
+## 26-forests.js
 - 作る：`treeFade`
 - 使う：
   - 01-settings.js：`S`
@@ -224,12 +236,12 @@
   - 12-renderer.js：`MOBILE`、`QUALITY`
   - 16-terrain.js：`VEX`
   - 17-trees.js：`cardForest`
-  - 20-villages-houses.js：`houses`、`terrainAt`
+  - 20-villages-layout.js：`houses`、`terrainAt`
 
-## 26-sky-day.js
+## 27-sky-day.js
 - 作る：`SKY`、`skyAt`
 
-## 27-map.js
+## 28-map.js
 - 作る：`FZ`、`contours`、`drawFar`、`far`、`fx`、`fzAt`
 - 使う：
   - 00-head.js：`G`
@@ -240,18 +252,18 @@
   - 10-start.js：`rnd`
   - 11-state.js：`B`、`VIS`
   - 16-terrain.js：`PK`、`innerReedPts`、`landContours`、`reedPts`
-  - 20-villages-houses.js：`houses`
+  - 20-villages-layout.js：`houses`
 
-## 28-controls.js
+## 29-controls.js
 - 作る：`dist`、`distT`、`gl`、`isFar`、`joy`、`joyEnd`、`joyId`、`kIn`、`keys`、`knob`、`lastTap`、`pinch0`、`pitch`、`ptrs`、`setFar`、`up`、`yaw`、`yawT`
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
   - 11-state.js：`B`、`STATE`、`steer`
   - 12-renderer.js：`camera`
-  - 27-map.js：`FZ`、`far`、`fzAt`
+  - 28-map.js：`FZ`、`far`、`fzAt`
 
-## 29-audio.js
+## 30-audio.js
 - 作る：`SND`、`audioInit`、`audioUpdate`、`bird`、`horn`、`nburst`、`pan`、`prevMoving`
 - 使う：
   - 01-settings.js：`S`
@@ -260,9 +272,9 @@
   - 11-state.js：`B`
   - 12-renderer.js：`camera`
   - 19-boats.js：`boatMeshes`
-  - 28-controls.js：`isFar`、`yaw`
+  - 29-controls.js：`isFar`、`yaw`
 
-## 30-ui.js
+## 31-ui.js
 - 作る：`$`、`MAT_ICONS`、`dots`、`hex`、`mats`、`pick`、`restBtn`、`showName`
 - 使う：
   - 01-settings.js：`S`
@@ -271,28 +283,28 @@
   - 10-start.js：`starts`
   - 11-state.js：`B`、`STATE`、`camX`、`camZ`
   - 18-buildings.js：`BODY_COLORS`、`BUILDINGS`、`CUST`、`LIGHT_COLORS`、`buildHouse`、`house`、`inReeds`
-  - 28-controls.js：`dist`、`distT`、`gl`
-  - 29-audio.js：`SND`、`audioInit`
+  - 29-controls.js：`dist`、`distT`、`gl`
+  - 30-audio.js：`SND`、`audioInit`
 
-## 31-drawing.js
+## 32-drawing.js
 - 作る：`DL`、`makeDrawing`
 - 使う：
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`maxX`、`maxY`、`minX`、`minY`
   - 11-state.js：`B`
-  - 27-map.js：`contours`
-  - 30-ui.js：`$`
+  - 28-map.js：`contours`
+  - 31-ui.js：`$`
 
-## 32-resize.js
+## 33-resize.js
 - 作る：`resize`
 - 使う：
   - 12-renderer.js：`QUALITY`、`camera`、`renderer`、`resScale`
-  - 27-map.js：`far`
+  - 28-map.js：`far`
 
-## 33-frame-state.js
+## 34-frame-state.js
 - 作る：`fpsN`、`fpsT`、`last`、`trailT`
 
-## 34-torii.js
+## 35-torii.js
 - 作る：（なし）
 - 使う：
   - 00-head.js：`G`
@@ -301,7 +313,7 @@
   - 07-depth.js：`depth`
   - 12-renderer.js：`scene`
 
-## 35-fireworks.js
+## 36-fireworks.js
 - 作る：`FW`
 - 使う：
   - 00-head.js：`G`
@@ -312,10 +324,10 @@
   - 10-start.js：`rnd`
   - 12-renderer.js：`QUALITY`、`camera`、`renderer`、`scene`
   - 14-water.js：`waterU`
-  - 28-controls.js：`isFar`、`yaw`
-  - 29-audio.js：`SND`、`nburst`
+  - 29-controls.js：`isFar`、`yaw`
+  - 30-audio.js：`SND`、`nburst`
 
-## 36-buoys.js
+## 37-buoys.js
 - 作る：（なし）
 - 使う：
   - 00-head.js：`G`
@@ -325,9 +337,9 @@
   - 11-state.js：`B`、`STATE`、`VIS`
   - 12-renderer.js：`camera`、`scene`
   - 14-water.js：`waveH`
-  - 28-controls.js：`gl`、`isFar`、`ptrs`
+  - 29-controls.js：`gl`、`isFar`、`ptrs`
 
-## 37-seasonal-events.js
+## 38-seasonal-events.js
 - 作る：（なし）
 - 使う：
   - 00-head.js：`G`
@@ -338,10 +350,10 @@
   - 12-renderer.js：`camera`、`scene`
   - 14-water.js：`waveH`
   - 16-terrain.js：`VEX`、`reedPts`
-  - 20-villages-houses.js：`terrainAt`
-  - 24-harbors.js：`lumpy`
+  - 20-villages-layout.js：`terrainAt`
+  - 25-harbors.js：`lumpy`
 
-## 38-kaizu.js
+## 39-kaizu.js
 - 作る：（なし）
 - 使う：
   - 00-head.js：`G`
@@ -351,9 +363,9 @@
   - 10-start.js：`rnd`
   - 12-renderer.js：`scene`
   - 16-terrain.js：`VEX`
-  - 20-villages-houses.js：`cvTex`、`terrainAt`
+  - 20-villages-layout.js：`cvTex`、`terrainAt`
 
-## 39-shore-rocks.js
+## 40-shore-rocks.js
 - 作る：（なし）
 - 使う：
   - 00-head.js：`G`
@@ -364,9 +376,9 @@
   - 12-renderer.js：`scene`
   - 16-terrain.js：`VEX`、`vnoise`
   - 18-buildings.js：`reedMask`
-  - 20-villages-houses.js：`terrainAt`
+  - 20-villages-layout.js：`terrainAt`
 
-## 40-islands.js
+## 41-islands.js
 - 作る：（なし）
 - 使う：
   - 00-head.js：`G`
@@ -377,9 +389,9 @@
   - 12-renderer.js：`scene`
   - 16-terrain.js：`VEX`
   - 17-trees.js：`cardForest`
-  - 20-villages-houses.js：`terrainAt`
+  - 20-villages-layout.js：`terrainAt`
 
-## 41-city.js
+## 42-city.js
 - 作る：（なし）
 - 使う：
   - 00-head.js：`G`
@@ -389,9 +401,9 @@
   - 10-start.js：`rnd`
   - 12-renderer.js：`scene`
   - 16-terrain.js：`VEX`
-  - 20-villages-houses.js：`cvTex`、`terrainAt`
+  - 20-villages-layout.js：`cvTex`、`terrainAt`
 
-## 42-frame-move.js
+## 43-frame-move.js
 - 作る：`moveHouse`
 - 使う：
   - 00-head.js：`G`
@@ -402,10 +414,10 @@
   - 09-wind.js：`flow`
   - 11-state.js：`B`、`STATE`、`steer`
   - 18-buildings.js：`BP`、`inReeds`
-  - 28-controls.js：`joyId`、`kIn`、`keys`、`yaw`
-  - 30-ui.js：`restBtn`
+  - 29-controls.js：`joyId`、`kIn`、`keys`、`yaw`
+  - 31-ui.js：`restBtn`
 
-## 43-frame-sky-light.js
+## 44-frame-sky-light.js
 - 作る：`updateSkyLight`
 - 使う：
   - 00-head.js：`G`
@@ -420,14 +432,14 @@
   - 16-terrain.js：`FOREST_TINT`、`INNER_Y`、`REED_MONTH`、`REED_TEX`、`SNOW`、`innerReeds`、`reedU`、`reeds`、`terrMat`
   - 18-buildings.js：`CUST`、`LIGHT_COLORS`、`glassMats`、`house`
   - 19-boats.js：`W_SENSE`、`flash`、`nextFlash`、`portLamps`、`smB`、`smoke`、`smokeGeo`、`updatePrecip`
-  - 20-villages-houses.js：`roofM`、`roofSnowU`
-  - 21-village-lights-roads.js：`windows`
-  - 22-paddies.js：`paddySeason`
-  - 23-shore-landmarks.js：`treeSeason`
-  - 26-sky-day.js：`skyAt`
-  - 28-controls.js：`isFar`
+  - 20-villages-layout.js：`roofM`、`roofSnowU`
+  - 22-village-lights-roads.js：`windows`
+  - 23-paddies.js：`paddySeason`
+  - 24-shore-landmarks.js：`treeSeason`
+  - 27-sky-day.js：`skyAt`
+  - 29-controls.js：`isFar`
 
-## 44-frame-float.js
+## 45-frame-float.js
 - 作る：`floatHouse`
 - 使う：
   - 00-head.js：`G`
@@ -440,7 +452,7 @@
   - 18-buildings.js：`BP`、`house`
   - 19-boats.js：`WAKE_N`、`wakeBob`、`wakeI`、`wakeP`
 
-## 45-frame-camera.js
+## 46-frame-camera.js
 - 作る：`updateCamera`
 - 使う：
   - 00-head.js：`G`
@@ -451,10 +463,10 @@
   - 14-water.js：`water`、`waveH`
   - 16-terrain.js：`VEX`
   - 18-buildings.js：`house`
-  - 20-villages-houses.js：`terrainAt`
-  - 28-controls.js：`dist`、`distT`、`pitch`、`ptrs`、`yaw`、`yawT`
+  - 20-villages-layout.js：`terrainAt`
+  - 29-controls.js：`dist`、`distT`、`pitch`、`ptrs`、`yaw`、`yawT`
 
-## 46-frame-render.js
+## 47-frame-render.js
 - 作る：`renderFrame`
 - 使う：
   - 00-head.js：`G`
@@ -463,7 +475,7 @@
   - 13-sky-dome.js：`skyDome`
   - 14-water.js：`water`、`waterU`
 
-## 47-frame.js
+## 48-frame.js
 - 作る：`frame`
 - 使う：
   - 00-head.js：`G`
@@ -476,22 +488,22 @@
   - 12-renderer.js：`QUALITY`、`resScale`
   - 18-buildings.js：`CUST`、`buildHouse`、`reedMask`
   - 19-boats.js：`boatState`、`updateBoats`
-  - 20-villages-houses.js：`houses`
-  - 27-map.js：`drawFar`
-  - 28-controls.js：`dist`、`distT`、`isFar`、`pitch`、`yaw`、`yawT`
-  - 29-audio.js：`audioUpdate`
-  - 32-resize.js：`resize`
-  - 33-frame-state.js：`fpsN`、`fpsT`、`last`、`trailT`
-  - 35-fireworks.js：`FW`
-  - 42-frame-move.js：`moveHouse`
-  - 43-frame-sky-light.js：`updateSkyLight`
-  - 44-frame-float.js：`floatHouse`
-  - 45-frame-camera.js：`updateCamera`
-  - 46-frame-render.js：`renderFrame`
+  - 20-villages-layout.js：`houses`
+  - 28-map.js：`drawFar`
+  - 29-controls.js：`dist`、`distT`、`isFar`、`pitch`、`yaw`、`yawT`
+  - 30-audio.js：`audioUpdate`
+  - 33-resize.js：`resize`
+  - 34-frame-state.js：`fpsN`、`fpsT`、`last`、`trailT`
+  - 36-fireworks.js：`FW`
+  - 43-frame-move.js：`moveHouse`
+  - 44-frame-sky-light.js：`updateSkyLight`
+  - 45-frame-float.js：`floatHouse`
+  - 46-frame-camera.js：`updateCamera`
+  - 47-frame-render.js：`renderFrame`
 
 ## 共有の値（window.__xxx）
 
 - `__floating`：00-head.js
-- `__scene`：47-frame.js
-- `__set`：47-frame.js
-- `__setH`：47-frame.js
+- `__scene`：48-frame.js
+- `__set`：48-frame.js
+- `__setH`：48-frame.js

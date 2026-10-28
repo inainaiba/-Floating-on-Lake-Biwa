@@ -246,17 +246,94 @@ terrMat.onBeforeCompile = (sh) => {
     )
     .replace(
       "#include <color_fragment>",
-      "#include <color_fragment>\nvec3 nrm=normalize(cross(dFdx(vec3(vXZ.x,vH,vXZ.y)),dFdy(vec3(vXZ.x,vH,vXZ.y))));if(nrm.y<0.)nrm=-nrm;vec3 nrmE=normalize(vec3(nrm.x*3.,nrm.y,nrm.z*3.));float slope=1.-abs(nrm.y);diffuseColor.rgb*=.78+.5*smoothstep(.0,.6,1.-slope)*.25+.12;{float rn=fract(sin(dot(floor(vXZ*.08),vec2(5.3,1.9)))*91.);vec3 rock=mix(vec3(.38,.37,.34),vec3(.55,.53,.49),rn)*(.85+.3*fract(sin(dot(floor(vXZ*.7),vec2(3.1,8.7)))*61.));diffuseColor.rgb=mix(diffuseColor.rgb,rock,smoothstep(.42,.75,slope)*(.45+.4*rn)*smoothstep(10.,40.,vH));}diffuseColor.rgb*=.5+.75*clamp(dot(nrmE,normalize(vec3(.55,.6,.4))),0.,1.);float mic=.5+.5*sin(vXZ.x*3.1+sin(vXZ.y*2.7)*2.)*sin(vXZ.y*2.9+sin(vXZ.x*3.3));mic=mix(mic,fract(sin(dot(floor(vXZ*9.),vec2(12.9,4.1)))*437.),.5);diffuseColor.rgb*=.9+mic*.2*smoothstep(90.,8.,length(cameraPosition.xz-vXZ));diffuseColor.rgb*=.85+.15*smoothstep(0.,40.,vH);diffuseColor.rgb+=vec3(.08,.04,.0)*uLow*smoothstep(20.,120.,vH);float beach=1.-smoothstep(.85,1.0+.25*fract(sin(dot(floor(vXZ*.05),vec2(2.,9.)))*77.),vH);diffuseColor.rgb*=1.-.25*(1.-smoothstep(.62,.8,vH));diffuseColor.rgb*=1.-.28*smoothstep(1.05,.75,vH)*smoothstep(.45,.7,vH);{vec2 bq=vXZ*.0035,bi=floor(bq),bf=fract(bq);bf=bf*bf*(3.-2.*bf);float b1=fract(sin(dot(bi,vec2(12.9,7.7)))*437.),b2=fract(sin(dot(bi+vec2(1,0),vec2(12.9,7.7)))*437.),b3=fract(sin(dot(bi+vec2(0,1),vec2(12.9,7.7)))*437.),b4=fract(sin(dot(bi+1.,vec2(12.9,7.7)))*437.);float sk=mix(mix(b1,b2,bf.x),mix(b3,b4,bf.x),bf.y);float pb=fract(sin(dot(floor(vXZ*2.2),vec2(3.1,9.7)))*917.);vec3 sand=mix(vec3(.6,.57,.5),vec3(.88,.85,.76),smoothstep(.6,.9,vH)),grav=mix(vec3(.36,.35,.33),vec3(.58,.56,.52),pb),rock=mix(vec3(.24,.23,.22),vec3(.46,.44,.41),pb*pb);vec3 bc=sk<.4?sand:sk<.7?mix(sand,grav,smoothstep(.4,.5,sk)):mix(grav,rock,smoothstep(.7,.8,sk));diffuseColor.rgb=mix(diffuseColor.rgb,bc,beach*.88);}vec2 pq=vXZ*.06,pi=floor(pq),pf=fract(pq);pf=pf*pf*(3.-2.*pf);float ha=fract(sin(dot(pi,vec2(17.1,31.7)))*4375.5),hb=fract(sin(dot(pi+vec2(1,0),vec2(17.1,31.7)))*4375.5),hc=fract(sin(dot(pi+vec2(0,1),vec2(17.1,31.7)))*4375.5),hd=fract(sin(dot(pi+1.,vec2(17.1,31.7)))*4375.5);float pn=mix(mix(ha,hb,pf.x),mix(hc,hd,pf.x),pf.y);float pn2=fract(sin(dot(floor(vXZ*.2),vec2(7.3,11.9)))*1531.7);vec3 low=mix(vec3(.36,.45,.25),vec3(.5,.47,.32),pn);{vec2 fq=vXZ*.25;float fl=step(.08,fract(fq.x))*step(.08,fract(fq.y));vec3 fc=mix(low,low*vec3(1.08,1.04,.9),step(.5,fract(sin(dot(floor(fq),vec2(3.3,7.7)))*91.)));diffuseColor.rgb=mix(diffuseColor.rgb,mix(fc*.82,fc,fl)*(.9+pn2*.2),(1.-smoothstep(1.,6.,vH))*.75);}diffuseColor.rgb*=.95+pn*.1;vec2 cq=vXZ*.45,ci=floor(cq),cf=fract(cq);cf=cf*cf*(3.-2.*cf);float ca=fract(sin(dot(ci,vec2(12.7,47.3)))*2753.1),cb=fract(sin(dot(ci+vec2(1,0),vec2(12.7,47.3)))*2753.1),cc_=fract(sin(dot(ci+vec2(0,1),vec2(12.7,47.3)))*2753.1),cd=fract(sin(dot(ci+1.,vec2(12.7,47.3)))*2753.1);float cn=mix(mix(ca,cb,cf.x),mix(cc_,cd,cf.x),cf.y);float wood=smoothstep(1.2,3.,vH)*(1.-smoothstep(.75,.95,slope));vec2 c2q=vXZ*1.3,c2i=floor(c2q),c2f=fract(c2q);c2f=c2f*c2f*(3.-2.*c2f);float h2a=fract(sin(dot(c2i,vec2(9.1,3.7)))*517.3),h2b=fract(sin(dot(c2i+vec2(1,0),vec2(9.1,3.7)))*517.3),h2c=fract(sin(dot(c2i+vec2(0,1),vec2(9.1,3.7)))*517.3),h2d=fract(sin(dot(c2i+1.,vec2(9.1,3.7)))*517.3);float cn2=mix(mix(h2a,h2b,c2f.x),mix(h2c,h2d,c2f.x),c2f.y);cn=mix(cn,cn2,.4);{float cedar=smoothstep(.42,.78,pn*.6+cn2*.4)*smoothstep(15.,60.,vH);vec3 wc=mix(vec3(.13,.21,.1),vec3(.3,.38,.18),cn*cn);wc=mix(wc,vec3(.08,.13,.08)+vec3(.04,.05,.03)*cn,cedar*.6);{vec2 cq=vXZ*.22,ci=floor(cq),cf=fract(cq)-.5;cf+=vec2(fract(sin(dot(ci,vec2(1.7,9.2)))*91.),fract(sin(dot(ci,vec2(8.3,2.8)))*91.))*.5-.25;float cr=1.-smoothstep(.15,.55,length(cf));float lit=dot(normalize(vec3(cf.x,.6,cf.y)),normalize(vec3(.5,.7,.35)));wc*=.82+.32*cr*(.6+.4*lit)*smoothstep(160.,20.,length(cameraPosition.xz-vXZ))+.08*(1.-smoothstep(160.,20.,length(cameraPosition.xz-vXZ)));}wc=mix(wc,wc*vec3(1.3,1.38,1.)+vec3(.035,.045,.02),max(uSpr,0.)*.55);wc*=1.+min(uSpr,0.)*.18;diffuseColor.rgb=mix(diffuseColor.rgb,wc,wood*.95);diffuseColor.rgb*=1.+.25*wood*(dot(nrmE,normalize(vec3(.55,.6,.4)))-.45);}diffuseColor.rgb*=1.-wood*.28*(1.-uSnow*.5*(1.-uSnow*smoothstep(90.,120.,vH)));\nvec2 aq=vXZ*.35,ai=floor(aq),af=fract(aq);af=af*af*(3.-2.*af);float a1=fract(sin(dot(ai,vec2(12.9,78.2)))*43758.5),a2=fract(sin(dot(ai+vec2(1,0),vec2(12.9,78.2)))*43758.5),a3=fract(sin(dot(ai+vec2(0,1),vec2(12.9,78.2)))*43758.5),a4=fract(sin(dot(ai+1.,vec2(12.9,78.2)))*43758.5);float nz=mix(mix(a1,a2,af.x),mix(a3,a4,af.x),af.y);diffuseColor.rgb=mix(diffuseColor.rgb,mix(mix(vec3(.62,.22,.07),vec3(.78,.5,.1),fract(nz*7.)),vec3(.55,.12,.06),step(.85,fract(nz*13.))),uAut*.85*smoothstep(.45,.62,nz)*smoothstep(" +
-        (20 * S * VEX).toFixed(2) +
-        "," +
-        (120 * S * VEX).toFixed(2) +
-        ",vH));\ndiffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.05,.92,.75),uWin);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.9,.92,.94)*(.85+.15*mic),uSL*(1.-smoothstep(.55,.9,slope))*smoothstep(.3,1.2,vH));diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.93,.94,.96),uSnow*smoothstep(" +
-        (600 * S * VEX).toFixed(2) +
-        "," +
-        (800 * S * VEX).toFixed(2) +
-        ",vH+(fract(sin(dot(floor(vXZ*.6),vec2(3.,7.)))*91.)-.5)*" +
-        (120 * S * VEX).toFixed(2) +
-        "));{float dc_=length(cameraPosition.xz-vXZ);float hz=1.-exp(-dc_/3800.);hz*=(.55+.45*smoothstep(5.,160.,vH));{float cs=smoothstep(.35,.8,.5+.5*sin((vXZ.x+uCT*4.)*.0045+sin(vXZ.y*.0031)*2.)*sin((vXZ.y+uCT*2.)*.0038+sin(vXZ.x*.0027)*1.7));diffuseColor.rgb*=1.-cs*.3*uCSh*clamp(uSunT.y*3.,0.,1.);float low=smoothstep(.22,.02,uSunT.y)*smoothstep(-.1,.02,uSunT.y);vec2 sd2=normalize(uSunT.xz+1e-4);float face=pow(max(dot(normalize(nrm.xz+1e-4),sd2),0.),2.)*smoothstep(.05,.5,1.-nrm.y);diffuseColor.rgb+=vec3(1.,.55,.3)*face*low*smoothstep(40.,180.,vH)*.35;}diffuseColor.rgb=mix(diffuseColor.rgb,uHaze*1.1,clamp(hz,0.,1.)*.85);diffuseColor.rgb*=1.+.12*hz;}",
+      `#include <color_fragment>
+// ── 山肌の色の重なり ──
+// 傾き → 岩肌 → 低地と浜 → 田の区画 → 森（杉林・樹冠・新緑と深緑）→ 紅葉 → 冬枯れと雪 → 霞・雲の影・山の縁の光
+vec3 nrm=normalize(cross(dFdx(vec3(vXZ.x,vH,vXZ.y)),dFdy(vec3(vXZ.x,vH,vXZ.y))));
+if(nrm.y<0.)nrm=-nrm;
+vec3 nrmE=normalize(vec3(nrm.x*3.,nrm.y,nrm.z*3.));
+float slope=1.-abs(nrm.y);
+diffuseColor.rgb*=.78+.5*smoothstep(.0,.6,1.-slope)*.25+.12;
+// 岩肌（急な斜面）
+{float rn=fract(sin(dot(floor(vXZ*.08),vec2(5.3,1.9)))*91.);
+vec3 rock=mix(vec3(.38,.37,.34),vec3(.55,.53,.49),rn)*(.85+.3*fract(sin(dot(floor(vXZ*.7),vec2(3.1,8.7)))*61.));
+diffuseColor.rgb=mix(diffuseColor.rgb,rock,smoothstep(.42,.75,slope)*(.45+.4*rn)*smoothstep(10.,40.,vH));
+}diffuseColor.rgb*=.5+.75*clamp(dot(nrmE,normalize(vec3(.55,.6,.4))),0.,1.);
+float mic=.5+.5*sin(vXZ.x*3.1+sin(vXZ.y*2.7)*2.)*sin(vXZ.y*2.9+sin(vXZ.x*3.3));
+mic=mix(mic,fract(sin(dot(floor(vXZ*9.),vec2(12.9,4.1)))*437.),.5);
+diffuseColor.rgb*=.9+mic*.2*smoothstep(90.,8.,length(cameraPosition.xz-vXZ));
+diffuseColor.rgb*=.85+.15*smoothstep(0.,40.,vH);
+diffuseColor.rgb+=vec3(.08,.04,.0)*uLow*smoothstep(20.,120.,vH);
+// 浜（砂・礫・岩）と水際の濡れた帯
+float beach=1.-smoothstep(.85,1.0+.25*fract(sin(dot(floor(vXZ*.05),vec2(2.,9.)))*77.),vH);
+diffuseColor.rgb*=1.-.25*(1.-smoothstep(.62,.8,vH));
+diffuseColor.rgb*=1.-.28*smoothstep(1.05,.75,vH)*smoothstep(.45,.7,vH);
+{vec2 bq=vXZ*.0035,bi=floor(bq),bf=fract(bq);
+bf=bf*bf*(3.-2.*bf);
+float b1=fract(sin(dot(bi,vec2(12.9,7.7)))*437.),b2=fract(sin(dot(bi+vec2(1,0),vec2(12.9,7.7)))*437.),b3=fract(sin(dot(bi+vec2(0,1),vec2(12.9,7.7)))*437.),b4=fract(sin(dot(bi+1.,vec2(12.9,7.7)))*437.);
+float sk=mix(mix(b1,b2,bf.x),mix(b3,b4,bf.x),bf.y);
+float pb=fract(sin(dot(floor(vXZ*2.2),vec2(3.1,9.7)))*917.);
+vec3 sand=mix(vec3(.6,.57,.5),vec3(.88,.85,.76),smoothstep(.6,.9,vH)),grav=mix(vec3(.36,.35,.33),vec3(.58,.56,.52),pb),rock=mix(vec3(.24,.23,.22),vec3(.46,.44,.41),pb*pb);
+vec3 bc=sk<.4?sand:sk<.7?mix(sand,grav,smoothstep(.4,.5,sk)):mix(grav,rock,smoothstep(.7,.8,sk));
+diffuseColor.rgb=mix(diffuseColor.rgb,bc,beach*.88);
+}vec2 pq=vXZ*.06,pi=floor(pq),pf=fract(pq);
+pf=pf*pf*(3.-2.*pf);
+float ha=fract(sin(dot(pi,vec2(17.1,31.7)))*4375.5),hb=fract(sin(dot(pi+vec2(1,0),vec2(17.1,31.7)))*4375.5),hc=fract(sin(dot(pi+vec2(0,1),vec2(17.1,31.7)))*4375.5),hd=fract(sin(dot(pi+1.,vec2(17.1,31.7)))*4375.5);
+float pn=mix(mix(ha,hb,pf.x),mix(hc,hd,pf.x),pf.y);
+float pn2=fract(sin(dot(floor(vXZ*.2),vec2(7.3,11.9)))*1531.7);
+vec3 low=mix(vec3(.36,.45,.25),vec3(.5,.47,.32),pn);
+{vec2 fq=vXZ*.25;
+float fl=step(.08,fract(fq.x))*step(.08,fract(fq.y));
+vec3 fc=mix(low,low*vec3(1.08,1.04,.9),step(.5,fract(sin(dot(floor(fq),vec2(3.3,7.7)))*91.)));
+diffuseColor.rgb=mix(diffuseColor.rgb,mix(fc*.82,fc,fl)*(.9+pn2*.2),(1.-smoothstep(1.,6.,vH))*.75);
+}diffuseColor.rgb*=.95+pn*.1;
+vec2 cq=vXZ*.45,ci=floor(cq),cf=fract(cq);
+cf=cf*cf*(3.-2.*cf);
+float ca=fract(sin(dot(ci,vec2(12.7,47.3)))*2753.1),cb=fract(sin(dot(ci+vec2(1,0),vec2(12.7,47.3)))*2753.1),cc_=fract(sin(dot(ci+vec2(0,1),vec2(12.7,47.3)))*2753.1),cd=fract(sin(dot(ci+1.,vec2(12.7,47.3)))*2753.1);
+float cn=mix(mix(ca,cb,cf.x),mix(cc_,cd,cf.x),cf.y);
+// 森
+float wood=smoothstep(1.2,3.,vH)*(1.-smoothstep(.75,.95,slope));
+vec2 c2q=vXZ*1.3,c2i=floor(c2q),c2f=fract(c2q);
+c2f=c2f*c2f*(3.-2.*c2f);
+float h2a=fract(sin(dot(c2i,vec2(9.1,3.7)))*517.3),h2b=fract(sin(dot(c2i+vec2(1,0),vec2(9.1,3.7)))*517.3),h2c=fract(sin(dot(c2i+vec2(0,1),vec2(9.1,3.7)))*517.3),h2d=fract(sin(dot(c2i+1.,vec2(9.1,3.7)))*517.3);
+float cn2=mix(mix(h2a,h2b,c2f.x),mix(h2c,h2d,c2f.x),c2f.y);
+cn=mix(cn,cn2,.4);
+{float cedar=smoothstep(.42,.78,pn*.6+cn2*.4)*smoothstep(15.,60.,vH);
+vec3 wc=mix(vec3(.13,.21,.1),vec3(.3,.38,.18),cn*cn);
+wc=mix(wc,vec3(.08,.13,.08)+vec3(.04,.05,.03)*cn,cedar*.6);
+{vec2 cq=vXZ*.22,ci=floor(cq),cf=fract(cq)-.5;
+cf+=vec2(fract(sin(dot(ci,vec2(1.7,9.2)))*91.),fract(sin(dot(ci,vec2(8.3,2.8)))*91.))*.5-.25;
+float cr=1.-smoothstep(.15,.55,length(cf));
+float lit=dot(normalize(vec3(cf.x,.6,cf.y)),normalize(vec3(.5,.7,.35)));
+wc*=.82+.32*cr*(.6+.4*lit)*smoothstep(160.,20.,length(cameraPosition.xz-vXZ))+.08*(1.-smoothstep(160.,20.,length(cameraPosition.xz-vXZ)));
+}wc=mix(wc,wc*vec3(1.3,1.38,1.)+vec3(.035,.045,.02),max(uSpr,0.)*.55);
+wc*=1.+min(uSpr,0.)*.18;
+diffuseColor.rgb=mix(diffuseColor.rgb,wc,wood*.95);
+diffuseColor.rgb*=1.+.25*wood*(dot(nrmE,normalize(vec3(.55,.6,.4)))-.45);
+}diffuseColor.rgb*=1.-wood*.28*(1.-uSnow*.5*(1.-uSnow*smoothstep(90.,120.,vH)));
+// 紅葉
+vec2 aq=vXZ*.35,ai=floor(aq),af=fract(aq);
+af=af*af*(3.-2.*af);
+float a1=fract(sin(dot(ai,vec2(12.9,78.2)))*43758.5),a2=fract(sin(dot(ai+vec2(1,0),vec2(12.9,78.2)))*43758.5),a3=fract(sin(dot(ai+vec2(0,1),vec2(12.9,78.2)))*43758.5),a4=fract(sin(dot(ai+1.,vec2(12.9,78.2)))*43758.5);
+float nz=mix(mix(a1,a2,af.x),mix(a3,a4,af.x),af.y);
+diffuseColor.rgb=mix(diffuseColor.rgb,mix(mix(vec3(.62,.22,.07),vec3(.78,.5,.1),fract(nz*7.)),vec3(.55,.12,.06),step(.85,fract(nz*13.))),uAut*.85*smoothstep(.45,.62,nz)*smoothstep(${(20 * S * VEX).toFixed(2)},${(120 * S * VEX).toFixed(2)},vH));
+// 冬枯れと雪
+diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.05,.92,.75),uWin);
+diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.9,.92,.94)*(.85+.15*mic),uSL*(1.-smoothstep(.55,.9,slope))*smoothstep(.3,1.2,vH));
+diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.93,.94,.96),uSnow*smoothstep(${(600 * S * VEX).toFixed(2)},${(800 * S * VEX).toFixed(2)},vH+(fract(sin(dot(floor(vXZ*.6),vec2(3.,7.)))*91.)-.5)*${(120 * S * VEX).toFixed(2)}));
+// 遠くの霞、雲の影、朝夕の山の縁の光
+{float dc_=length(cameraPosition.xz-vXZ);
+float hz=1.-exp(-dc_/3800.);
+hz*=(.55+.45*smoothstep(5.,160.,vH));
+{float cs=smoothstep(.35,.8,.5+.5*sin((vXZ.x+uCT*4.)*.0045+sin(vXZ.y*.0031)*2.)*sin((vXZ.y+uCT*2.)*.0038+sin(vXZ.x*.0027)*1.7));
+diffuseColor.rgb*=1.-cs*.3*uCSh*clamp(uSunT.y*3.,0.,1.);
+float low=smoothstep(.22,.02,uSunT.y)*smoothstep(-.1,.02,uSunT.y);
+vec2 sd2=normalize(uSunT.xz+1e-4);
+float face=pow(max(dot(normalize(nrm.xz+1e-4),sd2),0.),2.)*smoothstep(.05,.5,1.-nrm.y);
+diffuseColor.rgb+=vec3(1.,.55,.3)*face*low*smoothstep(40.,180.,vH)*.35;
+}diffuseColor.rgb=mix(diffuseColor.rgb,uHaze*1.1,clamp(hz,0.,1.)*.85);
+diffuseColor.rgb*=1.+.12*hz;
+}${}`,
     );
 };
 const terr = new THREE.Mesh(terrGeo, terrMat);

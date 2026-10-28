@@ -39,14 +39,14 @@ function frame(now) {
     return;
   }
 
-  const { X_, day, night, sa } = updateSkyLight(dt, t, c, W);
+  const { wxNow, day, night, sunAngle } = updateSkyLight(dt, t, c, W);
   const { hx, hz } = floatHouse(dt, t, W, day);
   updateBoats(boats, dt, t, night);
   if (FW) FW.update(dt, c, day);
   if (G.buoys) G.buoys.update(t, day < 0.08);
   if (G.EV) G.EV.update(dt, c, day, t, W);
   updateCamera(dt, t, hx, hz);
-  renderFrame(c, W, X_, day, sa);
+  renderFrame(c, W, wxNow, day, sunAngle);
   requestAnimationFrame(frame);
 }
 // 確認用：URLに ?debug を付けたときだけ、撮影スクリプトから視点を動かせるようにする
