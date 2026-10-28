@@ -3,6 +3,8 @@ G.life = (() => {
   const R = rnd(9393);
   // 竹林：集落の裏手に、ところどころ
   const bam = [];
+  if (LOOK.show.bamboo) {
+  const R = rndFor("bamboo");
   houses.forEach((h, i) => {
     if (i % 11 !== 3) return;
     for (let k = 0; k < 4; k++) {
@@ -12,6 +14,7 @@ G.life = (() => {
     }
   });
   if (bam.length) cardForest("bamboo", bam, 14, 8, 30, QUALITY.nearTrees[1], false);
+  }
 
   // 山肌を這う雲：雨上がりや曇りの日、山の中腹にゆっくり流れる白い雲
   const ctx = (() => {
@@ -65,6 +68,7 @@ G.life = (() => {
   // ススキ：秋（9〜11月）、田のあぜと山すそに穂が揺れる
   const susT = { value: 0 };
   const susuki = (() => {
+    const R = rndFor("susuki");
     const tex = cvTex(64, 128, (g, w, h) => {
       for (let k = 0; k < 14; k++) {
         const x0 = w * (0.2 + Math.random() * 0.6),
@@ -162,6 +166,7 @@ G.life = (() => {
   })();
   // 水辺の林：ヤナギ・ハンノキが浅い水に浸かって立つ（奥の洲のような木立）
   const wet = (() => {
+    const R = rndFor("wetWoods");
     const pts = [];
     reedPts.forEach(([x, y], i) => {
       if (i % 23 !== 5) return;
@@ -203,11 +208,13 @@ G.life = (() => {
       crown.setColorAt(i, R() < 0.55 ? cc.setHSL(0.2 + R() * 0.03, 0.42, 0.42) : cc.setHSL(0.27, 0.35, 0.26));
     });
     trunk.castShadow = crown.castShadow = QUALITY.treeShadow;
+    trunk.visible = crown.visible = LOOK.show.wetWoods;
     scene.add(trunk, crown);
     return { crown, cm };
   })();
   // 湖岸の松並木：近江舞子・北小松・萩の浜・宮ヶ浜の白砂青松
-  {
+  if (LOOK.show.pines) {
+    const R = rndFor("pines");
     const SITES = [
       [135.958, 35.262, 1400],
       [135.972, 35.284, 900],
@@ -238,7 +245,7 @@ G.life = (() => {
     const cx = camera.position.x,
       cz = camera.position.z;
     // 雲
-    const want = day > 0.05 ? Math.min(1, Math.max(0, (wxNow.gray - 0.35) * 2) + wxNow.rain * 0.8 + wxNow.white * 0.6) : 0;
+    const want = LOOK.show.mountainClouds && day > 0.05 ? Math.min(1, Math.max(0, (wxNow.gray - 0.35) * 2) + wxNow.rain * 0.8 + wxNow.white * 0.6) : 0;
     if (want > 0.02 && (!cloudAt || Math.hypot(cloudAt[0] - cx, cloudAt[1] - cz) > 1200)) placeClouds();
     for (const cl of clouds) {
       cl.s.visible = cl.ok && want > 0.02 && !isFar;
@@ -248,7 +255,7 @@ G.life = (() => {
       cl.s.material.opacity = want * (0.55 + 0.25 * Math.sin(t * 0.05 + cl.ph));
     }
     susT.value = t;
-    susuki.visible = c.month >= LOOK.months.susuki[0] && c.month <= LOOK.months.susuki[1];
+    susuki.visible = LOOK.show.susuki && c.month >= LOOK.months.susuki[0] && c.month <= LOOK.months.susuki[1];
     // 水辺の林の季節：冬は葉を落として枝の灰色、春は芽吹きの淡い緑、秋は黄色
     wet.cm.color.setHex([0x8a8478, 0x8a8478, 0xc8d8a0, 0xe0f0c0, 0xffffff, 0xffffff, 0xffffff, 0xffffff, 0xf4f0c0, 0xf0d890, 0xd8b880, 0x9a9080][c.month]);
   }

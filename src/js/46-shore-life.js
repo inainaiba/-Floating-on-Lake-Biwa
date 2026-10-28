@@ -7,14 +7,18 @@ G.shore = (() => {
     wOn = new Float32Array(wN),
     wOff = new Float32Array(wN),
     wMorn = new Float32Array(wN);
+  {
+  const R = rndFor("windows");
   for (let i = 0; i < wN; i++) {
     wOn[i] = 0.7 + R() * 0.1;
     wOff[i] = 0.9 + R() * 0.2;
     wMorn[i] = R() < 0.25 ? 0.19 + R() * 0.06 : 9;
   }
+  }
   let wT = 0;
   // えり：浅い沖に竹竿を一列に立て、先を矢じりの形に囲う湖の定置網
-  {
+  if (LOOK.show.eri) {
+    const R = rndFor("eri");
     const P = [];
     const cand = [];
     for (let i = 0; i < outer.length - 1; i += 3) cand.push(i);
@@ -63,7 +67,7 @@ G.shore = (() => {
     const cx = camera.position.x,
       cz = camera.position.z;
     wT -= dt;
-    if (wT <= 0) {
+    if (LOOK.show.windowFlicker && wT <= 0) {
       wT = 0.5;
       const p = c.phase,
         ar = winGeo.attributes.color.array;

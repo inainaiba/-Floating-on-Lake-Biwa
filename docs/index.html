@@ -92,6 +92,16 @@ import * as THREE from "three";
 // 部品をまたいで使う共有の値はここに集める。
 // URL に ?debug を付けたときだけ、確認用に window.__floating として外から見えるようにする（公開時は閉じておく）
 const G = /[?&]debug(?:[=&]|$)/.test(location.search) ? (window.__floating = {}) : {};
+// three.js の内部シェーダーを文字列で置き換えて改造している箇所の見張り（?debug のときだけ）。
+// 置き換え先の目印（#include <…>）が見つからないと、改造が黙って効かなくなるので、コンソールに誤りとして出す。
+// 撮影確認（tools/check.py）はコンソールの誤りを拾って失敗にする。
+if (window.__floating) {
+  const orig = String.prototype.replace;
+  String.prototype.replace = function (a, b) {
+    if (typeof a === "string" && a.startsWith("#include <") && !this.includes(a)) console.error("[shader] 置き換えの目印が見つかりません：" + a);
+    return orig.call(this, a, b);
+  };
+}
 // 点を丸く柔らかく描くための小さな画像（蛍・花びら・落ち葉など）
 G.dotTex = (() => {
   const c = document.createElement("canvas");
@@ -224,9 +234,8 @@ const LOOK = {
   cloudShadowLand: 0.55, // 山肌に落ちる雲の影の濃さ
   sunlitBoost: 0.08, // 雲の影の外（日なた）を明るくする量
   cloudShadowWater: 0.36, // 湖面に落ちる雲の影の濃さ
-  hazeNear: 500, // 山のかすみが始まる距離（作品内の単位）
-  hazeFar: 6200, // かすみが最大になる距離
-  hazeAmount: 0.55, // かすみの最大の濃さ
+  hazeDist: 3800, // 山のかすみの距離（この距離で約6割かすむ。作品内の単位）
+  hazeAmount: 0.85, // かすみの最大の濃さ
   farDarkFrom: 2500, // 遠い山が暗い青灰に沈み始める距離
   farDarkTo: 7500,
   waterCalmGrade: 0.2, // 湖の色の鮮やかさを鎮める量
@@ -236,6 +245,23 @@ const LOOK = {
   glassNight: 0.8, // 夜、ガラス・幕の明るさ
   haloOpacity: 0.45, // 灯りのにじみの濃さ
   flicker: [0.03, 0.02], // 灯りの揺らぎ（ゆっくり、速い）
+  // 要素の出す／出さない（false にすると作らない・表示しない）
+  show: {
+    bamboo: true, // 集落裏の竹林
+    mountainClouds: true, // 山肌を這う雲
+    susuki: true, // 秋のススキ
+    wetWoods: true, // 水辺のヤナギ・ハンノキ
+    pines: true, // 湖岸の松並木
+    tabune: true, // 田舟
+    wakes: true, // 遠くの舟の航跡
+    ship: true, // 遊覧船
+    shijimi: true, // シジミ漁の舟
+    windowFlicker: true, // 家々の灯りが順に点いて消える
+    eri: true, // えりの竹竿
+    okishima: true, // 沖島の集落
+    floatingLeaves: true, // 水に浮かぶ花びら・落ち葉
+    fireflies: true, // 蛍
+  },
   months: {
     petals: 3, // 水に浮かぶ花びら（4月）
     leaves: 10, // 水に浮かぶ落ち葉（11月）
@@ -605,6 +631,12 @@ function reedFree0() {
 
 // ==== 10-start.js ====
 /* ---------- 放つ場所：湖上の数百か所から ---------- */
+// 要素ごとの乱数：名前から種を決める。要素を足し引きしても、ほかの要素の配置がずれない
+function rndFor(name) {
+  let h = 2166136261;
+  for (const ch of name) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+  return rnd(h);
+}
 function rnd(seed) {
   return () => {
     seed = (seed * 1664525 + 1013904223) >>> 0;
@@ -754,24 +786,22 @@ const skyU = {
   uWin: { value: 0 },
   uCity: { value: new THREE.Vector3(0, 0, 1) },
 };
-const skyDome = new THREE.Mesh(
-  new THREE.SphereGeometry(9000, 32, 16),
-  new THREE.ShaderMaterial({
-    uniforms: skyU,
-    side: THREE.BackSide,
-    depthWrite: false,
-    fog: false,
-    vertexShader: `varying vec3 vD;void main(){vD=normalize(position);vec4 p=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*p;gl_Position.z=gl_Position.w*.9999;}`,
-    fragmentShader: `uniform vec3 uTop,uHor,uSunD,uSunC2;
+/* 空の描画（フラグメント）：処理の順に区切った部品。一つの main の中で上から順につながる。
+   前の部品で作った値（y, sd, cp, cl, nt など）を後の部品が使うので、順番は入れ替えない。 */
+const SKY_FS_HEAD = `uniform vec3 uTop,uHor,uSunD,uSunC2;
 uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;uniform float uMw;uniform float uVeil,uWin;uniform vec3 uCity;
 uniform vec3 uLd;
 varying vec3 vD;
 ${GLSL_NOISE}
- void main(){float y=max(vD.y,0.);
+ `;
+// 地平から天頂へのグラデーション
+const SKY_FS_BASE = `float y=max(vD.y,0.);
 vec3 c=mix(uHor,uTop,pow(y,.45));
 float sd=max(dot(vD,uSunD),0.);
 float md=max(dot(vD,-uSunD),0.);
-{vec3 md0=normalize(vec3(-uSunD.x,max(-uSunD.y*.9+.02,.02),-uSunD.z));float mlow=1.-smoothstep(.02,.22,md0.y);
+`;
+// 月：満ち欠け・低い月の色・月のかさ
+const SKY_FS_MOON = `{vec3 md0=normalize(vec3(-uSunD.x,max(-uSunD.y*.9+.02,.02),-uSunD.z));float mlow=1.-smoothstep(.02,.22,md0.y);
 vec3 sx=normalize(cross(md0,vec3(0.,1.,0.)));
 float a0=dot(vD,md0);
 float mr0=mix(.99955,.9993,mlow),disc=smoothstep(mr0,mr0+.00013,a0);
@@ -782,10 +812,14 @@ float lit=uMp<.5?disc*(1.-occ*step(.03,abs(uMp-.5))):disc*(1.-occ*step(.03,abs(u
 float fullness=1.-abs(uMp-.5)*2.;
 c+=mix(vec3(.95,.95,.88),vec3(1.,.66,.4),mlow*.85)*max(lit,disc*.06)*smoothstep(.05,-.1,uSunD.y);c+=vec3(1.,.6,.35)*pow(max(a0,0.),900.)*.35*mlow*smoothstep(.05,-.1,uSunD.y);
 c+=vec3(.5,.55,.7)*pow(max(a0,0.),300.)*.25*fullness*smoothstep(.05,-.1,uSunD.y);
-}c+=uSunC2*uVeil*(pow(sd,250.)*1.1+pow(sd,25.)*.35)*smoothstep(-.02,.08,uSunD.y);
+}`;
+// 太陽：円盤・薄雲越しのにじみ・地平の茜
+const SKY_FS_SUN = `c+=uSunC2*uVeil*(pow(sd,250.)*1.1+pow(sd,25.)*.35)*smoothstep(-.02,.08,uSunD.y);
 c+=uSunC2*(1.-uVeil*.85)*(mix(pow(sd,1500.)*3.5,pow(sd,380.)*1.6,uHzS)+vec3(.35,-.15,-.3)*pow(sd,380.)*uHzS*.8+pow(sd,40.)*.2+pow(sd,6.)*.08+pow(sd,14.)*.22*uCloud);
 c+=vec3(1.,.55,.3)*pow(max(dot(normalize(vec3(vD.x,0.,vD.z)),normalize(vec3(uSunD.x,0.,uSunD.z))),0.),6.)*smoothstep(.35,0.,y)*smoothstep(.35,0.,abs(uSunD.y))*.6;
- vec2 cp=vD.xz/(vD.y+.08)*1.4+vec2(uT*.004,uT*.002);
+`;
+// 巻雲・層雲・街明かり・雲の銀の縁
+const SKY_FS_CLOUDS = ` vec2 cp=vD.xz/(vD.y+.08)*1.4+vec2(uT*.004,uT*.002);
 cp+=vec2(nzF5(cp*.35+1.3),nzF5(cp*.35+7.1))*1.1-.55;
 float ci=(smoothstep(.55,.9,nzF5(vec2(cp.x*.6,cp.y*3.)+3.))+smoothstep(.6,.85,nzF5(cp*6.+9.))*smoothstep(.45,.7,nzF5(cp*.8+2.))*.8)*uCi*smoothstep(.05,.3,vD.y);
 c=mix(c,vec3(1.),ci*(1.-uDark));
@@ -798,7 +832,9 @@ c=mix(c,cc,cl*.85);
 // 雲に映る街明かり：夜、街のある方角の雲の底が橙に照らされる
 {float ntc=smoothstep(.05,-.15,uSunD.y);float dir=pow(max(dot(normalize(vec3(vD.x,0.,vD.z)),uCity),0.),3.);c+=vec3(1.,.58,.3)*cl*dir*ntc*.16*smoothstep(.45,.0,y)*(.5+uCloud);}
 {float edge=smoothstep(.0,.25,cl)*smoothstep(.75,.2,cl);c+=uSunC2*edge*(pow(sd,10.)*1.4+pow(sd,60.)*1.2)*smoothstep(-.02,.1,uSunD.y)*(1.-uDark*.8);}
-if(uCu>.01){vec2 q=vec2(atan(vD.z,vD.x)*3.2+uT*.0015,vD.y*9.);
+`;
+// 積雲（入道雲）
+const SKY_FS_CUMULUS = `if(uCu>.01){vec2 q=vec2(atan(vD.z,vD.x)*3.2+uT*.0015,vD.y*9.);
 float hgt=nzF5(vec2(q.x*1.3,1.7))*.55+.12;
 float base=.035;
 float m_=smoothstep(.0,.04,vD.y-base)*smoothstep(hgt+.02,hgt-.06,vD.y)*smoothstep(.42,.62,nzF5(q*vec2(1.6,1.)+5.));
@@ -807,7 +843,9 @@ vec3 cu=mix(vec3(1.),vec3(.52,.57,.68),sh_);
 {float hv=clamp((vD.y-base)/max(hgt-base,.02),0.,1.);float dusk=smoothstep(.35,.0,uSunD.y)*smoothstep(-.14,-.02,uSunD.y+.0)*1.;vec3 top=mix(vec3(1.,.55,.42),vec3(1.,.74,.5),smoothstep(-.05,.1,uSunD.y));vec3 bot=vec3(.62,.56,.74);vec3 dc=mix(bot,top,smoothstep(.15,.85,hv))*(1.+.25*pow(max(dot(normalize(vec3(vD.x,0.,vD.z)),normalize(vec3(uSunD.x,0.,uSunD.z))),0.),2.));cu=mix(cu,dc,max(dusk,smoothstep(.35,.0,uSunD.y)*.85));cu*=1.-uDark*.6;}
 c=mix(c,cu,m_*uCu);
 }
- // 反薄明光線：夕方、太陽の反対側の空へ影の筋が集まる
+`;
+// 光芒：反薄明光線・薄明光線・稲光
+const SKY_FS_RAYS = ` // 反薄明光線：夕方、太陽の反対側の空へ影の筋が集まる
  {float lw2=smoothstep(.18,.0,abs(uSunD.y+.02))*(1.-uDark)*clamp(uCu*1.5+uCloud*.6,0.,1.);if(lw2>.01){vec3 an_=-uSunD;vec3 sp2=normalize(vD-an_*dot(vD,an_));float a2=atan(dot(sp2,normalize(cross(an_,vec3(0.,1.,0.)))),sp2.y);float st2=smoothstep(.45,.75,nzF5(vec2(a2*7.,uT*.008)));c=mix(c,c*vec3(.8,.78,.88),st2*lw2*.35*smoothstep(.0,.08,vD.y)*smoothstep(.7,.1,vD.y));}}
  if(uRay>.01){vec3 sp=normalize(vD-uSunD*dot(vD,uSunD));
 float an=atan(dot(sp,normalize(cross(uSunD,vec3(0.,1.,0.)))),sp.y);
@@ -816,13 +854,17 @@ c+=vec3(1.,.86,.62)*rays*uRay*.5*(1.+1.4*smoothstep(.0,-.15,vD.y-uSunD.y)*smooth
 }if(uLt>.01){float lg=pow(max(dot(vD,normalize(uLd)),0.),18.)*smoothstep(.0,.04,vD.y)*smoothstep(.3,.06,vD.y);
 c+=vec3(.85,.85,1.)*lg*uLt*1.4;
 }
- if(uRb>.01){vec3 anti=normalize(-uSunD);
+`;
+// 虹
+const SKY_FS_RAINBOW = ` if(uRb>.01){vec3 anti=normalize(-uSunD);
 float ang=acos(clamp(dot(vD,anti),-1.,1.));
 float band=(ang-.70)/.035;
 vec3 rb=clamp(vec3(1.-abs(band-1.),1.-abs(band),1.-abs(band+1.)),0.,1.);
 c+=rb*.22*uRb*smoothstep(.0,.05,vD.y)*smoothstep(-.4,.6,band+1.6)*(1.-smoothstep(1.6,2.2,abs(band)));
 }
- {float lw=smoothstep(.3,.02,uSunD.y)*smoothstep(-.16,.0,uSunD.y)*(1.-uDark);
+`;
+// 夕焼け・明け方の色の層・地平のにじみ
+const SKY_FS_TWILIGHT = ` {float lw=smoothstep(.3,.02,uSunD.y)*smoothstep(-.16,.0,uSunD.y)*(1.-uDark);
 vec3 ly=mix(vec3(1.,.6,.32),vec3(1.,.62,.66),smoothstep(.0,.08,y));
 ly=mix(ly,vec3(.72,.66,.9),smoothstep(.06,.22,y));
 c=mix(c,ly*mix(1.,.8,smoothstep(.0,.3,y)),lw*.45*smoothstep(.45,.0,y));
@@ -834,11 +876,17 @@ c=mix(c,ly*mix(1.,.8,smoothstep(.0,.3,y)),lw*.45*smoothstep(.45,.0,y));
  vec3 dc2=mix(l1,l2,smoothstep(.0,.05,y));dc2=mix(dc2,l3,smoothstep(.05,.14,y));dc2=mix(dc2,l4,smoothstep(.14,.4,y));
  c=mix(c,dc2,dw*.55*smoothstep(.6,.0,y));}
  c+=vec3(.1,.1,.09)*exp(-y*16.)*smoothstep(-.1,.2,uSunD.y)*(1.-uDark);
- if(uSnowCap>.01){float west=smoothstep(-.15,-.75,vD.x);float sc=smoothstep(.45,.7,nzF5(vec2(atan(vD.z,vD.x)*5.+uT*.003,vD.y*14.)))*smoothstep(.03,.07,vD.y)*smoothstep(.26,.1,vD.y);c=mix(c,vec3(.58,.61,.66)*(1.-uDark*.7),clamp(sc*west*1.8,0.,.95)*uSnowCap);c=mix(c,vec3(.68,.7,.74)*(1.-uDark*.7),uSnowCap*.35*smoothstep(.5,.0,y));}
+`;
+// 雪雲・雨の柱
+const SKY_FS_WEATHER = ` if(uSnowCap>.01){float west=smoothstep(-.15,-.75,vD.x);float sc=smoothstep(.45,.7,nzF5(vec2(atan(vD.z,vD.x)*5.+uT*.003,vD.y*14.)))*smoothstep(.03,.07,vD.y)*smoothstep(.26,.1,vD.y);c=mix(c,vec3(.58,.61,.66)*(1.-uDark*.7),clamp(sc*west*1.8,0.,.95)*uSnowCap);c=mix(c,vec3(.68,.7,.74)*(1.-uDark*.7),uSnowCap*.35*smoothstep(.5,.0,y));}
  if(uShaft>.01){float az=atan(vD.z,vD.x);float sh_=smoothstep(.55,.85,nzF5(vec2(az*2.2,uT*.002)))*smoothstep(.62,.9,nzF5(vec2(az*9.,vD.y*3.+uT*.01)))*smoothstep(.0,.03,vD.y)*smoothstep(.2,.05,vD.y);c=mix(c,vec3(.48,.52,.58)*(1.-uDark*.5),sh_*uShaft*.7);}
- if(uCon.w>.01){float az=uCon.x,el=uCon.y;vec3 a=normalize(vec3(cos(az)*cos(el),sin(el),sin(az)*cos(el)));vec3 b=normalize(vec3(cos(az+1.1)*cos(el+.08),sin(el+.08),sin(az+1.1)*cos(el+.08)));vec3 hd=normalize(mix(a,b,uCon.z));vec3 n2=normalize(cross(a,b));float dl=abs(dot(vD,n2));float on_=dot(cross(a,vD),n2)>0.&&dot(cross(vD,hd),n2)>0.?1.:0.;float age=1.-clamp(acos(clamp(dot(vD,hd),-1.,1.))/(1.2*uCon.z+.001),0.,1.);float wid=mix(.0012,.006,1.-age);c=mix(c,vec3(1.),smoothstep(wid,0.,dl)*on_*(.25+.55*age)*uCon.w*(1.-uDark));}
+`;
+// 飛行機雲・金星
+const SKY_FS_OBJECTS = ` if(uCon.w>.01){float az=uCon.x,el=uCon.y;vec3 a=normalize(vec3(cos(az)*cos(el),sin(el),sin(az)*cos(el)));vec3 b=normalize(vec3(cos(az+1.1)*cos(el+.08),sin(el+.08),sin(az+1.1)*cos(el+.08)));vec3 hd=normalize(mix(a,b,uCon.z));vec3 n2=normalize(cross(a,b));float dl=abs(dot(vD,n2));float on_=dot(cross(a,vD),n2)>0.&&dot(cross(vD,hd),n2)>0.?1.:0.;float age=1.-clamp(acos(clamp(dot(vD,hd),-1.,1.))/(1.2*uCon.z+.001),0.,1.);float wid=mix(.0012,.006,1.-age);c=mix(c,vec3(1.),smoothstep(wid,0.,dl)*on_*(.25+.55*age)*uCon.w*(1.-uDark));}
  if(uVenus>.01){vec3 vd=normalize(vec3(.85,.16,.2));c+=vec3(1.,.97,.9)*(smoothstep(.99997,1.,dot(vD,vd))*2.5+pow(max(dot(vD,vd),0.),4000.)*.6)*uVenus;}
- float nt=smoothstep(.05,-.15,uSunD.y);
+`;
+// 夜：流れ星・星と瞬き・天の川
+const SKY_FS_NIGHT = ` float nt=smoothstep(.05,-.15,uSunD.y);
  if(uMet.w>.01){float az=uMet.x,el=uMet.y;vec3 a=normalize(vec3(cos(az)*cos(el),sin(el),sin(az)*cos(el)));vec3 b=normalize(vec3(cos(az+.18)*cos(el-.09),sin(el-.09),sin(az+.18)*cos(el-.09)));vec3 hd=normalize(mix(a,b,uMet.z));vec3 nrm2=normalize(cross(a,b));float dl=abs(dot(vD,nrm2));float along=dot(cross(a,vD),nrm2)>0.&&dot(cross(vD,hd),nrm2)>0.?1.:0.;float tail=1.-clamp(acos(clamp(dot(vD,hd),-1.,1.))/(.2*uMet.z+.001),0.,1.);c+=vec3(.9,.95,1.)*smoothstep(.0012,.0,dl)*along*pow(tail,1.5)*uMet.w*nt*1.6;}
  vec2 sp_=vD.xz/(vD.y+.25);
 float h1=fract(sin(dot(floor(sp_*160.),vec2(12.9,78.2)))*43758.5),h2=fract(sin(dot(floor(sp_*70.),vec2(39.3,11.1)))*24634.6);
@@ -854,7 +902,31 @@ c+=mw*nt*vec3(.05,.055,.08)*(1.-uDark);
  c+=vec3(.22,.2,.28)*mw*nt*smoothstep(.05,.35,y)*(1.-cl*.8);
  c+=mix(vec3(1.,.85,.7),vec3(.75,.85,1.),fract(h1*37.+h2*11.))*st*3.2*uStar*smoothstep(.04,.3,y)*nt*(1.-cl*.7);
  c+=vec3(1.,.62,.35)*exp(-y*9.)*nt*.45;
-c=mix(c,uHor,smoothstep(.2,0.,y)*.75);
+`;
+// 仕上げ：地平を地平色に溶かす
+const SKY_FS_FINISH = `c=mix(c,uHor,smoothstep(.2,0.,y)*.75);
+`;
+const skyDome = new THREE.Mesh(
+  new THREE.SphereGeometry(9000, 32, 16),
+  new THREE.ShaderMaterial({
+    uniforms: skyU,
+    side: THREE.BackSide,
+    depthWrite: false,
+    fog: false,
+    vertexShader: `varying vec3 vD;void main(){vD=normalize(position);vec4 p=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*p;gl_Position.z=gl_Position.w*.9999;}`,
+    fragmentShader: `${SKY_FS_HEAD}void main(){
+${SKY_FS_BASE}
+${SKY_FS_MOON}
+${SKY_FS_SUN}
+${SKY_FS_CLOUDS}
+${SKY_FS_CUMULUS}
+${SKY_FS_RAYS}
+${SKY_FS_RAINBOW}
+${SKY_FS_TWILIGHT}
+${SKY_FS_WEATHER}
+${SKY_FS_OBJECTS}
+${SKY_FS_NIGHT}
+${SKY_FS_FINISH}
 gl_FragColor=vec4(c,1.);
 }`,
   }),
@@ -1504,47 +1576,18 @@ const terrGeo = new THREE.PlaneGeometry((TW - 1) * tdx * S, (TH - 1) * tdy * S, 
   terrGeo.setAttribute("color", new THREE.BufferAttribute(col, 3));
   terrGeo.computeVertexNormals();
 }
-const terrMat = new THREE.MeshLambertMaterial({ vertexColors: true });
-terrMat.onBeforeCompile = (sh) => {
-  sh.uniforms.uHaze = { value: new THREE.Color(0x9fb4c8) };
-  sh.uniforms.uLow = { value: 0 };
-  terrMat.userData.low = sh.uniforms.uLow;
-  terrMat.userData.haze = sh.uniforms.uHaze;
-  sh.uniforms.uSnow = { value: 0 };
-  sh.uniforms.uSpr = { value: 0 };
-  sh.uniforms.uCT = { value: 0 };
-  sh.uniforms.uCSh = { value: 1 };
-  sh.uniforms.uSunT = { value: new THREE.Vector3(0, 1, 0) };
-  sh.uniforms.uSL = { value: 0 };
-  sh.uniforms.uWin = { value: 0 };
-  sh.uniforms.uAut = { value: 0 };
-  terrMat.userData.sh = sh;
-  sh.vertexShader = sh.vertexShader
-    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;")
-    .replace(
-      "#include <begin_vertex>",
-      "#include <begin_vertex>\nvH=position.y;vXZ=(modelMatrix*vec4(position,1.)).xz;",
-    )
-    .replace(
-      "#include <fog_fragment>",
-      "float hz=pow(smoothstep(${glf(LOOK.hazeNear)},${glf(LOOK.hazeFar)},length(cameraPosition.xz-vXZ)),.85)*1.25;hz=max(hz,uLow*.45*smoothstep(800.,5000.,length(cameraPosition.xz-vXZ)));gl_FragColor.rgb=mix(gl_FragColor.rgb,mix(uHaze*vec3(.85,.92,1.04),uHaze*vec3(.5,.56,.68),smoothstep(${glf(LOOK.farDarkFrom)},${glf(LOOK.farDarkTo)},length(cameraPosition.xz-vXZ))),hz*${glf(LOOK.hazeAmount)});\n#include <fog_fragment>",
-    );
-  sh.fragmentShader = sh.fragmentShader
-    .replace(
-      "#include <common>",
-      "#include <common>\nvarying float vH;varying vec2 vXZ;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;",
-    )
-    .replace(
-      "#include <color_fragment>",
-      `#include <color_fragment>
-// ── 山肌の色の重なり ──
+/* 山肌の色（地形のフラグメントに差し込む）：処理の順に区切った部品。上から順につながる。 */
+// 傾きによる明暗
+const TERR_FS_SLOPE = `// ── 山肌の色の重なり ──
 // 傾き → 岩肌 → 低地と浜 → 田の区画 → 森（杉林・樹冠・新緑と深緑）→ 紅葉 → 冬枯れと雪 → 霞・雲の影・山の縁の光
 vec3 nrm=normalize(cross(dFdx(vec3(vXZ.x,vH,vXZ.y)),dFdy(vec3(vXZ.x,vH,vXZ.y))));
 if(nrm.y<0.)nrm=-nrm;
 vec3 nrmE=normalize(vec3(nrm.x*3.,nrm.y,nrm.z*3.));
 float slope=1.-abs(nrm.y);
 diffuseColor.rgb*=.78+.5*smoothstep(.0,.6,1.-slope)*.25+.12;
+`;
 // 岩肌（急な斜面）
+const TERR_FS_ROCK = `// 岩肌（急な斜面）
 {float rn=fract(sin(dot(floor(vXZ*.08),vec2(5.3,1.9)))*91.);
 vec3 rock=mix(vec3(.38,.37,.34),vec3(.55,.53,.49),rn)*(.85+.3*fract(sin(dot(floor(vXZ*.7),vec2(3.1,8.7)))*61.));
 diffuseColor.rgb=mix(diffuseColor.rgb,rock,smoothstep(.42,.75,slope)*(.45+.4*rn)*smoothstep(10.,40.,vH));
@@ -1554,7 +1597,9 @@ mic=mix(mic,fract(sin(dot(floor(vXZ*9.),vec2(12.9,4.1)))*437.),.5);
 diffuseColor.rgb*=.9+mic*.2*smoothstep(90.,8.,length(cameraPosition.xz-vXZ));
 diffuseColor.rgb*=.85+.15*smoothstep(0.,40.,vH);
 diffuseColor.rgb+=vec3(.08,.04,.0)*uLow*smoothstep(20.,120.,vH);
+`;
 // 浜（砂・礫・岩）と水際の濡れた帯
+const TERR_FS_SHORE = `// 浜（砂・礫・岩）と水際の濡れた帯
 float beach=1.-smoothstep(.85,1.0+.25*fract(sin(dot(floor(vXZ*.05),vec2(2.,9.)))*77.),vH);
 diffuseColor.rgb*=1.-.25*(1.-smoothstep(.62,.8,vH));
 diffuseColor.rgb*=1.-.28*smoothstep(1.05,.75,vH)*smoothstep(.45,.7,vH);
@@ -1581,7 +1626,9 @@ vec2 cq=vXZ*.45,ci=floor(cq),cf=fract(cq);
 cf=cf*cf*(3.-2.*cf);
 float ca=fract(sin(dot(ci,vec2(12.7,47.3)))*2753.1),cb=fract(sin(dot(ci+vec2(1,0),vec2(12.7,47.3)))*2753.1),cc_=fract(sin(dot(ci+vec2(0,1),vec2(12.7,47.3)))*2753.1),cd=fract(sin(dot(ci+1.,vec2(12.7,47.3)))*2753.1);
 float cn=mix(mix(ca,cb,cf.x),mix(cc_,cd,cf.x),cf.y);
-// 森
+`;
+// 森（杉林・樹冠・新緑と深緑）
+const TERR_FS_FOREST = `// 森
 float wood=smoothstep(1.2,3.,vH)*(1.-smoothstep(.75,.95,slope));
 vec2 c2q=vXZ*1.3,c2i=floor(c2q),c2f=fract(c2q);
 c2f=c2f*c2f*(3.-2.*c2f);
@@ -1601,19 +1648,25 @@ wc*=1.+min(uSpr,0.)*.18;
 diffuseColor.rgb=mix(diffuseColor.rgb,wc,wood*.95);
 diffuseColor.rgb*=1.+.25*wood*(dot(nrmE,normalize(vec3(.55,.6,.4)))-.45);
 }diffuseColor.rgb*=1.-wood*.28*(1.-uSnow*.5*(1.-uSnow*smoothstep(90.,120.,vH)));
+`;
 // 紅葉
+const TERR_FS_AUTUMN = `// 紅葉
 vec2 aq=vXZ*.35,ai=floor(aq),af=fract(aq);
 af=af*af*(3.-2.*af);
 float a1=fract(sin(dot(ai,vec2(12.9,78.2)))*43758.5),a2=fract(sin(dot(ai+vec2(1,0),vec2(12.9,78.2)))*43758.5),a3=fract(sin(dot(ai+vec2(0,1),vec2(12.9,78.2)))*43758.5),a4=fract(sin(dot(ai+1.,vec2(12.9,78.2)))*43758.5);
 float nz=mix(mix(a1,a2,af.x),mix(a3,a4,af.x),af.y);
 diffuseColor.rgb=mix(diffuseColor.rgb,mix(mix(vec3(.62,.22,.07),vec3(.78,.5,.1),fract(nz*7.)),vec3(.55,.12,.06),step(.85,fract(nz*13.))),uAut*.85*smoothstep(.45,.62,nz)*smoothstep(${(20 * S * VEX).toFixed(2)},${(120 * S * VEX).toFixed(2)},vH)*smoothstep(1.-uAut*1.1,1.15-uAut*1.1,1.-clamp(vH/${(700 * S * VEX).toFixed(2)},0.,1.)+(dot(nrmE,normalize(vec3(.55,.6,.4)))-.5)*.25));
+`;
 // 冬枯れと雪
+const TERR_FS_WINTER = `// 冬枯れと雪
 diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.05,.92,.75),uWin);
 diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.9,.92,.94)*(.85+.15*mic),uSL*(1.-smoothstep(.55,.9,slope))*smoothstep(.3,1.2,vH));
 diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.93,.94,.96),uSnow*smoothstep(${(600 * S * VEX).toFixed(2)},${(800 * S * VEX).toFixed(2)},vH+(fract(sin(dot(floor(vXZ*.6),vec2(3.,7.)))*91.)-.5)*${(120 * S * VEX).toFixed(2)}));
-// 遠くの霞、雲の影、朝夕の山の縁の光
+`;
+// 遠くの霞・雲の影・朝夕の山の縁の光
+const TERR_FS_HAZE = `// 遠くの霞、雲の影、朝夕の山の縁の光
 {float dc_=length(cameraPosition.xz-vXZ);
-float hz=1.-exp(-dc_/3800.);
+float hz=1.-exp(-dc_/${glf(LOOK.hazeDist)});
 hz*=(.55+.45*smoothstep(5.,160.,vH));
 {float cs=smoothstep(.35,.8,.5+.5*sin((vXZ.x+uCT*4.)*.0045+sin(vXZ.y*.0031)*2.)*sin((vXZ.y+uCT*2.)*.0038+sin(vXZ.x*.0027)*1.7));
 diffuseColor.rgb*=(1.-cs*${glf(LOOK.cloudShadowLand)}*uCSh*clamp(uSunT.y*3.,0.,1.))*(1.+(1.-cs)*${glf(LOOK.sunlitBoost)}*uCSh*clamp(uSunT.y*3.,0.,1.));
@@ -1621,9 +1674,40 @@ float low=smoothstep(.22,.02,uSunT.y)*smoothstep(-.1,.02,uSunT.y);
 vec2 sd2=normalize(uSunT.xz+1e-4);
 float face=pow(max(dot(normalize(nrm.xz+1e-4),sd2),0.),2.)*smoothstep(.05,.5,1.-nrm.y);
 diffuseColor.rgb+=vec3(1.,.55,.3)*face*low*smoothstep(40.,180.,vH)*.35;
-}diffuseColor.rgb=mix(diffuseColor.rgb,uHaze*1.1,clamp(hz,0.,1.)*.85);
+}// 遠い山ほど、白いかすみではなく暗い青灰の影に沈む
+diffuseColor.rgb=mix(diffuseColor.rgb,mix(uHaze*1.1,uHaze*vec3(.5,.56,.68),smoothstep(${glf(LOOK.farDarkFrom)},${glf(LOOK.farDarkTo)},dc_)),clamp(hz,0.,1.)*${glf(LOOK.hazeAmount)});
 diffuseColor.rgb*=1.+.12*hz;
-}`,
+}`;
+const terrMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+terrMat.onBeforeCompile = (sh) => {
+  sh.uniforms.uHaze = { value: new THREE.Color(0x9fb4c8) };
+  sh.uniforms.uLow = { value: 0 };
+  terrMat.userData.low = sh.uniforms.uLow;
+  terrMat.userData.haze = sh.uniforms.uHaze;
+  sh.uniforms.uSnow = { value: 0 };
+  sh.uniforms.uSpr = { value: 0 };
+  sh.uniforms.uCT = { value: 0 };
+  sh.uniforms.uCSh = { value: 1 };
+  sh.uniforms.uSunT = { value: new THREE.Vector3(0, 1, 0) };
+  sh.uniforms.uSL = { value: 0 };
+  sh.uniforms.uWin = { value: 0 };
+  sh.uniforms.uAut = { value: 0 };
+  terrMat.userData.sh = sh;
+  sh.vertexShader = sh.vertexShader
+    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;")
+    .replace(
+      "#include <begin_vertex>",
+      "#include <begin_vertex>\nvH=position.y;vXZ=(modelMatrix*vec4(position,1.)).xz;",
+    );
+  sh.fragmentShader = sh.fragmentShader
+    .replace(
+      "#include <common>",
+      "#include <common>\nvarying float vH;varying vec2 vXZ;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;",
+    )
+    .replace(
+      "#include <color_fragment>",
+      `#include <color_fragment>
+${TERR_FS_SLOPE}${TERR_FS_ROCK}${TERR_FS_SHORE}${TERR_FS_FOREST}${TERR_FS_AUTUMN}${TERR_FS_WINTER}${TERR_FS_HAZE}`,
     );
 };
 const terr = new THREE.Mesh(terrGeo, terrMat);
@@ -7557,7 +7641,7 @@ G.EV = (() => {
         0.42 *
         Math.max(0, 1 - Math.hypot(s.position.x - cx, s.position.z - cz) / 1400);
     }
-    const ff = mo === LOOK.months.fireflies && day < 0.05;
+    const ff = LOOK.show.fireflies && mo === LOOK.months.fireflies && day < 0.05;
     ffl.visible = ff;
     if (ff) {
       if (!fAt || Math.hypot(fAt[0] - cx, fAt[1] - cz) > 250) {
@@ -7892,6 +7976,7 @@ G.isl = (() => {
 
 /* ---------- 沖島の南側：山を背に、湖に面して家が密に並ぶ漁村（石積みの護岸、舫われた白い漁船、電柱） ---------- */
 G.okishima = (() => {
+  if (!LOOK.show.okishima) return null;
   const R = rnd(5151),
     [ox, oy] = ll(136.065, 35.205);
   const I = ISLES.find((I) => Math.hypot((I.box[0] + I.box[2]) / 2 - ox, (I.box[1] + I.box[3]) / 2 - oy) < 2500);
@@ -8266,7 +8351,7 @@ G.moments = (() => {
   function update(dt, t, c, W) {
     const kind = c.month === LOOK.months.petals ? 3 : c.month === LOOK.months.leaves ? 10 : -1;
     // 雪の日は出さない
-    pts.visible = kind >= 0 && !isFar && !(G.wxNow && G.wxNow.snow > 0.05);
+    pts.visible = LOOK.show.floatingLeaves && kind >= 0 && !isFar && !(G.wxNow && G.wxNow.snow > 0.05);
     if (kind >= 0) {
       if (kind !== kindNow || Math.hypot(pos[0] - camera.position.x, pos[2] - camera.position.z) > 260) {
         kindNow = kind;
@@ -8299,6 +8384,8 @@ G.life = (() => {
   const R = rnd(9393);
   // 竹林：集落の裏手に、ところどころ
   const bam = [];
+  if (LOOK.show.bamboo) {
+  const R = rndFor("bamboo");
   houses.forEach((h, i) => {
     if (i % 11 !== 3) return;
     for (let k = 0; k < 4; k++) {
@@ -8308,6 +8395,7 @@ G.life = (() => {
     }
   });
   if (bam.length) cardForest("bamboo", bam, 14, 8, 30, QUALITY.nearTrees[1], false);
+  }
 
   // 山肌を這う雲：雨上がりや曇りの日、山の中腹にゆっくり流れる白い雲
   const ctx = (() => {
@@ -8361,6 +8449,7 @@ G.life = (() => {
   // ススキ：秋（9〜11月）、田のあぜと山すそに穂が揺れる
   const susT = { value: 0 };
   const susuki = (() => {
+    const R = rndFor("susuki");
     const tex = cvTex(64, 128, (g, w, h) => {
       for (let k = 0; k < 14; k++) {
         const x0 = w * (0.2 + Math.random() * 0.6),
@@ -8458,6 +8547,7 @@ G.life = (() => {
   })();
   // 水辺の林：ヤナギ・ハンノキが浅い水に浸かって立つ（奥の洲のような木立）
   const wet = (() => {
+    const R = rndFor("wetWoods");
     const pts = [];
     reedPts.forEach(([x, y], i) => {
       if (i % 23 !== 5) return;
@@ -8499,11 +8589,13 @@ G.life = (() => {
       crown.setColorAt(i, R() < 0.55 ? cc.setHSL(0.2 + R() * 0.03, 0.42, 0.42) : cc.setHSL(0.27, 0.35, 0.26));
     });
     trunk.castShadow = crown.castShadow = QUALITY.treeShadow;
+    trunk.visible = crown.visible = LOOK.show.wetWoods;
     scene.add(trunk, crown);
     return { crown, cm };
   })();
   // 湖岸の松並木：近江舞子・北小松・萩の浜・宮ヶ浜の白砂青松
-  {
+  if (LOOK.show.pines) {
+    const R = rndFor("pines");
     const SITES = [
       [135.958, 35.262, 1400],
       [135.972, 35.284, 900],
@@ -8534,7 +8626,7 @@ G.life = (() => {
     const cx = camera.position.x,
       cz = camera.position.z;
     // 雲
-    const want = day > 0.05 ? Math.min(1, Math.max(0, (wxNow.gray - 0.35) * 2) + wxNow.rain * 0.8 + wxNow.white * 0.6) : 0;
+    const want = LOOK.show.mountainClouds && day > 0.05 ? Math.min(1, Math.max(0, (wxNow.gray - 0.35) * 2) + wxNow.rain * 0.8 + wxNow.white * 0.6) : 0;
     if (want > 0.02 && (!cloudAt || Math.hypot(cloudAt[0] - cx, cloudAt[1] - cz) > 1200)) placeClouds();
     for (const cl of clouds) {
       cl.s.visible = cl.ok && want > 0.02 && !isFar;
@@ -8544,7 +8636,7 @@ G.life = (() => {
       cl.s.material.opacity = want * (0.55 + 0.25 * Math.sin(t * 0.05 + cl.ph));
     }
     susT.value = t;
-    susuki.visible = c.month >= LOOK.months.susuki[0] && c.month <= LOOK.months.susuki[1];
+    susuki.visible = LOOK.show.susuki && c.month >= LOOK.months.susuki[0] && c.month <= LOOK.months.susuki[1];
     // 水辺の林の季節：冬は葉を落として枝の灰色、春は芽吹きの淡い緑、秋は黄色
     wet.cm.color.setHex([0x8a8478, 0x8a8478, 0xc8d8a0, 0xe0f0c0, 0xffffff, 0xffffff, 0xffffff, 0xffffff, 0xf4f0c0, 0xf0d890, 0xd8b880, 0x9a9080][c.month]);
   }
@@ -8557,7 +8649,8 @@ G.boats = (() => {
   const R = rnd(9494);
   // 田舟：ヨシ原の水際に舫われた細長い木の小舟
   const tabune = [];
-  {
+  if (LOOK.show.tabune) {
+    const R = rndFor("tabune");
     const wd = new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 0.95 }),
       g0 = new THREE.Group();
     const bot = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.12, 5.2), wd);
@@ -8596,7 +8689,7 @@ G.boats = (() => {
     });
   }
   // 遠くの舟の航跡：静かな湖面に細く長く残るV字の筋
-  const wakes = (G.ambience ? G.ambience.boats : []).map((b) => {
+  const wakes = (LOOK.show.wakes && G.ambience ? G.ambience.boats : []).map((b) => {
     const N = 60,
       pos = new Float32Array(N * 3 * 2 * 3),
       col = new Float32Array(N * 3 * 2 * 3);
@@ -8697,7 +8790,8 @@ G.boats = (() => {
   })();
   // シジミ漁の舟：瀬田川の近くの浅い水面で、長い柄の道具を操る
   const shijimi = [];
-  {
+  if (LOOK.show.shijimi) {
+    const R = rndFor("shijimi");
     const wd = new THREE.MeshLambertMaterial({ color: 0x4e4436 }),
       mn = new THREE.MeshLambertMaterial({ color: 0x2c2e34 }),
       ht = new THREE.MeshLambertMaterial({ color: 0xd6d0c0 }),
@@ -8800,7 +8894,7 @@ G.boats = (() => {
     {
       const cx = camera.position.x,
         cz = camera.position.z;
-      if (!ship.on && day > 0.25 && wxNow.rain < 0.3 && Math.random() < dt / 90) {
+      if (!ship.on && LOOK.show.ship && day > 0.25 && wxNow.rain < 0.3 && Math.random() < dt / 90) {
         for (let k = 0; k < 15; k++) {
           const a = Math.random() * 6.28,
             d = 700 + Math.random() * 700,
@@ -8849,14 +8943,18 @@ G.shore = (() => {
     wOn = new Float32Array(wN),
     wOff = new Float32Array(wN),
     wMorn = new Float32Array(wN);
+  {
+  const R = rndFor("windows");
   for (let i = 0; i < wN; i++) {
     wOn[i] = 0.7 + R() * 0.1;
     wOff[i] = 0.9 + R() * 0.2;
     wMorn[i] = R() < 0.25 ? 0.19 + R() * 0.06 : 9;
   }
+  }
   let wT = 0;
   // えり：浅い沖に竹竿を一列に立て、先を矢じりの形に囲う湖の定置網
-  {
+  if (LOOK.show.eri) {
+    const R = rndFor("eri");
     const P = [];
     const cand = [];
     for (let i = 0; i < outer.length - 1; i += 3) cand.push(i);
@@ -8905,7 +9003,7 @@ G.shore = (() => {
     const cx = camera.position.x,
       cz = camera.position.z;
     wT -= dt;
-    if (wT <= 0) {
+    if (LOOK.show.windowFlicker && wT <= 0) {
       wT = 0.5;
       const p = c.phase,
         ar = winGeo.attributes.color.array;

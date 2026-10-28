@@ -58,7 +58,7 @@
   - 08-weather.js：`weather`
 
 ## 10-start.js
-- 作る：`NB`、`R0`、`bands`、`cumL`、`okB`、`okS`、`rnd`、`st`、`starts`
+- 作る：`NB`、`R0`、`bands`、`cumL`、`okB`、`okS`、`rnd`、`rndFor`、`st`、`starts`
 - 使う：
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inMain`、`maxY`、`minY`
@@ -79,7 +79,7 @@
   - 01-settings.js：`Q`
 
 ## 13-sky-dome.js
-- 作る：`hemi`、`skyDome`、`skyU`、`sun`
+- 作る：`SKY_FS_BASE`、`SKY_FS_CLOUDS`、`SKY_FS_CUMULUS`、`SKY_FS_FINISH`、`SKY_FS_HEAD`、`SKY_FS_MOON`、`SKY_FS_NIGHT`、`SKY_FS_OBJECTS`、`SKY_FS_RAINBOW`、`SKY_FS_RAYS`、`SKY_FS_SUN`、`SKY_FS_TWILIGHT`、`SKY_FS_WEATHER`、`hemi`、`skyDome`、`skyU`、`sun`
 - 使う：
   - 12-renderer.js：`QUALITY`、`scene`
 
@@ -101,7 +101,7 @@
   - 12-renderer.js：`scene`
 
 ## 16-terrain.js
-- 作る：`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_H`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`PLAIN`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`RELIEF`、`RG`、`RIDGES`、`SNOW`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleH`、`isleShape`、`landContours`、`landH`、`okiZone`、`plainK`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`relief`、`tdx`、`tdy`、`terr`、`terrGeo`、`terrGeo_`、`terrH`、`terrMat`、`tx0`、`ty0`、`vnoise`
+- 作る：`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_H`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`PLAIN`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`RELIEF`、`RG`、`RIDGES`、`SNOW`、`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_ROCK`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleH`、`isleShape`、`landContours`、`landH`、`okiZone`、`plainK`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`relief`、`tdx`、`tdy`、`terr`、`terrGeo`、`terrGeo_`、`terrH`、`terrMat`、`tx0`、`ty0`、`vnoise`
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
@@ -381,6 +381,7 @@
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
+  - 02-season.js：`LOOK`
   - 03-coords.js：`ll`
   - 05-lake.js：`inPoly`、`islands`
   - 06-inner-lakes.js：`inLake`
@@ -431,7 +432,7 @@
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inInner`、`inLake`
   - 07-depth.js：`depth`
-  - 10-start.js：`rnd`
+  - 10-start.js：`rnd`、`rndFor`
   - 12-renderer.js：`MOBILE`、`QUALITY`、`camera`、`scene`
   - 16-terrain.js：`VEX`、`reedPts`
   - 17-trees.js：`cardForest`
@@ -443,10 +444,11 @@
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
+  - 02-season.js：`LOOK`
   - 03-coords.js：`ll`
   - 06-inner-lakes.js：`inLake`、`inMain`
   - 07-depth.js：`depth`
-  - 10-start.js：`rnd`
+  - 10-start.js：`rnd`、`rndFor`
   - 11-state.js：`B`
   - 12-renderer.js：`camera`、`scene`
   - 14-water.js：`waterU`、`waveH`
@@ -457,10 +459,11 @@
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
+  - 02-season.js：`LOOK`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inLake`
   - 07-depth.js：`depth`
-  - 10-start.js：`rnd`
+  - 10-start.js：`rnd`、`rndFor`
   - 12-renderer.js：`camera`、`scene`
   - 22-village-lights-roads.js：`winGeo`
 

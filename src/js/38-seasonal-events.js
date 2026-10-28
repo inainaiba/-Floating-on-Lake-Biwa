@@ -126,7 +126,7 @@ G.EV = (() => {
         0.42 *
         Math.max(0, 1 - Math.hypot(s.position.x - cx, s.position.z - cz) / 1400);
     }
-    const ff = mo === LOOK.months.fireflies && day < 0.05;
+    const ff = LOOK.show.fireflies && mo === LOOK.months.fireflies && day < 0.05;
     ffl.visible = ff;
     if (ff) {
       if (!fAt || Math.hypot(fAt[0] - cx, fAt[1] - cz) > 250) {

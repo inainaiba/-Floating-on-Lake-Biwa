@@ -214,47 +214,18 @@ const terrGeo = new THREE.PlaneGeometry((TW - 1) * tdx * S, (TH - 1) * tdy * S, 
   terrGeo.setAttribute("color", new THREE.BufferAttribute(col, 3));
   terrGeo.computeVertexNormals();
 }
-const terrMat = new THREE.MeshLambertMaterial({ vertexColors: true });
-terrMat.onBeforeCompile = (sh) => {
-  sh.uniforms.uHaze = { value: new THREE.Color(0x9fb4c8) };
-  sh.uniforms.uLow = { value: 0 };
-  terrMat.userData.low = sh.uniforms.uLow;
-  terrMat.userData.haze = sh.uniforms.uHaze;
-  sh.uniforms.uSnow = { value: 0 };
-  sh.uniforms.uSpr = { value: 0 };
-  sh.uniforms.uCT = { value: 0 };
-  sh.uniforms.uCSh = { value: 1 };
-  sh.uniforms.uSunT = { value: new THREE.Vector3(0, 1, 0) };
-  sh.uniforms.uSL = { value: 0 };
-  sh.uniforms.uWin = { value: 0 };
-  sh.uniforms.uAut = { value: 0 };
-  terrMat.userData.sh = sh;
-  sh.vertexShader = sh.vertexShader
-    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;")
-    .replace(
-      "#include <begin_vertex>",
-      "#include <begin_vertex>\nvH=position.y;vXZ=(modelMatrix*vec4(position,1.)).xz;",
-    )
-    .replace(
-      "#include <fog_fragment>",
-      "float hz=pow(smoothstep(${glf(LOOK.hazeNear)},${glf(LOOK.hazeFar)},length(cameraPosition.xz-vXZ)),.85)*1.25;hz=max(hz,uLow*.45*smoothstep(800.,5000.,length(cameraPosition.xz-vXZ)));gl_FragColor.rgb=mix(gl_FragColor.rgb,mix(uHaze*vec3(.85,.92,1.04),uHaze*vec3(.5,.56,.68),smoothstep(${glf(LOOK.farDarkFrom)},${glf(LOOK.farDarkTo)},length(cameraPosition.xz-vXZ))),hz*${glf(LOOK.hazeAmount)});\n#include <fog_fragment>",
-    );
-  sh.fragmentShader = sh.fragmentShader
-    .replace(
-      "#include <common>",
-      "#include <common>\nvarying float vH;varying vec2 vXZ;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;",
-    )
-    .replace(
-      "#include <color_fragment>",
-      `#include <color_fragment>
-// ── 山肌の色の重なり ──
+/* 山肌の色（地形のフラグメントに差し込む）：処理の順に区切った部品。上から順につながる。 */
+// 傾きによる明暗
+const TERR_FS_SLOPE = `// ── 山肌の色の重なり ──
 // 傾き → 岩肌 → 低地と浜 → 田の区画 → 森（杉林・樹冠・新緑と深緑）→ 紅葉 → 冬枯れと雪 → 霞・雲の影・山の縁の光
 vec3 nrm=normalize(cross(dFdx(vec3(vXZ.x,vH,vXZ.y)),dFdy(vec3(vXZ.x,vH,vXZ.y))));
 if(nrm.y<0.)nrm=-nrm;
 vec3 nrmE=normalize(vec3(nrm.x*3.,nrm.y,nrm.z*3.));
 float slope=1.-abs(nrm.y);
 diffuseColor.rgb*=.78+.5*smoothstep(.0,.6,1.-slope)*.25+.12;
+`;
 // 岩肌（急な斜面）
+const TERR_FS_ROCK = `// 岩肌（急な斜面）
 {float rn=fract(sin(dot(floor(vXZ*.08),vec2(5.3,1.9)))*91.);
 vec3 rock=mix(vec3(.38,.37,.34),vec3(.55,.53,.49),rn)*(.85+.3*fract(sin(dot(floor(vXZ*.7),vec2(3.1,8.7)))*61.));
 diffuseColor.rgb=mix(diffuseColor.rgb,rock,smoothstep(.42,.75,slope)*(.45+.4*rn)*smoothstep(10.,40.,vH));
@@ -264,7 +235,9 @@ mic=mix(mic,fract(sin(dot(floor(vXZ*9.),vec2(12.9,4.1)))*437.),.5);
 diffuseColor.rgb*=.9+mic*.2*smoothstep(90.,8.,length(cameraPosition.xz-vXZ));
 diffuseColor.rgb*=.85+.15*smoothstep(0.,40.,vH);
 diffuseColor.rgb+=vec3(.08,.04,.0)*uLow*smoothstep(20.,120.,vH);
+`;
 // 浜（砂・礫・岩）と水際の濡れた帯
+const TERR_FS_SHORE = `// 浜（砂・礫・岩）と水際の濡れた帯
 float beach=1.-smoothstep(.85,1.0+.25*fract(sin(dot(floor(vXZ*.05),vec2(2.,9.)))*77.),vH);
 diffuseColor.rgb*=1.-.25*(1.-smoothstep(.62,.8,vH));
 diffuseColor.rgb*=1.-.28*smoothstep(1.05,.75,vH)*smoothstep(.45,.7,vH);
@@ -291,7 +264,9 @@ vec2 cq=vXZ*.45,ci=floor(cq),cf=fract(cq);
 cf=cf*cf*(3.-2.*cf);
 float ca=fract(sin(dot(ci,vec2(12.7,47.3)))*2753.1),cb=fract(sin(dot(ci+vec2(1,0),vec2(12.7,47.3)))*2753.1),cc_=fract(sin(dot(ci+vec2(0,1),vec2(12.7,47.3)))*2753.1),cd=fract(sin(dot(ci+1.,vec2(12.7,47.3)))*2753.1);
 float cn=mix(mix(ca,cb,cf.x),mix(cc_,cd,cf.x),cf.y);
-// 森
+`;
+// 森（杉林・樹冠・新緑と深緑）
+const TERR_FS_FOREST = `// 森
 float wood=smoothstep(1.2,3.,vH)*(1.-smoothstep(.75,.95,slope));
 vec2 c2q=vXZ*1.3,c2i=floor(c2q),c2f=fract(c2q);
 c2f=c2f*c2f*(3.-2.*c2f);
@@ -311,19 +286,25 @@ wc*=1.+min(uSpr,0.)*.18;
 diffuseColor.rgb=mix(diffuseColor.rgb,wc,wood*.95);
 diffuseColor.rgb*=1.+.25*wood*(dot(nrmE,normalize(vec3(.55,.6,.4)))-.45);
 }diffuseColor.rgb*=1.-wood*.28*(1.-uSnow*.5*(1.-uSnow*smoothstep(90.,120.,vH)));
+`;
 // 紅葉
+const TERR_FS_AUTUMN = `// 紅葉
 vec2 aq=vXZ*.35,ai=floor(aq),af=fract(aq);
 af=af*af*(3.-2.*af);
 float a1=fract(sin(dot(ai,vec2(12.9,78.2)))*43758.5),a2=fract(sin(dot(ai+vec2(1,0),vec2(12.9,78.2)))*43758.5),a3=fract(sin(dot(ai+vec2(0,1),vec2(12.9,78.2)))*43758.5),a4=fract(sin(dot(ai+1.,vec2(12.9,78.2)))*43758.5);
 float nz=mix(mix(a1,a2,af.x),mix(a3,a4,af.x),af.y);
 diffuseColor.rgb=mix(diffuseColor.rgb,mix(mix(vec3(.62,.22,.07),vec3(.78,.5,.1),fract(nz*7.)),vec3(.55,.12,.06),step(.85,fract(nz*13.))),uAut*.85*smoothstep(.45,.62,nz)*smoothstep(${(20 * S * VEX).toFixed(2)},${(120 * S * VEX).toFixed(2)},vH)*smoothstep(1.-uAut*1.1,1.15-uAut*1.1,1.-clamp(vH/${(700 * S * VEX).toFixed(2)},0.,1.)+(dot(nrmE,normalize(vec3(.55,.6,.4)))-.5)*.25));
+`;
 // 冬枯れと雪
+const TERR_FS_WINTER = `// 冬枯れと雪
 diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.05,.92,.75),uWin);
 diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.9,.92,.94)*(.85+.15*mic),uSL*(1.-smoothstep(.55,.9,slope))*smoothstep(.3,1.2,vH));
 diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.93,.94,.96),uSnow*smoothstep(${(600 * S * VEX).toFixed(2)},${(800 * S * VEX).toFixed(2)},vH+(fract(sin(dot(floor(vXZ*.6),vec2(3.,7.)))*91.)-.5)*${(120 * S * VEX).toFixed(2)}));
-// 遠くの霞、雲の影、朝夕の山の縁の光
+`;
+// 遠くの霞・雲の影・朝夕の山の縁の光
+const TERR_FS_HAZE = `// 遠くの霞、雲の影、朝夕の山の縁の光
 {float dc_=length(cameraPosition.xz-vXZ);
-float hz=1.-exp(-dc_/3800.);
+float hz=1.-exp(-dc_/${glf(LOOK.hazeDist)});
 hz*=(.55+.45*smoothstep(5.,160.,vH));
 {float cs=smoothstep(.35,.8,.5+.5*sin((vXZ.x+uCT*4.)*.0045+sin(vXZ.y*.0031)*2.)*sin((vXZ.y+uCT*2.)*.0038+sin(vXZ.x*.0027)*1.7));
 diffuseColor.rgb*=(1.-cs*${glf(LOOK.cloudShadowLand)}*uCSh*clamp(uSunT.y*3.,0.,1.))*(1.+(1.-cs)*${glf(LOOK.sunlitBoost)}*uCSh*clamp(uSunT.y*3.,0.,1.));
@@ -331,9 +312,40 @@ float low=smoothstep(.22,.02,uSunT.y)*smoothstep(-.1,.02,uSunT.y);
 vec2 sd2=normalize(uSunT.xz+1e-4);
 float face=pow(max(dot(normalize(nrm.xz+1e-4),sd2),0.),2.)*smoothstep(.05,.5,1.-nrm.y);
 diffuseColor.rgb+=vec3(1.,.55,.3)*face*low*smoothstep(40.,180.,vH)*.35;
-}diffuseColor.rgb=mix(diffuseColor.rgb,uHaze*1.1,clamp(hz,0.,1.)*.85);
+}// 遠い山ほど、白いかすみではなく暗い青灰の影に沈む
+diffuseColor.rgb=mix(diffuseColor.rgb,mix(uHaze*1.1,uHaze*vec3(.5,.56,.68),smoothstep(${glf(LOOK.farDarkFrom)},${glf(LOOK.farDarkTo)},dc_)),clamp(hz,0.,1.)*${glf(LOOK.hazeAmount)});
 diffuseColor.rgb*=1.+.12*hz;
-}`,
+}`;
+const terrMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+terrMat.onBeforeCompile = (sh) => {
+  sh.uniforms.uHaze = { value: new THREE.Color(0x9fb4c8) };
+  sh.uniforms.uLow = { value: 0 };
+  terrMat.userData.low = sh.uniforms.uLow;
+  terrMat.userData.haze = sh.uniforms.uHaze;
+  sh.uniforms.uSnow = { value: 0 };
+  sh.uniforms.uSpr = { value: 0 };
+  sh.uniforms.uCT = { value: 0 };
+  sh.uniforms.uCSh = { value: 1 };
+  sh.uniforms.uSunT = { value: new THREE.Vector3(0, 1, 0) };
+  sh.uniforms.uSL = { value: 0 };
+  sh.uniforms.uWin = { value: 0 };
+  sh.uniforms.uAut = { value: 0 };
+  terrMat.userData.sh = sh;
+  sh.vertexShader = sh.vertexShader
+    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;")
+    .replace(
+      "#include <begin_vertex>",
+      "#include <begin_vertex>\nvH=position.y;vXZ=(modelMatrix*vec4(position,1.)).xz;",
+    );
+  sh.fragmentShader = sh.fragmentShader
+    .replace(
+      "#include <common>",
+      "#include <common>\nvarying float vH;varying vec2 vXZ;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;",
+    )
+    .replace(
+      "#include <color_fragment>",
+      `#include <color_fragment>
+${TERR_FS_SLOPE}${TERR_FS_ROCK}${TERR_FS_SHORE}${TERR_FS_FOREST}${TERR_FS_AUTUMN}${TERR_FS_WINTER}${TERR_FS_HAZE}`,
     );
 };
 const terr = new THREE.Mesh(terrGeo, terrMat);

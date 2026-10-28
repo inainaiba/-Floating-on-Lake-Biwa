@@ -126,7 +126,7 @@ G.moments = (() => {
   function update(dt, t, c, W) {
     const kind = c.month === LOOK.months.petals ? 3 : c.month === LOOK.months.leaves ? 10 : -1;
     // 雪の日は出さない
-    pts.visible = kind >= 0 && !isFar && !(G.wxNow && G.wxNow.snow > 0.05);
+    pts.visible = LOOK.show.floatingLeaves && kind >= 0 && !isFar && !(G.wxNow && G.wxNow.snow > 0.05);
     if (kind >= 0) {
       if (kind !== kindNow || Math.hypot(pos[0] - camera.position.x, pos[2] - camera.position.z) > 260) {
         kindNow = kind;

@@ -84,6 +84,7 @@ G.isl = (() => {
 
 /* ---------- 沖島の南側：山を背に、湖に面して家が密に並ぶ漁村（石積みの護岸、舫われた白い漁船、電柱） ---------- */
 G.okishima = (() => {
+  if (!LOOK.show.okishima) return null;
   const R = rnd(5151),
     [ox, oy] = ll(136.065, 35.205);
   const I = ISLES.find((I) => Math.hypot((I.box[0] + I.box[2]) / 2 - ox, (I.box[1] + I.box[3]) / 2 - oy) < 2500);

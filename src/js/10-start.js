@@ -1,4 +1,10 @@
 /* ---------- 放つ場所：湖上の数百か所から ---------- */
+// 要素ごとの乱数：名前から種を決める。要素を足し引きしても、ほかの要素の配置がずれない
+function rndFor(name) {
+  let h = 2166136261;
+  for (const ch of name) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+  return rnd(h);
+}
 function rnd(seed) {
   return () => {
     seed = (seed * 1664525 + 1013904223) >>> 0;

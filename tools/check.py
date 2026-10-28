@@ -199,6 +199,8 @@ def main():
     subprocess.run([sys.executable, str(R / 'build.py')], cwd=R, check=True)
     idx = QUICK if '--quick' in a else list(range(len(SCENES)))
     print('撮影中…')
+    # 場面は1枚のページで順に撮る。並べて同時に撮ると、前の場面の状態（雨上がりの澄んだ空気など）が
+    # 場面ごとに変わって比較がぶれるうえ、この環境（2コア）ではかえって遅かった
     errs = shoot(idx)
     for line in sheet(idx):
         print(line)

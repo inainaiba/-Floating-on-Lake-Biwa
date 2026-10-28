@@ -26,24 +26,22 @@ const skyU = {
   uWin: { value: 0 },
   uCity: { value: new THREE.Vector3(0, 0, 1) },
 };
-const skyDome = new THREE.Mesh(
-  new THREE.SphereGeometry(9000, 32, 16),
-  new THREE.ShaderMaterial({
-    uniforms: skyU,
-    side: THREE.BackSide,
-    depthWrite: false,
-    fog: false,
-    vertexShader: `varying vec3 vD;void main(){vD=normalize(position);vec4 p=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*p;gl_Position.z=gl_Position.w*.9999;}`,
-    fragmentShader: `uniform vec3 uTop,uHor,uSunD,uSunC2;
+/* 空の描画（フラグメント）：処理の順に区切った部品。一つの main の中で上から順につながる。
+   前の部品で作った値（y, sd, cp, cl, nt など）を後の部品が使うので、順番は入れ替えない。 */
+const SKY_FS_HEAD = `uniform vec3 uTop,uHor,uSunD,uSunC2;
 uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;uniform float uMw;uniform float uVeil,uWin;uniform vec3 uCity;
 uniform vec3 uLd;
 varying vec3 vD;
 ${GLSL_NOISE}
- void main(){float y=max(vD.y,0.);
+ `;
+// 地平から天頂へのグラデーション
+const SKY_FS_BASE = `float y=max(vD.y,0.);
 vec3 c=mix(uHor,uTop,pow(y,.45));
 float sd=max(dot(vD,uSunD),0.);
 float md=max(dot(vD,-uSunD),0.);
-{vec3 md0=normalize(vec3(-uSunD.x,max(-uSunD.y*.9+.02,.02),-uSunD.z));float mlow=1.-smoothstep(.02,.22,md0.y);
+`;
+// 月：満ち欠け・低い月の色・月のかさ
+const SKY_FS_MOON = `{vec3 md0=normalize(vec3(-uSunD.x,max(-uSunD.y*.9+.02,.02),-uSunD.z));float mlow=1.-smoothstep(.02,.22,md0.y);
 vec3 sx=normalize(cross(md0,vec3(0.,1.,0.)));
 float a0=dot(vD,md0);
 float mr0=mix(.99955,.9993,mlow),disc=smoothstep(mr0,mr0+.00013,a0);
@@ -54,10 +52,14 @@ float lit=uMp<.5?disc*(1.-occ*step(.03,abs(uMp-.5))):disc*(1.-occ*step(.03,abs(u
 float fullness=1.-abs(uMp-.5)*2.;
 c+=mix(vec3(.95,.95,.88),vec3(1.,.66,.4),mlow*.85)*max(lit,disc*.06)*smoothstep(.05,-.1,uSunD.y);c+=vec3(1.,.6,.35)*pow(max(a0,0.),900.)*.35*mlow*smoothstep(.05,-.1,uSunD.y);
 c+=vec3(.5,.55,.7)*pow(max(a0,0.),300.)*.25*fullness*smoothstep(.05,-.1,uSunD.y);
-}c+=uSunC2*uVeil*(pow(sd,250.)*1.1+pow(sd,25.)*.35)*smoothstep(-.02,.08,uSunD.y);
+}`;
+// 太陽：円盤・薄雲越しのにじみ・地平の茜
+const SKY_FS_SUN = `c+=uSunC2*uVeil*(pow(sd,250.)*1.1+pow(sd,25.)*.35)*smoothstep(-.02,.08,uSunD.y);
 c+=uSunC2*(1.-uVeil*.85)*(mix(pow(sd,1500.)*3.5,pow(sd,380.)*1.6,uHzS)+vec3(.35,-.15,-.3)*pow(sd,380.)*uHzS*.8+pow(sd,40.)*.2+pow(sd,6.)*.08+pow(sd,14.)*.22*uCloud);
 c+=vec3(1.,.55,.3)*pow(max(dot(normalize(vec3(vD.x,0.,vD.z)),normalize(vec3(uSunD.x,0.,uSunD.z))),0.),6.)*smoothstep(.35,0.,y)*smoothstep(.35,0.,abs(uSunD.y))*.6;
- vec2 cp=vD.xz/(vD.y+.08)*1.4+vec2(uT*.004,uT*.002);
+`;
+// 巻雲・層雲・街明かり・雲の銀の縁
+const SKY_FS_CLOUDS = ` vec2 cp=vD.xz/(vD.y+.08)*1.4+vec2(uT*.004,uT*.002);
 cp+=vec2(nzF5(cp*.35+1.3),nzF5(cp*.35+7.1))*1.1-.55;
 float ci=(smoothstep(.55,.9,nzF5(vec2(cp.x*.6,cp.y*3.)+3.))+smoothstep(.6,.85,nzF5(cp*6.+9.))*smoothstep(.45,.7,nzF5(cp*.8+2.))*.8)*uCi*smoothstep(.05,.3,vD.y);
 c=mix(c,vec3(1.),ci*(1.-uDark));
@@ -70,7 +72,9 @@ c=mix(c,cc,cl*.85);
 // 雲に映る街明かり：夜、街のある方角の雲の底が橙に照らされる
 {float ntc=smoothstep(.05,-.15,uSunD.y);float dir=pow(max(dot(normalize(vec3(vD.x,0.,vD.z)),uCity),0.),3.);c+=vec3(1.,.58,.3)*cl*dir*ntc*.16*smoothstep(.45,.0,y)*(.5+uCloud);}
 {float edge=smoothstep(.0,.25,cl)*smoothstep(.75,.2,cl);c+=uSunC2*edge*(pow(sd,10.)*1.4+pow(sd,60.)*1.2)*smoothstep(-.02,.1,uSunD.y)*(1.-uDark*.8);}
-if(uCu>.01){vec2 q=vec2(atan(vD.z,vD.x)*3.2+uT*.0015,vD.y*9.);
+`;
+// 積雲（入道雲）
+const SKY_FS_CUMULUS = `if(uCu>.01){vec2 q=vec2(atan(vD.z,vD.x)*3.2+uT*.0015,vD.y*9.);
 float hgt=nzF5(vec2(q.x*1.3,1.7))*.55+.12;
 float base=.035;
 float m_=smoothstep(.0,.04,vD.y-base)*smoothstep(hgt+.02,hgt-.06,vD.y)*smoothstep(.42,.62,nzF5(q*vec2(1.6,1.)+5.));
@@ -79,7 +83,9 @@ vec3 cu=mix(vec3(1.),vec3(.52,.57,.68),sh_);
 {float hv=clamp((vD.y-base)/max(hgt-base,.02),0.,1.);float dusk=smoothstep(.35,.0,uSunD.y)*smoothstep(-.14,-.02,uSunD.y+.0)*1.;vec3 top=mix(vec3(1.,.55,.42),vec3(1.,.74,.5),smoothstep(-.05,.1,uSunD.y));vec3 bot=vec3(.62,.56,.74);vec3 dc=mix(bot,top,smoothstep(.15,.85,hv))*(1.+.25*pow(max(dot(normalize(vec3(vD.x,0.,vD.z)),normalize(vec3(uSunD.x,0.,uSunD.z))),0.),2.));cu=mix(cu,dc,max(dusk,smoothstep(.35,.0,uSunD.y)*.85));cu*=1.-uDark*.6;}
 c=mix(c,cu,m_*uCu);
 }
- // 反薄明光線：夕方、太陽の反対側の空へ影の筋が集まる
+`;
+// 光芒：反薄明光線・薄明光線・稲光
+const SKY_FS_RAYS = ` // 反薄明光線：夕方、太陽の反対側の空へ影の筋が集まる
  {float lw2=smoothstep(.18,.0,abs(uSunD.y+.02))*(1.-uDark)*clamp(uCu*1.5+uCloud*.6,0.,1.);if(lw2>.01){vec3 an_=-uSunD;vec3 sp2=normalize(vD-an_*dot(vD,an_));float a2=atan(dot(sp2,normalize(cross(an_,vec3(0.,1.,0.)))),sp2.y);float st2=smoothstep(.45,.75,nzF5(vec2(a2*7.,uT*.008)));c=mix(c,c*vec3(.8,.78,.88),st2*lw2*.35*smoothstep(.0,.08,vD.y)*smoothstep(.7,.1,vD.y));}}
  if(uRay>.01){vec3 sp=normalize(vD-uSunD*dot(vD,uSunD));
 float an=atan(dot(sp,normalize(cross(uSunD,vec3(0.,1.,0.)))),sp.y);
@@ -88,13 +94,17 @@ c+=vec3(1.,.86,.62)*rays*uRay*.5*(1.+1.4*smoothstep(.0,-.15,vD.y-uSunD.y)*smooth
 }if(uLt>.01){float lg=pow(max(dot(vD,normalize(uLd)),0.),18.)*smoothstep(.0,.04,vD.y)*smoothstep(.3,.06,vD.y);
 c+=vec3(.85,.85,1.)*lg*uLt*1.4;
 }
- if(uRb>.01){vec3 anti=normalize(-uSunD);
+`;
+// 虹
+const SKY_FS_RAINBOW = ` if(uRb>.01){vec3 anti=normalize(-uSunD);
 float ang=acos(clamp(dot(vD,anti),-1.,1.));
 float band=(ang-.70)/.035;
 vec3 rb=clamp(vec3(1.-abs(band-1.),1.-abs(band),1.-abs(band+1.)),0.,1.);
 c+=rb*.22*uRb*smoothstep(.0,.05,vD.y)*smoothstep(-.4,.6,band+1.6)*(1.-smoothstep(1.6,2.2,abs(band)));
 }
- {float lw=smoothstep(.3,.02,uSunD.y)*smoothstep(-.16,.0,uSunD.y)*(1.-uDark);
+`;
+// 夕焼け・明け方の色の層・地平のにじみ
+const SKY_FS_TWILIGHT = ` {float lw=smoothstep(.3,.02,uSunD.y)*smoothstep(-.16,.0,uSunD.y)*(1.-uDark);
 vec3 ly=mix(vec3(1.,.6,.32),vec3(1.,.62,.66),smoothstep(.0,.08,y));
 ly=mix(ly,vec3(.72,.66,.9),smoothstep(.06,.22,y));
 c=mix(c,ly*mix(1.,.8,smoothstep(.0,.3,y)),lw*.45*smoothstep(.45,.0,y));
@@ -106,11 +116,17 @@ c=mix(c,ly*mix(1.,.8,smoothstep(.0,.3,y)),lw*.45*smoothstep(.45,.0,y));
  vec3 dc2=mix(l1,l2,smoothstep(.0,.05,y));dc2=mix(dc2,l3,smoothstep(.05,.14,y));dc2=mix(dc2,l4,smoothstep(.14,.4,y));
  c=mix(c,dc2,dw*.55*smoothstep(.6,.0,y));}
  c+=vec3(.1,.1,.09)*exp(-y*16.)*smoothstep(-.1,.2,uSunD.y)*(1.-uDark);
- if(uSnowCap>.01){float west=smoothstep(-.15,-.75,vD.x);float sc=smoothstep(.45,.7,nzF5(vec2(atan(vD.z,vD.x)*5.+uT*.003,vD.y*14.)))*smoothstep(.03,.07,vD.y)*smoothstep(.26,.1,vD.y);c=mix(c,vec3(.58,.61,.66)*(1.-uDark*.7),clamp(sc*west*1.8,0.,.95)*uSnowCap);c=mix(c,vec3(.68,.7,.74)*(1.-uDark*.7),uSnowCap*.35*smoothstep(.5,.0,y));}
+`;
+// 雪雲・雨の柱
+const SKY_FS_WEATHER = ` if(uSnowCap>.01){float west=smoothstep(-.15,-.75,vD.x);float sc=smoothstep(.45,.7,nzF5(vec2(atan(vD.z,vD.x)*5.+uT*.003,vD.y*14.)))*smoothstep(.03,.07,vD.y)*smoothstep(.26,.1,vD.y);c=mix(c,vec3(.58,.61,.66)*(1.-uDark*.7),clamp(sc*west*1.8,0.,.95)*uSnowCap);c=mix(c,vec3(.68,.7,.74)*(1.-uDark*.7),uSnowCap*.35*smoothstep(.5,.0,y));}
  if(uShaft>.01){float az=atan(vD.z,vD.x);float sh_=smoothstep(.55,.85,nzF5(vec2(az*2.2,uT*.002)))*smoothstep(.62,.9,nzF5(vec2(az*9.,vD.y*3.+uT*.01)))*smoothstep(.0,.03,vD.y)*smoothstep(.2,.05,vD.y);c=mix(c,vec3(.48,.52,.58)*(1.-uDark*.5),sh_*uShaft*.7);}
- if(uCon.w>.01){float az=uCon.x,el=uCon.y;vec3 a=normalize(vec3(cos(az)*cos(el),sin(el),sin(az)*cos(el)));vec3 b=normalize(vec3(cos(az+1.1)*cos(el+.08),sin(el+.08),sin(az+1.1)*cos(el+.08)));vec3 hd=normalize(mix(a,b,uCon.z));vec3 n2=normalize(cross(a,b));float dl=abs(dot(vD,n2));float on_=dot(cross(a,vD),n2)>0.&&dot(cross(vD,hd),n2)>0.?1.:0.;float age=1.-clamp(acos(clamp(dot(vD,hd),-1.,1.))/(1.2*uCon.z+.001),0.,1.);float wid=mix(.0012,.006,1.-age);c=mix(c,vec3(1.),smoothstep(wid,0.,dl)*on_*(.25+.55*age)*uCon.w*(1.-uDark));}
+`;
+// 飛行機雲・金星
+const SKY_FS_OBJECTS = ` if(uCon.w>.01){float az=uCon.x,el=uCon.y;vec3 a=normalize(vec3(cos(az)*cos(el),sin(el),sin(az)*cos(el)));vec3 b=normalize(vec3(cos(az+1.1)*cos(el+.08),sin(el+.08),sin(az+1.1)*cos(el+.08)));vec3 hd=normalize(mix(a,b,uCon.z));vec3 n2=normalize(cross(a,b));float dl=abs(dot(vD,n2));float on_=dot(cross(a,vD),n2)>0.&&dot(cross(vD,hd),n2)>0.?1.:0.;float age=1.-clamp(acos(clamp(dot(vD,hd),-1.,1.))/(1.2*uCon.z+.001),0.,1.);float wid=mix(.0012,.006,1.-age);c=mix(c,vec3(1.),smoothstep(wid,0.,dl)*on_*(.25+.55*age)*uCon.w*(1.-uDark));}
  if(uVenus>.01){vec3 vd=normalize(vec3(.85,.16,.2));c+=vec3(1.,.97,.9)*(smoothstep(.99997,1.,dot(vD,vd))*2.5+pow(max(dot(vD,vd),0.),4000.)*.6)*uVenus;}
- float nt=smoothstep(.05,-.15,uSunD.y);
+`;
+// 夜：流れ星・星と瞬き・天の川
+const SKY_FS_NIGHT = ` float nt=smoothstep(.05,-.15,uSunD.y);
  if(uMet.w>.01){float az=uMet.x,el=uMet.y;vec3 a=normalize(vec3(cos(az)*cos(el),sin(el),sin(az)*cos(el)));vec3 b=normalize(vec3(cos(az+.18)*cos(el-.09),sin(el-.09),sin(az+.18)*cos(el-.09)));vec3 hd=normalize(mix(a,b,uMet.z));vec3 nrm2=normalize(cross(a,b));float dl=abs(dot(vD,nrm2));float along=dot(cross(a,vD),nrm2)>0.&&dot(cross(vD,hd),nrm2)>0.?1.:0.;float tail=1.-clamp(acos(clamp(dot(vD,hd),-1.,1.))/(.2*uMet.z+.001),0.,1.);c+=vec3(.9,.95,1.)*smoothstep(.0012,.0,dl)*along*pow(tail,1.5)*uMet.w*nt*1.6;}
  vec2 sp_=vD.xz/(vD.y+.25);
 float h1=fract(sin(dot(floor(sp_*160.),vec2(12.9,78.2)))*43758.5),h2=fract(sin(dot(floor(sp_*70.),vec2(39.3,11.1)))*24634.6);
@@ -126,7 +142,31 @@ c+=mw*nt*vec3(.05,.055,.08)*(1.-uDark);
  c+=vec3(.22,.2,.28)*mw*nt*smoothstep(.05,.35,y)*(1.-cl*.8);
  c+=mix(vec3(1.,.85,.7),vec3(.75,.85,1.),fract(h1*37.+h2*11.))*st*3.2*uStar*smoothstep(.04,.3,y)*nt*(1.-cl*.7);
  c+=vec3(1.,.62,.35)*exp(-y*9.)*nt*.45;
-c=mix(c,uHor,smoothstep(.2,0.,y)*.75);
+`;
+// 仕上げ：地平を地平色に溶かす
+const SKY_FS_FINISH = `c=mix(c,uHor,smoothstep(.2,0.,y)*.75);
+`;
+const skyDome = new THREE.Mesh(
+  new THREE.SphereGeometry(9000, 32, 16),
+  new THREE.ShaderMaterial({
+    uniforms: skyU,
+    side: THREE.BackSide,
+    depthWrite: false,
+    fog: false,
+    vertexShader: `varying vec3 vD;void main(){vD=normalize(position);vec4 p=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*p;gl_Position.z=gl_Position.w*.9999;}`,
+    fragmentShader: `${SKY_FS_HEAD}void main(){
+${SKY_FS_BASE}
+${SKY_FS_MOON}
+${SKY_FS_SUN}
+${SKY_FS_CLOUDS}
+${SKY_FS_CUMULUS}
+${SKY_FS_RAYS}
+${SKY_FS_RAINBOW}
+${SKY_FS_TWILIGHT}
+${SKY_FS_WEATHER}
+${SKY_FS_OBJECTS}
+${SKY_FS_NIGHT}
+${SKY_FS_FINISH}
 gl_FragColor=vec4(c,1.);
 }`,
   }),

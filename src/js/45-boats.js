@@ -3,7 +3,8 @@ G.boats = (() => {
   const R = rnd(9494);
   // 田舟：ヨシ原の水際に舫われた細長い木の小舟
   const tabune = [];
-  {
+  if (LOOK.show.tabune) {
+    const R = rndFor("tabune");
     const wd = new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 0.95 }),
       g0 = new THREE.Group();
     const bot = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.12, 5.2), wd);
@@ -42,7 +43,7 @@ G.boats = (() => {
     });
   }
   // 遠くの舟の航跡：静かな湖面に細く長く残るV字の筋
-  const wakes = (G.ambience ? G.ambience.boats : []).map((b) => {
+  const wakes = (LOOK.show.wakes && G.ambience ? G.ambience.boats : []).map((b) => {
     const N = 60,
       pos = new Float32Array(N * 3 * 2 * 3),
       col = new Float32Array(N * 3 * 2 * 3);
@@ -143,7 +144,8 @@ G.boats = (() => {
   })();
   // シジミ漁の舟：瀬田川の近くの浅い水面で、長い柄の道具を操る
   const shijimi = [];
-  {
+  if (LOOK.show.shijimi) {
+    const R = rndFor("shijimi");
     const wd = new THREE.MeshLambertMaterial({ color: 0x4e4436 }),
       mn = new THREE.MeshLambertMaterial({ color: 0x2c2e34 }),
       ht = new THREE.MeshLambertMaterial({ color: 0xd6d0c0 }),
@@ -246,7 +248,7 @@ G.boats = (() => {
     {
       const cx = camera.position.x,
         cz = camera.position.z;
-      if (!ship.on && day > 0.25 && wxNow.rain < 0.3 && Math.random() < dt / 90) {
+      if (!ship.on && LOOK.show.ship && day > 0.25 && wxNow.rain < 0.3 && Math.random() < dt / 90) {
         for (let k = 0; k < 15; k++) {
           const a = Math.random() * 6.28,
             d = 700 + Math.random() * 700,

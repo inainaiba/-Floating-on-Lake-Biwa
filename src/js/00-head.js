@@ -3,6 +3,16 @@ import * as THREE from "three";
 // 部品をまたいで使う共有の値はここに集める。
 // URL に ?debug を付けたときだけ、確認用に window.__floating として外から見えるようにする（公開時は閉じておく）
 const G = /[?&]debug(?:[=&]|$)/.test(location.search) ? (window.__floating = {}) : {};
+// three.js の内部シェーダーを文字列で置き換えて改造している箇所の見張り（?debug のときだけ）。
+// 置き換え先の目印（#include <…>）が見つからないと、改造が黙って効かなくなるので、コンソールに誤りとして出す。
+// 撮影確認（tools/check.py）はコンソールの誤りを拾って失敗にする。
+if (window.__floating) {
+  const orig = String.prototype.replace;
+  String.prototype.replace = function (a, b) {
+    if (typeof a === "string" && a.startsWith("#include <") && !this.includes(a)) console.error("[shader] 置き換えの目印が見つかりません：" + a);
+    return orig.call(this, a, b);
+  };
+}
 // 点を丸く柔らかく描くための小さな画像（蛍・花びら・落ち葉など）
 G.dotTex = (() => {
   const c = document.createElement("canvas");

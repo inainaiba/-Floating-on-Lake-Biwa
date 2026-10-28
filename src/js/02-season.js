@@ -51,9 +51,8 @@ const LOOK = {
   cloudShadowLand: 0.55, // 山肌に落ちる雲の影の濃さ
   sunlitBoost: 0.08, // 雲の影の外（日なた）を明るくする量
   cloudShadowWater: 0.36, // 湖面に落ちる雲の影の濃さ
-  hazeNear: 500, // 山のかすみが始まる距離（作品内の単位）
-  hazeFar: 6200, // かすみが最大になる距離
-  hazeAmount: 0.55, // かすみの最大の濃さ
+  hazeDist: 3800, // 山のかすみの距離（この距離で約6割かすむ。作品内の単位）
+  hazeAmount: 0.85, // かすみの最大の濃さ
   farDarkFrom: 2500, // 遠い山が暗い青灰に沈み始める距離
   farDarkTo: 7500,
   waterCalmGrade: 0.2, // 湖の色の鮮やかさを鎮める量
@@ -63,6 +62,23 @@ const LOOK = {
   glassNight: 0.8, // 夜、ガラス・幕の明るさ
   haloOpacity: 0.45, // 灯りのにじみの濃さ
   flicker: [0.03, 0.02], // 灯りの揺らぎ（ゆっくり、速い）
+  // 要素の出す／出さない（false にすると作らない・表示しない）
+  show: {
+    bamboo: true, // 集落裏の竹林
+    mountainClouds: true, // 山肌を這う雲
+    susuki: true, // 秋のススキ
+    wetWoods: true, // 水辺のヤナギ・ハンノキ
+    pines: true, // 湖岸の松並木
+    tabune: true, // 田舟
+    wakes: true, // 遠くの舟の航跡
+    ship: true, // 遊覧船
+    shijimi: true, // シジミ漁の舟
+    windowFlicker: true, // 家々の灯りが順に点いて消える
+    eri: true, // えりの竹竿
+    okishima: true, // 沖島の集落
+    floatingLeaves: true, // 水に浮かぶ花びら・落ち葉
+    fireflies: true, // 蛍
+  },
   months: {
     petals: 3, // 水に浮かぶ花びら（4月）
     leaves: 10, // 水に浮かぶ落ち葉（11月）
