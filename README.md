@@ -25,6 +25,10 @@
 
 組み立て：`python3 build.py`　（`src/` と `data/` から `docs/index.html` を作る）
 
+## よく出てくる名前
+
+`c` 共有時計（月・時刻）／`W` 風（向き・強さ、`W.wx` が天気）／`wxNow` その時点の天気／`B` 建物の状態（位置・向き・軌跡）／`S` 湖の縮尺（1/5）／`G` 部品をまたぐ共有の値／`SEASON`・`PALETTE`・`QUALITY` 季節・色・画質の表
+
 ## 更新の流れ
 
 1. `src/` や `data/` を直す（季節の値は `src/js/03-season.js`、ブイは `data/buoys.xlsx`）
@@ -32,11 +36,11 @@
    - 組み立て（`build.py`）→ 代表4場面の撮影と比較（`tools/check.py --quick`）→ GitHubへ記録
    - ページのエラーが出たら記録せずに止まる。比較画像は `check/sheet.png`
    - 数分で GitHub Pages に反映される
-3. 見た目を意図して変えたときは、`python3 tools/check.py` で全12場面を撮り、問題なければ `python3 tools/check.py --accept` で基準を更新して記録する
+3. 見た目を意図して変えたときは、`python3 tools/check.py` で全18場面を撮り、問題なければ `python3 tools/check.py --accept` で基準を更新して記録する
 
 準備（初回だけ）：`npm install`（確認用に three.js を手元に置く）、Python の `playwright`・`Pillow`・`openpyxl`
 
-確認用の視点操作は、URLに `?debug` を付けたときだけ有効。確認はページを1回だけ読み込み、月・時刻・天気・建物を切り替えながら撮る（全12場面で約8分）。風は実時間で揺らぐため、差の数値は0.05程度までは自然な揺れ。
+確認用の視点操作は、URLに `?debug` を付けたときだけ有効。確認はページを1回だけ読み込み、月・時刻・天気・建物を切り替えながら撮る（全18場面で約10分）。風は実時間で揺らぐため、差の数値は0.05程度までは自然な揺れ。
 
 URLの調整値：`?q=hq|mid|low`（画質）、`?scale=5`（縮尺）、`?month=0-11&phase=0-1&wx=0-6`（月・時刻・天気の固定）
 
