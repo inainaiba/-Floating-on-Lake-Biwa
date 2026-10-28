@@ -486,10 +486,12 @@ function reedTex(kind) {
     spring: { stem: "#7fa257", leaf: "#94b866", plume: null, h: 0.55 },
     autumn: { stem: "#a98d55", leaf: "#94864a", plume: "#8a6a52", h: 1 },
     winter: { stem: "#c8a868", leaf: null, plume: "#d8c49a", h: 1 },
-    cut: { stem: "#8a7656", leaf: null, plume: null, h: 0.18 },
-    burnt: { stem: "#2a2622", leaf: null, plume: null, h: 0.12 },
+    cut: { stem: "#c4ad80", leaf: null, plume: null, h: 0.2 },
+    burnt: { stem: "#6a5a48", leaf: null, plume: null, h: 0.14 },
   }[kind];
-  for (let i = 0; i < 90; i++) {
+  // 刈り跡・焼け跡は短い株を密に並べ、点々ではなく淡い帯に見せる
+  const NS = P.h < 0.3 ? 320 : 90;
+  for (let i = 0; i < NS; i++) {
     const u_ = R(),
       x = 4 + u_ * 248,
       top = 512 - (300 + R() * 200) * P.h,
@@ -523,7 +525,7 @@ function reedTex(kind) {
       g.restore();
     }
   }
-  {
+  if (P.h >= 0.3) {
     g.globalCompositeOperation = "source-atop";
     const gr = g.createLinearGradient(0, 0, 0, 512);
     gr.addColorStop(0, "rgba(255,255,230,.12)");
