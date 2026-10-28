@@ -20,6 +20,7 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
           uDof: { value: 0 },
           uAsp: { value: 1.6 },
           uSunS: { value: new THREE.Vector3(0, 0, 0) },
+          uBlue: { value: 0 },
           uTm: { value: 0 },
           uWarm: { value: 0 },
           uDay: { value: 1 },
@@ -28,7 +29,7 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
         depthTest: false,
         depthWrite: false,
         vertexShader: `varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy,0.,1.);}`,
-        fragmentShader: `uniform sampler2D tD,tZ;uniform float uN,uF,uFoc,uDof,uAsp;uniform vec3 uSunS;
+        fragmentShader: `uniform sampler2D tD,tZ;uniform float uN,uF,uFoc,uDof,uAsp;uniform vec3 uSunS;uniform float uBlue;
 float lz(vec2 u){float z=texture2D(tZ,u).r*2.-1.;return 2.*uN*uF/(uF+uN-z*(uF-uN));}
 float coc(vec2 u){return clamp((lz(u)-uFoc*3.)/(uFoc*10.),0.,1.);}
 uniform float uWarm,uDay,uMorn,uTm;
@@ -71,6 +72,8 @@ vec3 cm=mix(vec3(.36,.5,.5),vec3(.84,.89,.88),smoothstep(.15,.95,l2));
 c=mix(c,cm,uMorn*.6);
 c=mix(c,vec3(.86,.9,.88),uMorn*.45*smoothstep(.55,.95,vU.y));
 }
+    // 夜明け前の青：空と湖の境目が消える、青一色の時間
+    {float lb=dot(c,vec3(.299,.587,.114));c=mix(c,vec3(.5,.68,1.)*(lb*1.15+.04),uBlue*.55);}
     float v=distance(vU,vec2(.5));
 c=mix(c,c*1.04+.03,smoothstep(.3,.75,v)*uDay*.6);
 {float gr=fract(sin(dot(floor(vU*vec2(1920.,1080.)),vec2(12.9898,78.233))+uTm*7.13)*43758.5453)-.5;
@@ -153,6 +156,7 @@ c+=gr*(.022-.01*l);
       const vis = sp.z < 1 && Math.abs(sp.x) < 1.2 && Math.abs(sp.y) < 1.2 ? Math.min(1, day * 2) * (1 - wxNow.gray) : 0;
       u.uSunS.value.set(sp.x * 0.5 + 0.5, sp.y * 0.5 + 0.5, vis);
     }
+    u.uBlue.value = G.morning ? Math.max(0, 1 - Math.abs((G.sunY || 0) + 0.13) / 0.11) * (1 - wxNow.gray * 0.5) : 0;
     u.uDof.value = 0.8 * Math.min(1, Math.max(0, (85 - fd) / 20)) * QUALITY.dof;
   }
   G.gq.material.uniforms.uTm.value = (performance.now() / 1000) % 100;

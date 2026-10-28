@@ -428,6 +428,7 @@
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
+  - 03-coords.js：`ll`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inLake`、`inMain`
   - 07-depth.js：`depth`

@@ -343,6 +343,91 @@ G.life = (() => {
     scene.add(g);
     return { g, on: false, x: 0, z: 0, dx: 0, dz: 0, life: 0 };
   })();
+  // シジミ漁の舟：瀬田川の近くの浅い水面で、長い柄の道具を操る
+  const shijimi = [];
+  {
+    const wd = new THREE.MeshLambertMaterial({ color: 0x4e4436 }),
+      mn = new THREE.MeshLambertMaterial({ color: 0x2c2e34 }),
+      ht = new THREE.MeshLambertMaterial({ color: 0xd6d0c0 }),
+      g0 = new THREE.Group();
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.45, 5.5), wd);
+    hull.position.y = 0.15;
+    g0.add(hull);
+    const man = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.26, 1.15, 6), mn);
+    man.position.set(0, 0.95, 1.2);
+    g0.add(man);
+    const hat = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.22, 8), ht);
+    hat.position.set(0, 1.65, 1.2);
+    g0.add(hat);
+    // 長い柄の鋤簾（じょれん）：水中へ斜めに差し込む
+    const arm = new THREE.Group();
+    arm.position.set(0, 1.2, 1.2);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 7, 4).translate(0, -3.5, 0), new THREE.MeshLambertMaterial({ color: 0x9a8a62 }));
+    arm.add(pole);
+    arm.rotation.x = 0.9;
+    g0.add(arm);
+    const [sx, sy] = ll(135.906, 35.003);
+    for (let n = 0; n < 400 && shijimi.length < 5; n++) {
+      const x = sx + (R() - 0.5) * 3000,
+        y = sy + (R() - 0.5) * 3000,
+        dp = depth(x, y);
+      if (inLake(x, y) && dp > 0.8 && dp < 4 && shijimi.every((b) => Math.hypot(b.position.x - x * S, b.position.z - y * S) > 60)) {
+        const g = g0.clone();
+        g.position.set(x * S, -0.1, y * S);
+        g.rotation.y = R() * 6.28;
+        g.userData.arm = g.children[3];
+        g.userData.ph = R() * 6.28;
+        scene.add(g);
+        shijimi.push(g);
+      }
+    }
+  }
+  // 水辺の林：ヤナギ・ハンノキが浅い水に浸かって立つ（奥の洲のような木立）
+  const wet = (() => {
+    const pts = [];
+    reedPts.forEach(([x, y], i) => {
+      if (i % 23 !== 5) return;
+      const a = R() * 6.28,
+        xx = x + Math.cos(a) * 15,
+        yy = y + Math.sin(a) * 15,
+        dp = depth(xx, yy);
+      if (dp < 0.7) for (let k = 0; k < 3; k++) pts.push([xx + (R() - 0.5) * 30, yy + (R() - 0.5) * 30]);
+    });
+    const P = pts.slice(0, MOBILE ? 400 : 1200),
+      trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.18, 0.3, 4, 5).translate(0, 2, 0), new THREE.MeshLambertMaterial({ color: 0x4a4038 }), Math.max(1, P.length)),
+      crownG = new THREE.IcosahedronGeometry(2.6, 1);
+    {
+      // 枝垂れた形：下へ伸ばし、裾を広げる
+      const p = crownG.attributes.position;
+      for (let i = 0; i < p.count; i++) {
+        const y = p.getY(i);
+        p.setY(i, y < 0 ? y * 1.5 : y * 0.8);
+        const k = y < 0 ? 1.15 : 0.9;
+        p.setX(i, p.getX(i) * k + (R() - 0.5) * 0.5);
+        p.setZ(i, p.getZ(i) * k + (R() - 0.5) * 0.5);
+      }
+      crownG.computeVertexNormals();
+    }
+    const cm = new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true }),
+      crown = new THREE.InstancedMesh(crownG, cm, Math.max(1, P.length)),
+      M2 = new THREE.Matrix4(),
+      Q2 = new THREE.Quaternion(),
+      cc = new THREE.Color();
+    P.forEach(([x, y], i) => {
+      const s = 0.8 + R() * 0.6,
+        gy = Math.max(-0.3, terrainAt(x, y) * S * VEX);
+      Q2.setFromAxisAngle(new THREE.Vector3(0, 1, 0), R() * 6.28);
+      M2.compose(new THREE.Vector3(x * S, gy - 0.3, y * S), Q2, new THREE.Vector3(s, s * (0.9 + R() * 0.4), s));
+      trunk.setMatrixAt(i, M2);
+      M2.compose(new THREE.Vector3(x * S, gy - 0.3 + 4.6 * s, y * S), Q2, new THREE.Vector3(s, s, s));
+      crown.setMatrixAt(i, M2);
+      // ヤナギは明るい黄緑、ハンノキは濃い緑
+      crown.setColorAt(i, R() < 0.55 ? cc.setHSL(0.2 + R() * 0.03, 0.42, 0.42) : cc.setHSL(0.27, 0.35, 0.26));
+    });
+    trunk.castShadow = crown.castShadow = QUALITY.treeShadow;
+    scene.add(trunk, crown);
+    return { crown, cm };
+  })();
   function update(dt, t, c, day, wxNow) {
     const cx = camera.position.x,
       cz = camera.position.z;
@@ -540,6 +625,15 @@ G.life = (() => {
         }
       }
     }
+    for (const g of shijimi) {
+      const k = t * 0.5 + g.userData.ph;
+      g.userData.arm.rotation.x = 0.85 + Math.sin(k) * 0.18;
+      g.userData.arm.rotation.z = Math.sin(k * 0.5) * 0.15;
+      g.position.y = -0.1 + Math.sin(t * 0.9 + g.userData.ph) * 0.03;
+      g.visible = day > 0.15;
+    }
+    // 水辺の林の季節：冬は葉を落として枝の灰色、春は芽吹きの淡い緑、秋は黄色
+    wet.cm.color.setHex([0x8a8478, 0x8a8478, 0xc8d8a0, 0xe0f0c0, 0xffffff, 0xffffff, 0xffffff, 0xffffff, 0xf4f0c0, 0xf0d890, 0xd8b880, 0x9a9080][c.month]);
     // サギはときどき首をかしげる
     for (const h of herons) h.visible = day > 0.05 && !(c.month === 0 && wxNow.snow > 0.5);
   }

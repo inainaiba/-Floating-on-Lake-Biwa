@@ -12,11 +12,14 @@ function updateSkyLight(dt, t, c, W) {
   const sunAngle = (c.phase - 0.25) * 2 * Math.PI,
     day = Math.max(0, Math.sin(sunAngle));
   const sunHeight = SEASON.sunHeight[c.month];
-  const sunDirSky = new THREE.Vector3(
-    Math.cos(sunAngle) * 0.8,
-    Math.sin(sunAngle) * sunHeight,
-    0.45 + 0.25 * (1 - sunHeight),
-  ).normalize();
+  // 日の出・日の入りの方角：夏至は北東から昇り北西へ沈み、冬至は南東から南西へ
+  const dcl = Math.cos(((c.month + 0.5 - 6) / 12) * 2 * Math.PI),
+    zNoon = 0.45 + 0.25 * (1 - sunHeight),
+    zH = -0.42 * dcl,
+    sunZ = zH + (zNoon - zH) * Math.max(0, Math.sin(sunAngle));
+  const sunDirSky = new THREE.Vector3(Math.cos(sunAngle) * 0.8, Math.sin(sunAngle) * sunHeight, sunZ).normalize();
+  G.sunY = sunDirSky.y;
+  G.morning = c.phase < 0.5;
   const sky = skyAt(c.phase);
   {
     const g = new THREE.Color(
@@ -197,11 +200,7 @@ function updateSkyLight(dt, t, c, W) {
   }
   waterU.uSky.value.copy(sky);
   waterU.uFogC.value.copy(skyU.uHor.value);
-  const sd = new THREE.Vector3(
-    Math.cos(sunAngle) * 0.8,
-    Math.max(0.05, Math.sin(sunAngle) * sunHeight),
-    0.45 + 0.25 * (1 - sunHeight),
-  ).normalize();
+  const sd = new THREE.Vector3(Math.cos(sunAngle) * 0.8, Math.max(0.05, Math.sin(sunAngle) * sunHeight), sunZ).normalize();
   waterU.uSun.value.copy(sd);
   sun.position.copy(sd).multiplyScalar(100).add(house.position);
   sun.target.position.copy(house.position);
