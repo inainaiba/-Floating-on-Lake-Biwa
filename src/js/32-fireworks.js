@@ -536,4 +536,4 @@ FW = (() => {
   }
   return { update, BAR, pts, geo, pending, glows, ev, self };
 })();
-window.__FW = FW;
+G.FW = FW;

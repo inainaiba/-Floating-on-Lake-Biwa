@@ -322,7 +322,7 @@ scene.add(brk);
     E.setMatrixAt(i, M);
   });
   scene.add(E);
-  window.__eri = st;
+  G.eri = st;
 }
 
 // 内湖のまわりの木（ヤナギとメタセコイア。秋に色づく）

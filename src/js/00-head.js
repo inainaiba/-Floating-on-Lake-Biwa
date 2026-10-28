@@ -1,5 +1,8 @@
 import * as THREE from "three";
 
+// 部品をまたいで使う共有の値はここに集める（開発ツールからは window.__floating で見える）
+const G = (window.__floating = {});
+
 var LEAFTX;
 function mkLeaf() {
   return cvTex(128, 128, (g, w, h) => {

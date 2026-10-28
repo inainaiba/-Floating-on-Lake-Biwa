@@ -315,7 +315,7 @@ const roofTex = cvTex(128, 128, (g, w, h) => {
 roofTex.wrapS = roofTex.wrapT = THREE.RepeatWrapping;
 roofTex.repeat.set(1.5, 1.5);
 roofTex.anisotropy = 8;
-window.__roofTex = roofTex;
+G.roofTex = roofTex;
 if (typeof buildHouse === "function") buildHouse();
 const wallM = new THREE.MeshLambertMaterial({ color: 0xffffff, map: wallTex }),
   roofM = new THREE.MeshLambertMaterial({ color: 0xffffff, map: roofTex, side: THREE.DoubleSide });
@@ -734,7 +734,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
         3,
       ),
     );
-    window.__street = new THREE.Points(
+    G.street = new THREE.Points(
       sg,
       new THREE.PointsMaterial({
         color: 0xfff0d0,
@@ -745,7 +745,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
         blending: THREE.AdditiveBlending,
       }),
     );
-    scene.add(window.__street);
+    scene.add(G.street);
   }
   const P = new THREE.InstancedMesh(
       new THREE.CylinderGeometry(0.08, 0.1, 6.5, 5).translate(0, 3.25, 0).toNonIndexed(),
@@ -818,7 +818,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
     m.setIndex([...a.index.array, ...[...b.index.array].map((i) => i + 4)]);
     return m;
   })();
-  const G = (window.__grass = new THREE.InstancedMesh(
+  const grassI = (G.grass = new THREE.InstancedMesh(
       gGeo,
       treeFade(
         new THREE.MeshLambertMaterial({
@@ -840,10 +840,10 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
       new THREE.Quaternion(),
       new THREE.Vector3(1 + r, 0.6 + r, 1 + r),
     );
-    G.setMatrixAt(i, M);
-    G.setColorAt(i, cc.setHSL(0.22 + r * 0.06, 0.35, 0.32 + r * 0.12));
+    grassI.setMatrixAt(i, M);
+    grassI.setColorAt(i, cc.setHSL(0.22 + r * 0.06, 0.35, 0.32 + r * 0.12));
   });
-  scene.add(G);
+  scene.add(grassI);
 }
 {
   const sd = houses.filter((_, i) => i % 5 === 2),

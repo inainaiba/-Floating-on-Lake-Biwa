@@ -1,4 +1,4 @@
-window.__isl = (() => {
+G.isl = (() => {
   const R = rnd(3131),
     rk = [],
     tr = [];

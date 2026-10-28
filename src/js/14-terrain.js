@@ -532,7 +532,7 @@ const reeds = new THREE.InstancedMesh(reedGeo, reedMat(), reedPts.length * 6);
 // 内湖の水面（陸より少し上の静かな面）とまわりのヨシ
 const INNER_Y = 0.63;
 const innerMat = new THREE.MeshBasicMaterial({ color: 0x3f6152, side: THREE.DoubleSide });
-window.__innerMeshes = [];
+G.innerMeshes = [];
 for (const p of [...innerPolys, ...innerChan]) {
   const m = new THREE.Mesh(
     new THREE.ShapeGeometry(new THREE.Shape(p.map(([x, y]) => new THREE.Vector2(x * S, -y * S))), 4).rotateX(
@@ -543,7 +543,7 @@ for (const p of [...innerPolys, ...innerChan]) {
   m.frustumCulled = false;
   m.position.y = INNER_Y;
   scene.add(m);
-  window.__innerMeshes.push(m);
+  G.innerMeshes.push(m);
 }
 const innerReedPts = [];
 {

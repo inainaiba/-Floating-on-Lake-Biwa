@@ -74,7 +74,7 @@ gl.addEventListener("pointerdown", (e) => {
 gl.addEventListener("pointermove", (e) => {
   const p = ptrs.get(e.pointerId);
   if (!p) return;
-  window.__lastDrag = performance.now();
+  G.lastDrag = performance.now();
   if (ptrs.size === 1 && STATE === "lake") {
     yawT = (typeof yawT === "number" ? yawT : yaw) - (e.clientX - p[0]) * (3.6 / Math.max(400, innerWidth));
     pitch = Math.max(-0.7, Math.min(1.45, pitch + (e.clientY - p[1]) * 0.005));
@@ -82,9 +82,9 @@ gl.addEventListener("pointermove", (e) => {
     ptrs.set(e.pointerId, [e.clientX, e.clientY]);
     const [a, b] = [...ptrs.values()],
       d = Math.hypot(a[0] - b[0], a[1] - b[1]);
-    if (window.__pm !== undefined)
-      pitch = Math.max(-0.7, Math.min(1.45, pitch + ((a[1] + b[1]) / 2 - window.__pm) * 0.004));
-    window.__pm = (a[1] + b[1]) / 2;
+    if (G.pm !== undefined)
+      pitch = Math.max(-0.7, Math.min(1.45, pitch + ((a[1] + b[1]) / 2 - G.pm) * 0.004));
+    G.pm = (a[1] + b[1]) / 2;
     distT = Math.max(60, (distT * pinch0) / d);
     dist = distT;
     pinch0 = d;
@@ -107,7 +107,7 @@ gl.addEventListener("dblclick", (e) => {
 });
 const up = (e) => {
   ptrs.delete(e.pointerId);
-  if (ptrs.size < 2) window.__pm = undefined;
+  if (ptrs.size < 2) G.pm = undefined;
 };
 gl.addEventListener("pointerup", up);
 gl.addEventListener("pointercancel", up);

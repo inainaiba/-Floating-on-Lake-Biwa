@@ -18,7 +18,7 @@ let resScale = HQ ? 1 : LQ ? 0.6 : 0.85;
 const MOBILE = matchMedia("(pointer:coarse)").matches;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.08;
-window.__exp = 1;
+G.exp = 1;
 renderer.shadowMap.enabled = !MOBILE_;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setPixelRatio(Math.min(devicePixelRatio, MOBILE ? 1.5 : 2));
@@ -228,8 +228,8 @@ const waterU = {
   uW: { value: Array.from({ length: NW }, () => new THREE.Vector4()) },
   uA: { value: Array.from({ length: NW }, () => new THREE.Vector2()) },
   uSky: { value: new THREE.Color() },
-  uDeep: { value: new THREE.Color(0x2f6a86) },
-  uShal: { value: new THREE.Color(0x76aaa2) },
+  uDeep: { value: new THREE.Color(PALETTE.waterDeep) },
+  uShal: { value: new THREE.Color(PALETTE.waterShallow) },
   uSun: { value: new THREE.Vector3() },
   uSunC: { value: new THREE.Color() },
   uDepth: { value: depthTex },
@@ -377,12 +377,12 @@ vec3 body=mix(uDeep,uShal,sh*.8);
 float ws=(1.-uCalm)*smoothstep(.45,.75,fract(sin(dot(floor(vec2(wp.x*.006-uT2*.05,wp.y*.03)),vec2(5.1,3.7)))*91.))*smoothstep(.2,.8,sin(wp.y*.045+sin(wp.x*.004)*3.)*.5+.5);
 body*=1.-ws*.22;
 }{float sb=smoothstep(4.,.4,dep);
-vec3 bed=mix(vec3(.32,.56,.5),vec3(.52,.62,.5),fract(sin(dot(floor(vP0.xz*.08),vec2(4.7,1.9)))*77.)*.6);
+vec3 bed=mix(${v3(PALETTE.lakeBedSand)},${v3(PALETTE.lakeBedLight)},fract(sin(dot(floor(vP0.xz*.08),vec2(4.7,1.9)))*77.)*.6);
 body=mix(body,bed,sb*.5);
 {vec2 cq=vP0.xz*.9;
 float ca=abs(sin(cq.x+sin(cq.y*1.3+uT2*.9)*1.6+uT2*.6)*sin(cq.y*1.1+sin(cq.x*1.4-uT2*.7)*1.5-uT2*.5));
 body+=vec3(.09,.1,.07)*pow(1.-ca,6.)*sb*clamp(uSun.y*3.,0.,1.)*smoothstep(150.,10.,dc);
-}body=mix(body,vec3(.2,.48,.47),smoothstep(12.,3.,dep)*(1.-sb)*.3);
+}body=mix(body,${v3(PALETTE.shoalTeal)},smoothstep(12.,3.,dep)*(1.-sb)*.3);
 }body=mix(body,vec3(.22,.42,.55),smoothstep(10.,60.,dep)*.5);
 float tb=0.;
 for(int i=0;

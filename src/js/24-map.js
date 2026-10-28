@@ -162,16 +162,16 @@ function drawFar(boats = [], X_ = null, W = null) {
     fx.fillRect(X(hh.x) - 0.5 * dpr, Y(hh.y) - 0.5 * dpr, 1.1 * dpr, 1.1 * dpr);
   }
   fx.fillStyle = "rgba(27,27,27,.5)";
-  for (const [x, y] of window.__eri || []) fx.fillRect(X(x), Y(y), 0.8 * dpr, 0.8 * dpr);
+  for (const [x, y] of G.eri || []) fx.fillRect(X(x), Y(y), 0.8 * dpr, 0.8 * dpr);
   fx.fillStyle = "#1b1b1b";
   for (const [x, y] of LAKE.ports) {
     fx.beginPath();
     fx.arc(X(x), Y(y), 1.8 * dpr, 0, 7);
     fx.fill();
   }
-  if (window.__buoys) {
+  if (G.buoys) {
     fx.save();
-    for (const it of __buoys.items) {
+    for (const it of G.buoys.items) {
       const bx = X(it.g.position.x / S),
         by = Y(it.g.position.z / S);
       fx.beginPath();
@@ -201,7 +201,7 @@ function drawFar(boats = [], X_ = null, W = null) {
       fx.font = 12 * dpr + 'px "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif';
       fx.textBaseline = "middle";
       fx.lineJoin = "round";
-      for (const it of __buoys.items) {
+      for (const it of G.buoys.items) {
         if (!it.name || it.name.startsWith("（")) continue;
         const bx = X(it.g.position.x / S),
           by = Y(it.g.position.z / S);

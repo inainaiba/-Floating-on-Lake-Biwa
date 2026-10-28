@@ -1,4 +1,4 @@
-window.__kaizu = (() => {
+G.kaizu = (() => {
   const g = new THREE.Group();
   scene.add(g);
   const KX_ = 111320 * Math.cos((35.25 * Math.PI) / 180);

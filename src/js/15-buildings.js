@@ -28,7 +28,7 @@ const WOODTX = (() => {
   return tx;
 })();
 const MAT = {
-  body: () => new THREE.MeshStandardMaterial({ color: 0xe9e4d8, roughness: 0.9, map: window.__plTx || null }),
+  body: () => new THREE.MeshStandardMaterial({ color: 0xe9e4d8, roughness: 0.9, map: G.plTx || null }),
   wood: () => new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85, map: WOODTX }),
   dark: () => new THREE.MeshStandardMaterial({ color: 0x34343a, roughness: 0.8 }),
   glass: () =>
@@ -211,8 +211,8 @@ const BUILDINGS = [
           color: 0xd8b27a,
           roughness: 1,
           map:
-            window.__thTx ||
-            (window.__thTx = cvTex(128, 128, (c, w, h) => {
+            G.thTx ||
+            (G.thTx = cvTex(128, 128, (c, w, h) => {
               c.fillStyle = "#b89a6a";
               c.fillRect(0, 0, w, h);
               for (let i = 0; i < 700; i++) {
@@ -454,8 +454,8 @@ const BUILDINGS = [
           side: THREE.DoubleSide,
           depthWrite: false,
           map:
-            window.__netTx ||
-            (window.__netTx = cvTex(128, 128, (c, w, h) => {
+            G.netTx ||
+            (G.netTx = cvTex(128, 128, (c, w, h) => {
               c.fillStyle = "#000";
               c.fillRect(0, 0, w, h);
               c.strokeStyle = "#fff";
@@ -585,8 +585,8 @@ function buildHouse() {
           });
   if (CUST.mat === 0) body.color.multiply(new THREE.Color(0xeee2cc));
   body.side = THREE.DoubleSide;
-  if (!window.__plTx) {
-    window.__plTx = cvTex(128, 128, (g, w, h) => {
+  if (!G.plTx) {
+    G.plTx = cvTex(128, 128, (g, w, h) => {
       g.fillStyle = "#fff";
       g.fillRect(0, 0, w, h);
       for (let i = 0; i < 1600; i++) {
@@ -597,15 +597,15 @@ function buildHouse() {
       g.fillStyle = "rgba(0,0,0,.08)";
       for (let y = 0; y < h; y += 32) g.fillRect(0, y, w, 1);
     });
-    window.__plTx.wrapS = window.__plTx.wrapT = THREE.RepeatWrapping;
+    G.plTx.wrapS = G.plTx.wrapT = THREE.RepeatWrapping;
   }
   if (CUST.mat !== 2) {
-    body.map = window.__plTx;
+    body.map = G.plTx;
   }
   const m = {
     body,
     wood: MAT.wood(),
-    roof: new THREE.MeshStandardMaterial({ color: 0x3a3a3e, roughness: 0.75, map: window.__roofTex || null }),
+    roof: new THREE.MeshStandardMaterial({ color: 0x3a3a3e, roughness: 0.75, map: G.roofTex || null }),
     dark: MAT.dark(),
     glass: MAT.glass(),
   };

@@ -147,7 +147,7 @@ function cardTreeMat(kind, v, near, far) {
   });
   m.userData.card = 1;
   m.userData.kind = kind;
-  (window.__cards = window.__cards || []).push(m);
+  (G.cards = G.cards || []).push(m);
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uT = reedU.uT;
     sh.uniforms.uW = reedU.uW;
@@ -188,6 +188,6 @@ function cardForest(kind, list, hgt, wid, near, far, shadow) {
     I.castShadow = !!shadow;
     I.userData.kind = kind;
     scene.add(I);
-    (window.__forest = window.__forest || []).push(I);
+    (G.forest = G.forest || []).push(I);
   }
 }

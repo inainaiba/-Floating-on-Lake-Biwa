@@ -161,7 +161,7 @@
     });
     scene.add(cg);
   }
-  window.__harb = walls_;
+  G.harb = walls_;
 }
 
 function lumpy(r, R, det, amp = 0.22) {

@@ -1,4 +1,4 @@
-window.__city = (() => {
+G.city = (() => {
   const KX_ = 111320 * Math.cos((35.25 * Math.PI) / 180),
     R = rnd(5150),
     bl = [];

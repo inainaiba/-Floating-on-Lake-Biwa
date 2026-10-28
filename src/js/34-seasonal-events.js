@@ -1,4 +1,4 @@
-window.__EV = (() => {
+G.EV = (() => {
   const g = new THREE.Group();
   scene.add(g);
   const smokeTx = (() => {

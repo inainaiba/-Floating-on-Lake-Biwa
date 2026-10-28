@@ -54,5 +54,5 @@
   const L_ = new THREE.PointLight(0xffc890, 0, 60, 1.6);
   L_.position.set(-12, 4, 0);
   g.add(L_);
-  window.__torii = { g, red, L: L_ };
+  G.torii = { g, red, L: L_ };
 }

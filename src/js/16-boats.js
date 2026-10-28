@@ -345,7 +345,7 @@ const WAKE_N = 3000,
     WAKE_N,
   );
 wake.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-window.__wake = wake;
+G.wake = wake;
 const wakeP = [];
 let wakeI = 0;
 scene.add(wake);

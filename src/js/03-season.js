@@ -22,3 +22,21 @@ const SEASON = {
   waterbirds: [1, 1, 0.7, 0.4, 0.3, 0.3, 0.3, 0.3, 0.4, 0.6, 0.9, 1], // 水鳥の鳴き声の多さ
   grass: [0xb8a37c,0xb8a37c,0xa8a07a,0xd0e0b0,0xffffff,0xffffff,0xffffff,0xffffff,0xf0e8b8,0xe0c890,0xc8aa80,0xb8a37c],  // 草地の色味
 };
+
+/* ---------- 色の表：水と画面の仕上げの基本色。見た目の色味はここで調整する ---------- */
+// [赤, 緑, 青] は 0〜1。水面・色の仕上げの処理（GLSL）にそのまま埋め込まれる
+const PALETTE = {
+  waterDeep: 0x2f6a86, // 沖の水
+  waterShallow: 0x76aaa2, // 浅い水
+  lakeBedSand: [0.32, 0.56, 0.5], // 浅瀬に透ける湖底（暗い所）
+  lakeBedLight: [0.52, 0.62, 0.5], // 浅瀬に透ける湖底（明るい所）
+  shoalTeal: [0.2, 0.48, 0.47], // 浅瀬と沖の間の青緑
+  gradeDayTint: [0.94, 1.0, 1.07], // 仕上げ：昼の色味（わずかに水色）
+  gradeDuskTint: [1.06, 0.96, 1.0], // 仕上げ：朝夕の色味（わずかに桃色）
+  gradeNightTint: [0.92, 0.97, 1.1], // 仕上げ：夜の色味
+  gradeGolden: [1.08, 0.97, 0.86], // 仕上げ：夕方の金色
+  gradeHorizonLow: [0.95, 0.74, 0.72], // 仕上げ：朝夕の地平（下・桃）
+  gradeHorizonHigh: [0.66, 0.74, 0.92], // 仕上げ：朝夕の地平（上・ラベンダー）
+};
+// GLSL の vec3(...) 表記にする
+const v3 = (c) => `vec3(${c.map((x) => (Number.isInteger(x) ? x + "." : String(x))).join(",")})`;

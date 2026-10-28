@@ -29,6 +29,14 @@ def buoys():
 
 
 def build():
+    import sys
+    sys.path.insert(0, str(r / 'tools'))
+    import deps
+    errs = deps.write()
+    if errs:
+        for e in errs:
+            print('エラー：', e)
+        raise SystemExit('部品の名前が重なっています（src/DEPENDENCIES.md 参照）')
     parts = sorted((r / 'src/js').glob('*.js'))
     script = '\n'.join(f'// ==== {p.name} ====\n' + p.read_text() for p in parts)
     html = (r / 'src/shell.html').read_text().replace('__SCRIPT__', script)

@@ -7,8 +7,8 @@ const VIS = new Set(
     }
   })(),
 );
-window.__VIS = VIS;
-window.__buoys = (() => {
+G.VIS = VIS;
+G.buoys = (() => {
   const LIST = __BUOYS__;
   const red = new THREE.MeshStandardMaterial({
       color: 0xff4a24,

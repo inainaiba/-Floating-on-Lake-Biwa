@@ -1,4 +1,4 @@
-window.__rocks = (() => {
+G.rocks = (() => {
   const R = rnd(9191),
     pts = [];
   for (let i = 0; i < outer.length - 1; i++) {

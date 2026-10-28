@@ -69,7 +69,11 @@ def shoot(idx):
             pg.evaluate("()=>document.getElementById('title').click()")
             pg.wait_for_timeout(400)
             pg.evaluate("()=>document.getElementById('go').click()")
-            pg.evaluate('v=>__set(...v)', v)
+            try:
+                pg.evaluate('v=>__set(...v)', v)
+            except Exception:
+                errs.append('視点を動かせませんでした（読み込み時のエラーの可能性）')
+                break
             pg.wait_for_timeout(2500)
             pg.screenshot(path=str(OUT / f'{i:02d}.png'), timeout=180000)
             print(f'  {i:02d} {name}')
@@ -79,6 +83,7 @@ def shoot(idx):
 
 
 def sheet(idx):
+    idx = [i for i in idx if (OUT / f'{i:02d}.png').exists()]
     W, H = 400, 250
     img = Image.new('RGB', (W * 2 + 12, (H + 22) * len(idx)), 'white')
     d = ImageDraw.Draw(img)
@@ -111,6 +116,8 @@ def main():
             shutil.copy(f, BASE / f.name)
         print('基準を更新しました：', len(list(OUT.glob('*.png'))), '場面')
         return
+    import subprocess
+    subprocess.run([sys.executable, str(R / 'build.py')], cwd=R, check=True)
     idx = QUICK if '--quick' in a else list(range(len(SCENES)))
     print('撮影中…')
     errs = shoot(idx)

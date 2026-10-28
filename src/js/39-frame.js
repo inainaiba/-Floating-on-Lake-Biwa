@@ -97,7 +97,7 @@ function frame(now) {
   } // 慣性でなめらかに
   const nx = B.x + (vx * SPEED * dt) / S,
     ny = B.y + (vy * SPEED * dt) / S;
-  const crossW = (window.__harb || []).some(([a, b, c2, d]) => {
+  const crossW = (G.harb || []).some(([a, b, c2, d]) => {
     const s = (x1, y1, x2, y2) => (x2 - x1) * (ny - y1) - (y2 - y1) * (nx - x1);
     const e = (x, y) => (c2 - a) * (y - b) - (d - b) * (x - a);
     return (
@@ -247,11 +247,11 @@ function frame(now) {
           : 0;
       const thunder = (c.month === 6 || c.month === 7) && (c.phase > 0.74 || c.phase < 0.2) && hr > 0.5;
       if (thunder && Math.random() < 0.004) {
-        window.__lt = 1;
+        G.lt = 1;
         skyU.uLd.value.set(Math.cos(dn) * 1, 0.12, Math.sin(dn));
       }
-      window.__lt = (window.__lt || 0) * 0.85;
-      skyU.uLt.value = window.__lt * (Math.random() < 0.7 ? 1 : 0.3);
+      G.lt = (G.lt || 0) * 0.85;
+      skyU.uLt.value = G.lt * (Math.random() < 0.7 ? 1 : 0.3);
     }
     skyU.uMp.value = (((Math.floor(c.t / DAY) % 8) + 8) % 8) / 8 + 0.0625;
     skyU.uCu.value = SEASON.cumulus[c.month] * (1 - X_.gray * 0.8) * (X_.rain > 0.3 ? 0 : 1);
@@ -301,7 +301,7 @@ function frame(now) {
       const br = (0.07 + 0.61 * Math.min(1, day * 2.5)) * (1 - X_.gray * 0.25) + fl;
       {
         const st = new THREE.Color(FOREST_TINT[c.month]);
-        for (const m of window.__cards || []) {
+        for (const m of G.cards || []) {
           m.color.setScalar(br * 1.05);
           if (m.userData.kind !== "cedar" && m.userData.kind !== "pine") m.color.multiply(st);
           else if (SNOW[c.month] > 0.6) m.color.lerp(new THREE.Color(br, br, br * 1.05), 0.25);
@@ -390,19 +390,19 @@ function frame(now) {
   for (const g of glassMats)
     g.emissive.set(night ? LIGHT_COLORS[CUST.light] : 0).multiplyScalar(night ? CUST.bright * 0.8 : 0);
   portLamps.visible = night || day < 0.12;
-  if (window.__torii) {
-    window.__torii.L.intensity = day < 0.08 ? 60 : 0;
-    window.__torii.red.emissive.set(day < 0.08 ? 0x3a0e06 : 0);
+  if (G.torii) {
+    G.torii.L.intensity = day < 0.08 ? 60 : 0;
+    G.torii.red.emissive.set(day < 0.08 ? 0x3a0e06 : 0);
   }
   windows.visible = night || day < 0.18;
-  if (window.__street) window.__street.visible = night || day < 0.1;
+  if (G.street) G.street.visible = night || day < 0.1;
   windows.material.opacity = day < 0.05 ? 0.95 : 0.6;
   if (paddySeason._m !== c.month) {
-    if (window.__grass)
-      window.__grass.material.color.set(SEASON.grass[c.month]);
+    if (G.grass)
+      G.grass.material.color.set(SEASON.grass[c.month]);
     roofSnowU.value = SEASON.roofSnow[c.month];
     roofM.color.setScalar(1 + roofSnowU.value * 2.2);
-    (window.__forest || []).forEach((I) => {
+    (G.forest || []).forEach((I) => {
       if (I.userData.kind === "broad") {
         const au = c.month === 9 || c.month === 10;
         I.material.color.set(au ? 0xffffff : FOREST_TINT[c.month]);
@@ -474,27 +474,27 @@ function frame(now) {
         };
     }
   }
-  if (!window.__gm) {
-    window.__gm = new THREE.Mesh(
+  if (!G.gm) {
+    G.gm = new THREE.Mesh(
       new THREE.RingGeometry(1.6, 2, 32).rotateX(-Math.PI / 2),
       new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 }),
     );
-    scene.add(window.__gm);
+    scene.add(G.gm);
   }
-  window.__gm.visible = !!B.goal;
+  G.gm.visible = !!B.goal;
   if (B.goal) {
-    window.__gm.position.set(B.goal[0] * S, 0.4, B.goal[1] * S);
-    window.__gm.material.opacity = 0.4 + 0.25 * Math.sin(t * 3);
+    G.gm.position.set(B.goal[0] * S, 0.4, B.goal[1] * S);
+    G.gm.material.opacity = 0.4 + 0.25 * Math.sin(t * 3);
   }
-  if (window.__wake) window.__wake.material.opacity = 0.06 + 0.16 * Math.min(1, day * 3);
+  if (G.wake) G.wake.material.opacity = 0.06 + 0.16 * Math.min(1, day * 3);
 
   {
     const tr = waterU.uTr.value,
       spd = Math.hypot(B.vx || 0, B.vy || 0) * SPEED;
     for (const v of tr) v.z += dt;
-    window.__trT = (window.__trT || 0) + dt;
-    if (spd > 0.3 && window.__trT > 0.3) {
-      window.__trT = 0;
+    G.trT = (G.trT || 0) + dt;
+    if (spd > 0.3 && G.trT > 0.3) {
+      G.trT = 0;
       let k = 0;
       for (let i = 1; i < tr.length; i++) if (tr[i].z > tr[k].z) k = i;
       const a = B.yaw,
@@ -509,12 +509,12 @@ function frame(now) {
   }
   updateBoats(boats, dt, t, night);
   if (FW) FW.update(dt, c, day);
-  if (window.__buoys) __buoys.update(t, day < 0.08);
-  if (window.__EV) __EV.update(dt, c, day, t, W);
+  if (G.buoys) G.buoys.update(t, day < 0.08);
+  if (G.EV) G.EV.update(dt, c, day, t, W);
   // カメラ：水平を保って建物を追う
   if (
     STATE === "lake" &&
-    performance.now() - (window.__lastDrag || 0) > 4000 &&
+    performance.now() - (G.lastDrag || 0) > 4000 &&
     Math.hypot(B.vx || 0, B.vy || 0) > 0.03
   ) {
     const behind = Math.atan2(-(B.vx || 0), -(B.vy || 0)) + Math.PI;
@@ -533,9 +533,9 @@ function frame(now) {
     yawT = yaw;
     dist = Math.max(26, house.size * 1.7, house.h * 2.6);
   }
-  if (window.__lock) {
-    camX = window.__lock[0];
-    camZ = window.__lock[1];
+  if (G.lock) {
+    camX = G.lock[0];
+    camZ = G.lock[1];
   } else {
     const k = 1 - Math.exp(-dt * 2.6);
     camX += (hx - camX) * k;
@@ -570,9 +570,9 @@ function frame(now) {
     water.position.x = Math.round(camX / q) * q;
     water.position.z = Math.round(camZ / q) * q;
   }
-  if (!window.__rt) {
-    window.__rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
-    window.__gq = new THREE.Mesh(
+  if (!G.rt) {
+    G.rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+    G.gq = new THREE.Mesh(
       new THREE.PlaneGeometry(2, 2),
       new THREE.ShaderMaterial({
         uniforms: {
@@ -603,14 +603,14 @@ c=pow(c,vec3(1./2.2));
     c=mix(vec3(l),c,.86);
                                   // 彩度を抑えて淡く
     float lift=max(uDay*.7*(1.-uMorn*.6),uWarm*.9);
-c*=mix(vec3(1.),vec3(1.08,.97,.86),uWarm*.6);
+c*=mix(vec3(1.),${v3(PALETTE.gradeGolden)},uWarm*.6);
 c=c*(.9-.05*uWarm)+mix(vec3(.08,.09,.1),vec3(.1,.085,.09),uWarm)*lift+.012;
                                   // 影を持ち上げて明るい調子に
     float ngt=1.-max(uDay,uWarm);
-vec3 tint=mix(mix(vec3(.94,1.,1.07),vec3(1.06,.96,1.),uWarm),vec3(.92,.97,1.1),ngt);
+vec3 tint=mix(mix(${v3(PALETTE.gradeDayTint)},${v3(PALETTE.gradeDuskTint)},uWarm),${v3(PALETTE.gradeNightTint)},ngt);
  // 昼は水色、朝夕は桃色寄り
     c*=tint;
-c=mix(c,mix(vec3(.95,.74,.72),vec3(.66,.74,.92),smoothstep(.35,1.,vU.y)),uWarm*.32);
+c=mix(c,mix(${v3(PALETTE.gradeHorizonLow)},${v3(PALETTE.gradeHorizonHigh)},smoothstep(.35,1.,vU.y)),uWarm*.32);
           // 朝夕は地平が桃・ラベンダー
     vec3 hi=vec3(1.,.98,.96);
 c=mix(c,hi,smoothstep(.7,1.1,l)*.35*lift);
@@ -630,25 +630,25 @@ c+=gr*(.022-.01*l);
 }`,
       }),
     );
-    window.__gs = new THREE.Scene();
-    window.__gs.add(window.__gq);
-    window.__gc = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    G.gs = new THREE.Scene();
+    G.gs.add(G.gq);
+    G.gc = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   }
   {
     const w = renderer.domElement.width,
       h = renderer.domElement.height;
-    if (__rt.width !== w || __rt.height !== h) __rt.setSize(w, h);
+    if (G.rt.width !== w || G.rt.height !== h) G.rt.setSize(w, h);
   }
   {
-    if (!window.__rf) {
-      window.__rf = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
-      window.__rc = new THREE.PerspectiveCamera();
+    if (!G.rf) {
+      G.rf = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+      G.rc = new THREE.PerspectiveCamera();
     }
     const w = renderer.domElement.width,
       h = renderer.domElement.height,
       rs = HQ ? 0.75 : 0.5;
-    if (__rf.width !== Math.floor(w * rs)) __rf.setSize(Math.floor(w * rs), Math.floor(h * rs));
-    const rc = __rc;
+    if (G.rf.width !== Math.floor(w * rs)) G.rf.setSize(Math.floor(w * rs), Math.floor(h * rs));
+    const rc = G.rc;
     const wy = water.position.y;
     camera.updateMatrixWorld();
     const dir = new THREE.Vector3();
@@ -673,7 +673,7 @@ c+=gr*(.022-.01*l);
       ca = renderer.getClearAlpha();
     renderer.setClearColor(0, 0);
     renderer.clippingPlanes = [new THREE.Plane(new THREE.Vector3(0, 1, 0), -wy + 0.05)];
-    renderer.setRenderTarget(__rf);
+    renderer.setRenderTarget(G.rf);
     renderer.clear();
     renderer.render(scene, rc);
     renderer.clippingPlanes = [];
@@ -681,23 +681,23 @@ c+=gr*(.022-.01*l);
     renderer.setClearColor(cc, ca);
     water.visible = vis[0];
     skyDome.visible = vis[1];
-    waterU.uRefl.value = __rf.texture;
+    waterU.uRefl.value = G.rf.texture;
     waterU.uWy.value = wy;
     waterU.uRes.value.set(w, h);
     waterU.uCalm.value = Math.max(0, 1 - W.s / 6) * (X_.rain > 0.3 ? 0.3 : 1);
   }
-  renderer.setRenderTarget(__rt);
+  renderer.setRenderTarget(G.rt);
   renderer.render(scene, camera);
   renderer.setRenderTarget(null);
-  __gq.material.uniforms.tD.value = __rt.texture;
-  __gq.material.uniforms.uTm.value = (performance.now() / 1000) % 100;
-  __gq.material.uniforms.uDay.value = Math.min(1, day * 2.5) * (1 - X_.dark);
-  __gq.material.uniforms.uMorn.value = Math.max(0, 1 - Math.abs(c.phase - 0.34) / 0.08) * (1 - X_.gray * 0.5);
-  __gq.material.uniforms.uWarm.value = Math.max(0, 1 - Math.abs(Math.sin(sa)) * 2.2);
+  G.gq.material.uniforms.tD.value = G.rt.texture;
+  G.gq.material.uniforms.uTm.value = (performance.now() / 1000) % 100;
+  G.gq.material.uniforms.uDay.value = Math.min(1, day * 2.5) * (1 - X_.dark);
+  G.gq.material.uniforms.uMorn.value = Math.max(0, 1 - Math.abs(c.phase - 0.34) / 0.08) * (1 - X_.gray * 0.5);
+  G.gq.material.uniforms.uWarm.value = Math.max(0, 1 - Math.abs(Math.sin(sa)) * 2.2);
   {
     const tm = renderer.toneMapping;
     renderer.toneMapping = THREE.NoToneMapping;
-    renderer.render(__gs, __gc);
+    renderer.render(G.gs, G.gc);
     renderer.toneMapping = tm;
   }
   requestAnimationFrame(frame);
@@ -707,11 +707,11 @@ if (Q.has("debug")) {
   window.__setH = (k, yw, pt, ds) => {
     const h = houses[k];
     B.x = h.x; B.y = h.y; camX = h.x * S; camZ = h.y * S;
-    window.__lock = [h.x * S, h.y * S];
+    G.lock = [h.x * S, h.y * S];
     yaw = yawT = yw; pitch = pt; dist = distT = ds; STATE = "lake";
   };
   window.__set = (lo, la, dx, dy, yw, pt, ds) => {
-    window.__lock = null;
+    G.lock = null;
     const [x, y] = ll(lo, la);
     B.x = x + dx; B.y = y + dy; B.vx = B.vy = 0; camX = B.x * S; camZ = B.y * S;
     yaw = yawT = yw; pitch = pt; dist = distT = ds;
