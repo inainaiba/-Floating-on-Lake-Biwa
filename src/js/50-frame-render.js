@@ -19,6 +19,7 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
           uFoc: { value: 50 },
           uDof: { value: 0 },
           uAsp: { value: 1.6 },
+          uSunS: { value: new THREE.Vector3(0, 0, 0) },
           uTm: { value: 0 },
           uWarm: { value: 0 },
           uDay: { value: 1 },
@@ -27,7 +28,7 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
         depthTest: false,
         depthWrite: false,
         vertexShader: `varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy,0.,1.);}`,
-        fragmentShader: `uniform sampler2D tD,tZ;uniform float uN,uF,uFoc,uDof,uAsp;
+        fragmentShader: `uniform sampler2D tD,tZ;uniform float uN,uF,uFoc,uDof,uAsp;uniform vec3 uSunS;
 float lz(vec2 u){float z=texture2D(tZ,u).r*2.-1.;return 2.*uN*uF/(uF+uN-z*(uF-uN));}
 float coc(vec2 u){return clamp((lz(u)-uFoc*3.)/(uFoc*10.),0.,1.);}
 uniform float uWarm,uDay,uMorn,uTm;
@@ -45,6 +46,8 @@ i++){float a=float(i)*2.399,r=.003+.0032*float(i);
 vec3 s=aces(texture2D(tD,vU+vec2(cos(a),sin(a))*r*vec2(1.,1.6)).rgb*1.15);
 bl+=max(s-.55,0.)*(1.-float(i)/20.);
 }c+=bl*vec3(.15,.14,.13);
+// 太陽を向いたときのレンズの光のにじみ（ごく控えめに）
+if(uSunS.z>.01){vec2 d=(vU-uSunS.xy)*vec2(uAsp,1.);float r=length(d);c+=vec3(1.,.93,.82)*(exp(-r*r*18.)*.05+exp(-r*5.)*.018)*uSunS.z;vec2 gp=vec2(1.)-uSunS.xy;float g2=length((vU-mix(uSunS.xy,gp,.7))*vec2(uAsp,1.));c+=vec3(.7,.85,1.)*smoothstep(.06,.04,g2)*smoothstep(.02,.04,g2)*.008*uSunS.z;}
 c=pow(c,vec3(1./2.2));
     float l=dot(c,vec3(.299,.587,.114));
     c=mix(vec3(l),c,.86);
@@ -145,6 +148,11 @@ c+=gr*(.022-.01*l);
     u.uF.value = camera.far;
     u.uFoc.value = fd;
     u.uAsp.value = camera.aspect;
+    {
+      const sp = sun.position.clone().sub(house.position).normalize().multiplyScalar(500).add(camera.position).project(camera);
+      const vis = sp.z < 1 && Math.abs(sp.x) < 1.2 && Math.abs(sp.y) < 1.2 ? Math.min(1, day * 2) * (1 - wxNow.gray) : 0;
+      u.uSunS.value.set(sp.x * 0.5 + 0.5, sp.y * 0.5 + 0.5, vis);
+    }
     u.uDof.value = 0.8 * Math.min(1, Math.max(0, (85 - fd) / 20)) * QUALITY.dof;
   }
   G.gq.material.uniforms.uTm.value = (performance.now() / 1000) % 100;

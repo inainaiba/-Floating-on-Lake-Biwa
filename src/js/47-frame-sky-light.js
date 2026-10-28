@@ -100,6 +100,16 @@ function updateSkyLight(dt, t, c, W) {
     skyU.uMw.value = (0.55 + 0.9 * Math.max(0, 1 - Math.abs(c.month - 7) / 2.5)) * (0.3 + 0.7 * Math.abs(skyU.uMp.value - 0.5) * 2);
     skyU.uCu.value = SEASON.cumulus[c.month] * (1 - wxNow.gray * 0.8) * (wxNow.rain > 0.3 ? 0 : 1);
     skyU.uDark.value = wxNow.dark;
+    // 薄雲越しのぼんやりした太陽：高曇りや巻雲の多い日
+    skyU.uVeil.value = Math.min(1, Math.max(0, 1 - Math.abs(wxNow.gray - 0.45) * 3.5) + Math.max(0, skyU.uCi.value - 0.45) * 1.2) * (wxNow.rain > 0.3 ? 0 : 1);
+    skyU.uWin.value = c.month === 11 || c.month <= 1 ? 1 : c.month === 10 || c.month === 2 ? 0.5 : 0;
+    {
+      // 街の方角（大津・草津のあたり）
+      const [ox, oy] = ll(135.9, 35.02);
+      skyU.uCity.value.set(ox * S - camera.position.x, 0, oy * S - camera.position.z).normalize();
+    }
+    waterU.uCl.value = skyU.uCloud.value * (1 - wxNow.gray * 0.5);
+    waterU.uLead.value = (c.month === 11 || c.month <= 1 ? 1 : c.month === 2 ? 0.5 : 0) * Math.min(1, wxNow.gray * 1.4);
     skyDome.position.copy(camera.position);
   }
   renderer.toneMappingExposure = 1.04 + (1 - Math.min(1, day * 3)) * 0.25;

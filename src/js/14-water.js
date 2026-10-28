@@ -90,6 +90,8 @@ const waterU = {
   uLowSun: { value: 0 },
   uMp2: { value: 0.5 },
   uCSh: { value: 1 },
+  uCl: { value: 0 },
+  uLead: { value: 0 },
   uTr: { value: Array.from({ length: 40 }, () => new THREE.Vector4(0, 0, 99, 0)) },
   uLamp: { value: new THREE.Color(0) },
   uHL: { value: new THREE.Vector4() },
@@ -149,7 +151,10 @@ uniform float uCalm;
 uniform float uSD;
 uniform float uMist;uniform float uGap;uniform float uLowSun;
 uniform float uMp2;
-uniform float uCSh;
+uniform float uCSh;uniform float uCl,uLead;
+float wh_(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}
+float wn_(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(wh_(i),wh_(i+vec2(1,0)),f.x),mix(wh_(i+vec2(0,1)),wh_(i+1.),f.x),f.y);}
+float wf_(vec2 p){float s=0.,a=.5;for(int i=0;i<4;i++){s+=a*wn_(p);p*=2.03;a*=.5;}return s;}
 uniform mat4 uTM;
 uniform float uWy;
 uniform vec4 uTr[40];
@@ -219,6 +224,10 @@ float sh=exp(-dep/3.);
 // ③ 浅瀬：湖底が透ける（lakeBedSand/Light）　④ 浅瀬と沖の間の青緑（shoalTeal）　⑤ 浅瀬の光の網目
 // ⑥ 深い所の青（waterOffshore）　⑦ 河口の濁り（riverSilt）
 vec3 body=mix(uDeep,uShal,sh*.8);
+// 湖面の色のまだら：場所ごとに青寄り・緑寄りに分かれる
+{float pt=wf_(vP0.xz*.0007+vec2(uT2*.002,0.));body*=mix(vec3(.93,1.05,.98),vec3(1.03,.98,1.05),smoothstep(.3,.7,pt));}
+// 冬の曇りの日は、灰色がかった重い青
+body=mix(body,body*vec3(.7,.76,.82)+vec3(.04,.045,.05),uLead*.9);
 // 風の通り道：さざ波の立った暗い帯が風下へ流れる（静かな日ほど目立つ）
 float cpw;{vec2 wd=normalize(uWd+1e-4);vec2 q=vP0.xz*.0016-wd*uT2*.014;cpw=smoothstep(.45,.85,(sin(q.x*3.1+sin(q.y*2.3)*1.4)*sin(q.y*2.7+sin(q.x*1.9)*1.3))*.5+.5)*(.35+.65*uCalm);body*=1.-cpw*.16;}
 {vec2 wd=normalize(uWd+1e-4),wp=vec2(dot(vP0.xz,wd),dot(vP0.xz,vec2(-wd.y,wd.x)));
@@ -263,6 +272,8 @@ body*=(1.-.38*smoothstep(uHouse.z*1.15,uHouse.z*.3,ub))*(.9+.22*clamp(dot(N,norm
 float wlf=exp(-pow((ub-uHouse.z*.92)/(.6+uHouse.z*.05),2.))*(.55+.45*sin(atan(vP.z-uHouse.y,vP.x-uHouse.x)*9.+uT2*1.3))*(.5+.5*fract(sin(dot(floor(vP0.xz*3.),vec2(3.7,8.1)))*91.));
 skyR=mix(skyR,vec3(.18,.26,.2),lowR*.65);
 skyR*=1.-cpw*.3;
+// 水面に映る雲：凪の日ほどはっきり
+{vec2 cp=R.xz/(max(R.y,0.)+.08)*1.4+vec2(uT2*.004,uT2*.002);cp+=vec2(wf_(cp*.35+1.3),wf_(cp*.35+7.1))*1.1-.55;float clr=smoothstep(.5-uCl*.3,1.,wf_(cp))*smoothstep(0.,.12,R.y);skyR=mix(skyR,mix(vec3(1.),uSky*1.3,.3)*(.4+.6*clamp(uSun.y*3.,0.,1.)),clr*.55*(.4+.6*uCalm));}
 // ── 泡：白波・岸の波打ち際・雨の波紋・遠くの白波 ──
 float wfoam=smoothstep(.12,.8,wf)*(.35+.65*fract(sin(dot(floor(vP0.xz*5.),vec2(7.,3.)))*91.));
 float foam=wfoam*.55+uFoam*smoothstep(.12,.3,1.-N.y)*.8+smoothstep(.06,.12,1.-N.y)*uFoam*.25;
@@ -290,7 +301,7 @@ rr+=smoothstep(.04,.0,abs(r-rad))*(1.-ph)*step(.35,h);
 }foam+=wlf*.32;
 // 建物の周りの小さな渦：風下側に流れの乱れが巻く
 {vec2 dv=vP.xz-uHouse.xy;float ang=atan(dv.y,dv.x);vec2 wd=normalize(uWd+1e-4);float down=smoothstep(-.2,.8,dot(normalize(dv+1e-4),wd));
-float sw=sin(ang*4.+ub*.9-uT2*1.6)*sin(ub*.5+uT2*.7);foam+=smoothstep(.7,.95,sw)*down*smoothstep(uHouse.z*.95,uHouse.z*1.2,ub)*smoothstep(uHouse.z*3.,uHouse.z*1.4,ub)*.16*(1.-uCalm*.5);}
+float sw=sin(ang*4.+ub*.9-uT2*1.6)*sin(ub*.5+uT2*.7);foam+=smoothstep(.7,.95,sw)*down*smoothstep(uHouse.z*.95,uHouse.z*1.2,ub)*smoothstep(uHouse.z*3.,uHouse.z*1.4,ub)*.08*(1.-uCalm*.5);}
 foam+=rr;
 // ── 明るさ：時刻、空の映り込み、浅瀬の濡れた石、遠くで空と溶ける ──
 body*=.55+.6*clamp(uSun.y*2.+.1,0.,1.);

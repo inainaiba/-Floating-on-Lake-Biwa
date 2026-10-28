@@ -472,6 +472,7 @@
   - 00-head.js：`G`
   - 01-settings.js：`LAKE`、`S`
   - 02-season.js：`SEASON`
+  - 03-coords.js：`ll`
   - 04-clock.js：`DAY`
   - 08-weather.js：`LEVEL`、`WXQ`
   - 09-wind.js：`flow`
@@ -522,7 +523,7 @@
   - 00-head.js：`G`
   - 11-state.js：`camX`、`camZ`
   - 12-renderer.js：`QUALITY`、`camera`、`renderer`、`scene`
-  - 13-sky-dome.js：`skyDome`
+  - 13-sky-dome.js：`skyDome`、`sun`
   - 14-water.js：`water`、`waterU`
   - 18-buildings.js：`house`
 
