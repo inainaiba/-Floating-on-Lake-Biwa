@@ -428,13 +428,15 @@
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
+  - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inLake`
   - 07-depth.js：`depth`
   - 10-start.js：`rnd`
-  - 12-renderer.js：`QUALITY`、`camera`、`scene`
+  - 12-renderer.js：`MOBILE`、`QUALITY`、`camera`、`scene`
+  - 14-water.js：`waterU`
   - 16-terrain.js：`VEX`、`reedPts`
   - 17-trees.js：`cardForest`
-  - 20-villages-layout.js：`houses`、`terrainAt`
+  - 20-villages-layout.js：`cvTex`、`houses`、`paddies`、`terrainAt`
   - 22-village-lights-roads.js：`winGeo`
   - 29-controls.js：`isFar`
 

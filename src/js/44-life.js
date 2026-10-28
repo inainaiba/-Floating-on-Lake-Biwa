@@ -180,6 +180,128 @@ G.life = (() => {
     wMorn[i] = R() < 0.25 ? 0.19 + R() * 0.06 : 9;
   }
   let wT = 0;
+  // ススキ：秋（9〜11月）、田のあぜと山すそに穂が揺れる
+  const susT = { value: 0 };
+  const susuki = (() => {
+    const tex = cvTex(64, 128, (g, w, h) => {
+      for (let k = 0; k < 14; k++) {
+        const x0 = w * (0.2 + Math.random() * 0.6),
+          lean = (Math.random() - 0.5) * 22,
+          top = h * (0.08 + Math.random() * 0.2);
+        g.strokeStyle = "rgba(150,140,95,1)";
+        g.lineWidth = 1.2;
+        g.beginPath();
+        g.moveTo(x0, h);
+        g.quadraticCurveTo(x0 + lean * 0.3, h * 0.5, x0 + lean, top + 18);
+        g.stroke();
+        // 穂：先がしなって垂れる
+        g.fillStyle = "rgba(236,226,204,.95)";
+        for (let j = 0; j < 9; j++) {
+          g.beginPath();
+          g.ellipse(x0 + lean + j * 0.9, top + j * 2.2, 2.2, 3.6, 0.4, 0, 6.28);
+          g.fill();
+        }
+      }
+      g.strokeStyle = "rgba(110,120,70,1)";
+      g.lineWidth = 2;
+      for (let k = 0; k < 10; k++) {
+        const x0 = Math.random() * w;
+        g.beginPath();
+        g.moveTo(x0, h);
+        g.quadraticCurveTo(x0 + 6, h * 0.7, x0 + (Math.random() - 0.5) * 30, h * 0.55);
+        g.stroke();
+      }
+    });
+    const geo = new THREE.PlaneGeometry(2.4, 3.2).translate(0, 1.6, 0),
+      g2 = geo.clone().rotateY(Math.PI / 2),
+      gm = new THREE.BufferGeometry();
+    for (const k of ["position", "uv", "normal"]) {
+      const A = geo.attributes[k],
+        B = g2.attributes[k],
+        arr = new Float32Array(A.array.length * 2);
+      arr.set(A.array);
+      arr.set(B.array, A.array.length);
+      gm.setAttribute(k, new THREE.BufferAttribute(arr, A.itemSize));
+    }
+    gm.setIndex([...geo.index.array, ...[...g2.index.array].map((i) => i + 4)]);
+    const mat = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.45, side: THREE.DoubleSide });
+    mat.onBeforeCompile = (sh) => {
+      sh.uniforms.uSw = susT;
+      sh.vertexShader = sh.vertexShader
+        .replace("#include <common>", "#include <common>\nuniform float uSw;")
+        .replace(
+          "#include <begin_vertex>",
+          "#include <begin_vertex>\nvec4 sw=modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.);float sd=length(cameraPosition.xz-sw.xz);float k=position.y*position.y*.05;transformed.x+=(sin(uSw*1.6+sw.x*.07+sw.z*.05)*.6+sin(uSw*3.3+sw.z*.11)*.25)*k;transformed.z+=sin(uSw*1.2+sw.x*.05)*.3*k;transformed*=1.-smoothstep(260.,380.,sd);",
+        );
+    };
+    const pts = [];
+    paddies.forEach((p, i) => {
+      if (i % 3 !== 2) return;
+      for (let k = 0; k < 4; k++) {
+        const a = R() * 6.28,
+          d = 10 + R() * 14;
+        pts.push([p.x + Math.cos(a) * d, p.y + Math.sin(a) * d]);
+      }
+    });
+    // 湖岸の堤：岸から少し陸に入ったところ
+    for (let n = 0; n < 6000; n++) {
+      const sg = Math.floor(R() * (outer.length - 1)),
+        A = outer[sg],
+        B = outer[sg + 1],
+        u = R(),
+        bx = A[0] + (B[0] - A[0]) * u,
+        by = A[1] + (B[1] - A[1]) * u,
+        L = Math.hypot(B[0] - A[0], B[1] - A[1]) || 1,
+        d = 18 + R() * 30;
+      for (const sgn of [1, -1]) {
+        const x = bx - ((B[1] - A[1]) / L) * d * sgn,
+          y = by + ((B[0] - A[0]) / L) * d * sgn;
+        if (!inLake(x, y)) {
+          for (let q = 0; q < 4; q++) pts.push([x + (R() - 0.5) * 8, y + (R() - 0.5) * 8]);
+          break;
+        }
+      }
+    }
+    const ok = pts.reverse().filter(([x, y]) => !inLake(x, y)).slice(0, MOBILE ? 8000 : 22000);
+    const im = new THREE.InstancedMesh(gm, mat, Math.max(1, ok.length)),
+      M2 = new THREE.Matrix4(),
+      Q2 = new THREE.Quaternion(),
+      cc = new THREE.Color();
+    ok.forEach(([x, y], i) => {
+      const s = 1.4 + R() * 0.9;
+      Q2.setFromAxisAngle(new THREE.Vector3(0, 1, 0), R() * 6.28);
+      M2.compose(new THREE.Vector3(x * S, 0.55 + terrainAt(x, y) * S * VEX, y * S), Q2, new THREE.Vector3(s, s, s));
+      im.setMatrixAt(i, M2);
+      im.setColorAt(i, cc.setHSL(0.11 + R() * 0.03, 0.25, 0.75 + R() * 0.15));
+    });
+    im.visible = false;
+    scene.add(im);
+    return im;
+  })();
+  // 遠くの舟の航跡：静かな湖面に細く長く残るV字の筋
+  const wakes = (G.ambience ? G.ambience.boats : []).map((b) => {
+    const N = 60,
+      pos = new Float32Array(N * 3 * 2 * 3),
+      col = new Float32Array(N * 3 * 2 * 3);
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    const idx = [];
+    for (let r = 0; r < 3; r++)
+      for (let i = 0; i < N - 1; i++) {
+        const o = (r * N + i) * 2;
+        idx.push(o, o + 1, o + 2, o + 1, o + 3, o + 2);
+      }
+    geo.setIndex(idx);
+    const m = new THREE.Mesh(
+      geo,
+      new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }),
+    );
+    m.frustumCulled = false;
+    m.visible = false;
+    scene.add(m);
+    return { b, m, N, hist: [], acc: 0 };
+  });
   function update(dt, t, c, day, wxNow) {
     const cx = camera.position.x,
       cz = camera.position.z;
@@ -240,8 +362,66 @@ G.life = (() => {
       }
       winGeo.attributes.color.needsUpdate = true;
     }
+    susT.value = t;
+    susuki.visible = c.month >= 8 && c.month <= 10;
+    for (const w of wakes) {
+      const b = w.b;
+      if (!b.on) {
+        w.m.visible = false;
+        w.hist.length = 0;
+        continue;
+      }
+      w.acc += dt;
+      if (w.acc > 0.5 || !w.hist.length) {
+        w.acc = 0;
+        w.hist.unshift([b.g.position.x, b.g.position.z]);
+        if (w.hist.length > w.N) w.hist.pop();
+      }
+      const H = [[b.g.position.x, b.g.position.z], ...w.hist].slice(0, w.N),
+        n = H.length;
+      if (n < 3) continue;
+      w.m.visible = true;
+      const P = w.m.geometry.attributes.position.array,
+        C = w.m.geometry.attributes.color.array,
+        calm = waterU.uCalm.value,
+        yy = 0.08;
+      P.fill(0);
+      C.fill(0);
+      for (let r = 0; r < 3; r++)
+        for (let i = 0; i < w.N; i++) {
+          const j = Math.min(i, n - 1),
+            j2 = Math.min(j + 1, n - 1),
+            j0 = Math.max(j - 1, 0);
+          let dx = H[j0][0] - H[j2][0],
+            dz = H[j0][1] - H[j2][1];
+          const L = Math.hypot(dx, dz) || 1;
+          dx /= L;
+          dz /= L;
+          const nx = -dz,
+            nz = dx,
+            u = i / (w.N - 1),
+            age = Math.hypot(H[j][0] - H[0][0], H[j][1] - H[0][1]);
+          // r=0：中央の静かな筋　r=1,2：左右に開くV字の波
+          const off = r === 0 ? 0 : (r === 1 ? 1 : -1) * (1 + age * 0.34),
+            wd = r === 0 ? 0.8 + u * 4 : 0.35 + u * 0.8,
+            a = (1 - u) * (i < n ? 1 : 0) * (r === 0 ? 0.1 : 0.2) * (0.4 + calm * 0.8) * Math.min(1, day * 3);
+          const cx = H[j][0] + nx * off,
+            cz = H[j][1] + nz * off;
+          for (let e = 0; e < 2; e++) {
+            const s = e ? 1 : -1,
+              o = ((r * w.N + i) * 2 + e) * 3;
+            P[o] = cx + nx * wd * s * 0.5;
+            P[o + 1] = yy;
+            P[o + 2] = cz + nz * wd * s * 0.5;
+            C[o] = C[o + 1] = a;
+            C[o + 2] = a * 1.05;
+          }
+        }
+      w.m.geometry.attributes.position.needsUpdate = true;
+      w.m.geometry.attributes.color.needsUpdate = true;
+    }
     // サギはときどき首をかしげる
     for (const h of herons) h.visible = day > 0.05 && !(c.month === 0 && wxNow.snow > 0.5);
   }
-  return { update, herons, bam, tabune };
+  return { update, herons, bam, tabune, susuki };
 })();
