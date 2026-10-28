@@ -4,7 +4,13 @@ function audioInit() {
   if (SND.ctx) return;
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
-  const ac = new AC();
+  // 再生向けの大きめの音のバッファ：画面の描画が重い瞬間にも、音が途切れにくい
+  let ac;
+  try {
+    ac = new AC({ latencyHint: "playback" });
+  } catch (_) {
+    ac = new AC();
+  }
   SND.ctx = ac;
   const len = ac.sampleRate * 4,
     mk = (type) => {

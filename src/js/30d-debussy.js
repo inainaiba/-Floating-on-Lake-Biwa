@@ -41,20 +41,10 @@ G.deb = (() => {
     comp.attack.value = 0.05;
     comp.release.value = 1.2;
     S_.out.connect(comp).connect(SND.master);
-    // ⑧ ペダル：長い残響（約7秒）
-    {
-      const L = Math.floor(ac.sampleRate * 7),
-        ir = ac.createBuffer(2, L, ac.sampleRate);
-      for (let ch = 0; ch < 2; ch++) {
-        const d = ir.getChannelData(ch);
-        for (let i = 0; i < L; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / L, 2.2) * (i < ac.sampleRate * 0.04 ? i / (ac.sampleRate * 0.04) : 1);
-      }
-      S_.rev = ac.createConvolver();
-      S_.rev.buffer = ir;
-      const rg = ac.createGain();
-      rg.gain.value = 0.9;
-      S_.rev.connect(rg).connect(S_.out);
-    }
+    // ⑧ ペダル：全体の残響（約3秒）に多めに送る。専用の長い残響は重く、音が途切れる原因になったので使わない
+    S_.rev = ac.createGain();
+    S_.rev.gain.value = 0.9;
+    S_.rev.connect(SND.rev);
     S_.dry = ac.createGain();
     S_.dry.gain.value = 0.45;
     S_.dry.connect(S_.out);
@@ -88,9 +78,10 @@ G.deb = (() => {
   }
 
   // ⑥ 水滴：小さな泡の共鳴（音の高さが少し上がる正弦波）と、ごく短い水音
-  function drop(f, vol, pn, len = 0.22) {
+  // at：鳴らす時刻（音の時計で指定。描画が重くても音の時刻はずれない）
+  function drop(f, vol, pn, len = 0.22, at = 0) {
     const ac = S_.ac,
-      t = ac.currentTime + 0.01;
+      t = Math.max(ac.currentTime + 0.06, at);
     const o = ac.createOscillator(),
       g = ac.createGain(),
       p = ac.createStereoPanner();
@@ -126,6 +117,7 @@ G.deb = (() => {
   function update(dt, c, W, nearReed, wx) {
     if (!S_.ac || !LOOK.show.debussy) {
       if (S_.out) S_.out.gain.setTargetAtTime(0, SND.ctx.currentTime, 1);
+      if (S_.rev) S_.rev.gain.setTargetAtTime(0, SND.ctx.currentTime, 1);
       return;
     }
     const ac = S_.ac,
@@ -136,6 +128,7 @@ G.deb = (() => {
       ws = Math.min(1, W.s / 8);
     // ⑦ 層の音量：静か。遠景（地図）では鳴らさない
     S_.out.gain.setTargetAtTime(isFar ? 0 : LOOK.debussyVol, now, 2);
+    S_.rev.gain.setTargetAtTime(isFar ? 0 : LOOK.debussyVol * 0.9, now, 2); // 残響への送りも同じ音量で
     // ①② 音階の入れ替わり：朝と晴れた昼は五音、夕方・夜・霧は全音
     const wantWT = Math.min(1, (1 - day) * 1.4 + gray * 0.6);
     S_.mode += (wantWT - S_.mode) * Math.min(1, dt / 40);
@@ -180,7 +173,7 @@ G.deb = (() => {
       if (kind === 3) notes = notes.slice(0, 2 + Math.floor(Math.random() * 2));
       const step = kind === 2 ? 0.9 : 0.5,
         pn = Math.random() * 1.2 - 0.6;
-      notes.forEach((d, i) => setTimeout(() => S_.ac && drop(hz(degree(s, start + d)), 0.06, pn + i * 0.05, 0.35), (i * step + Math.random() * 0.12) * 1000));
+      notes.forEach((d, i) => drop(hz(degree(s, start + d)), 0.06, pn + i * 0.05, 0.35, now + 0.1 + i * step + Math.random() * 0.12));
     }
     // ⑩ 光：日が低く晴れた水面のきらめきに、高い微かな音（五音音階）
     const glint = day > 0 ? (1 - gray) * Math.max(0, 1 - Math.abs(Math.sin((c.phase - 0.25) * 2 * Math.PI)) * 2.2) : 0;
