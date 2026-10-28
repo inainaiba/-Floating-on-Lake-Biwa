@@ -112,6 +112,7 @@ function audioInit() {
   SND.engines = new Map();
   SND.nextBird = ac.currentTime + 4;
   SND.nextLap = 0;
+  if (G.deb) G.deb.init(); // 自然音によるドビュッシー的な層（30d-debussy.js）
 }
 // 自然音だけで：船体に当たる水（沖）、水の粒のさざめき、寄せては返す岸の波
 function nburst(lp, hp, dur, vol, pn, q = 0.7, toRev = 0.5) {
@@ -216,6 +217,7 @@ function audioUpdate(dt, c, W, boats, nearReed) {
     k = 0.25;
   SND.master.gain.setTargetAtTime(SND.on ? 0.9 : 0, now, 0.4);
   if (!SND.on) return;
+  if (G.deb) G.deb.update(dt, c, W, nearReed, G.wxNow);
   const ws = Math.min(1, W.s / 8);
   {
     const gust =

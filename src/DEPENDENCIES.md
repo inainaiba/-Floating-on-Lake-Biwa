@@ -265,6 +265,7 @@
 ## 30-audio.js
 - 作る：`SND`、`audioInit`、`audioUpdate`、`bird`、`horn`、`nburst`、`pan`、`prevMoving`
 - 使う：
+  - 00-head.js：`G`
   - 01-settings.js：`S`
   - 02-season.js：`SEASON`
   - 07-depth.js：`distShore`
@@ -272,6 +273,14 @@
   - 12-renderer.js：`camera`
   - 19-boats.js：`boatMeshes`
   - 29-controls.js：`isFar`、`yaw`
+
+## 30d-debussy.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`
+  - 02-season.js：`LOOK`
+  - 29-controls.js：`isFar`
+  - 30-audio.js：`SND`
 
 ## 31-ui.js
 - 作る：`$`、`MAT_ICONS`、`dots`、`hex`、`mats`、`pick`、`restBtn`、`showName`
@@ -604,6 +613,7 @@
 - `G.camera`：53-frame.js
 - `G.cards`：17-trees.js
 - `G.city`：47-city.js
+- `G.deb`：30d-debussy.js
 - `G.dotTex`：00-head.js
 - `G.eri`：46-shore-life.js
 - `G.exp`：12-renderer.js
