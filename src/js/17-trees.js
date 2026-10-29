@@ -165,16 +165,22 @@ function cardTreeMat(kind, v, near, far) {
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uT = reedU.uT;
     sh.uniforms.uW = reedU.uW;
+    sh.uniforms.uSunD = reedU.uSunD;
+    // 木の板の明暗：日の向きに向いた板ほど明るく（vCL）、樹冠の上は明るく下は暗く（下の map の縦の位置で）
     sh.vertexShader = sh.vertexShader
-      .replace("#include <common>", "#include <common>\nuniform float uT;uniform vec2 uW;")
+      .replace("#include <common>", "#include <common>\nuniform float uT;uniform vec2 uW;uniform vec3 uSunD;varying float vCL;")
       .replace(
         "#include <begin_vertex>",
         "#include <begin_vertex>\nvec4 tw=modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.);float td=length(cameraPosition.xz-tw.xz);transformed*=1.-smoothstep(" +
           near.toFixed(1) +
           "," +
           far.toFixed(1) +
-          ",td);float hh=position.y/10.;transformed.xz+=uW*.25*hh*hh*sin(uT*1.1+tw.x*.2+tw.z*.17);",
+          ",td);float hh=position.y/10.;transformed.xz+=uW*.25*hh*hh*sin(uT*1.1+tw.x*.2+tw.z*.17);" +
+          "vec3 nW=normalize(mat3(modelMatrix*instanceMatrix)*normal);float sl_=clamp(uSunD.y*3.,0.,1.);vCL=.95+.6*abs(dot(normalize(nW.xz+1e-4),normalize(uSunD.xz+1e-4)))*sl_+.1*sl_;",
       );
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nvarying float vCL;")
+      .replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb*=vCL*(.8+.5*vMapUv.y);");
   };
   return m;
 }
@@ -198,7 +204,9 @@ function cardForest(kind, list, hgt, wid, near, far, shadow) {
         new THREE.Vector3(s, s * (0.85 + ((i * 7) % 5) * 0.06), s),
       );
       I.setMatrixAt(i, M);
-      I.setColorAt(i, c.setRGB(1, 1, 1).multiplyScalar(1.05 + ((i * 13) % 7) * 0.04));
+      // 木ごとの明るさと色のむら（黄緑寄り〜青緑寄り）
+      const hv = ((i * 29) % 11) / 10 - 0.5;
+      I.setColorAt(i, c.setRGB(1 + hv * 0.1, 1, 1 - hv * 0.12).multiplyScalar(1.05 + ((i * 13) % 7) * 0.04));
     });
     I.castShadow = !!shadow;
     I.userData.kind = kind;

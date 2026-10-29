@@ -101,9 +101,9 @@
   - 12-renderer.js：`scene`
 
 ## 16-terrain.js
-- 作る：`DEM`、`DEM_D`、`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_H`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`SNOW`、`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_ROCK`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleH`、`isleShape`、`landContours`、`landH`、`okiZone`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`tdx`、`tdy`、`terr`、`terrGeo`、`terrGeo_`、`terrH`、`terrMat`、`tx0`、`ty0`、`vnoise`
+- 作る：`DEM`、`DEM_D`、`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_H`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`SNOW`、`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_NIGHT`、`TERR_FS_ROCK`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleH`、`isleShape`、`landContours`、`landH`、`okiZone`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`tdx`、`tdy`、`terr`、`terrGeo`、`terrGeo_`、`terrH`、`terrMat`、`tx0`、`ty0`、`vnoise`
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`GLSL_NOISE`
   - 01-settings.js：`S`
   - 02-season.js：`SEASON`
   - 03-coords.js：`ll`
@@ -297,14 +297,13 @@
   - 29-controls.js：`dist`、`distT`、`gl`
   - 30-audio.js：`SND`、`audioInit`
 
-## 32-drawing.js
-- 作る：`DL`、`makeDrawing`
+## 32-photo.js
+- 作る：`DL`、`finishPhoto`、`takePhoto`
 - 使う：
-  - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`maxX`、`maxY`、`minX`、`minY`
-  - 11-state.js：`B`
-  - 28-map.js：`contours`
+  - 00-head.js：`G`
+  - 12-renderer.js：`renderer`
   - 31-ui.js：`$`
+  - 33-resize.js（後ろの部品・関数なので可）：`resize`
 
 ## 33-resize.js
 - 作る：`resize`
@@ -586,6 +585,7 @@
   - 28-map.js：`drawFar`
   - 29-controls.js：`dist`、`distT`、`isFar`、`pitch`、`yaw`、`yawT`
   - 30-audio.js：`audioUpdate`
+  - 32-photo.js：`finishPhoto`
   - 33-resize.js：`resize`
   - 34-frame-state.js：`fpsN`、`fpsT`、`last`、`trailT`
   - 36-fireworks.js：`FW`
@@ -664,6 +664,7 @@
 - `G.scene`：53-frame.js
 - `G.shigure`：49-frame-sky-light.js
 - `G.shore`：46-shore-life.js
+- `G.snapNow`：32-photo.js
 - `G.street`：21-villages-walls-roofs.js
 - `G.sunY`：49-frame-sky-light.js
 - `G.tFix`：53-frame.js

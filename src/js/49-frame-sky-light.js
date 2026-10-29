@@ -189,6 +189,7 @@ function updateSkyLight(dt, t, c, W) {
       r.position.y = r === reeds ? lvl * 1.2 : INNER_Y * 0;
     }
     reedU.uT.value = t;
+    reedU.uSunD.value.copy(sunDirSky); // 木の板の明暗に使う日の向き
     {
       const br = (0.07 + 0.61 * Math.min(1, day * 2.5)) * (1 - wxNow.gray * 0.25) + fl;
       {
@@ -253,6 +254,9 @@ function updateSkyLight(dt, t, c, W) {
       const su = terrMat.userData.sh.uniforms;
       su.uCT.value = waterU.uT2.value;
       su.uSunT.value.copy(waterU.uSun.value);
+      su.uMoonT.value.copy(AS.moon);
+      su.uMoonL.value = G.moonLit;
+      su.uNt.value = Math.min(1, Math.max(0, (0.02 - G.sunY) / 0.12)); // 夜の度合い（日が沈むと1）
       su.uCSh.value = waterU.uCSh.value;
     }
     terrMat.userData.sh.uniforms.uSpr.value = SEASON.greenery[c.month];
