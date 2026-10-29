@@ -46,7 +46,7 @@ body:not(.lake) #snd{display:none}
 .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center}
 .dot{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.35);cursor:pointer;box-sizing:border-box}
 .dot.on{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.35)}
-.arr{position:fixed;top:50%;width:44px;height:44px;margin-top:-22px;border-radius:50%;border:1px solid rgba(255,255,255,.5);display:grid;place-items:center;cursor:pointer;background:rgba(0,0,0,.15)}
+.arr{position:fixed;z-index:3;top:50%;width:44px;height:44px;margin-top:-22px;border-radius:50%;border:1px solid rgba(255,255,255,.5);display:grid;place-items:center;cursor:pointer;background:rgba(0,0,0,.15)}
 .arr svg,.mbtn svg,#go svg,#rest svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:1.5}
 #prev{left:16px}#next{right:16px}
 .mbtn{width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.35);display:grid;place-items:center;cursor:pointer}
@@ -588,19 +588,20 @@ function depth(x, y) {
 // ==== 08-weather.js ====
 /* ---------- 天気：7種類。一日を4区間に分け、共通時計から決まる擬似乱数で抽選（全員が同じ天気） ---------- */
 const WX_NAMES = ["晴れ", "曇り", "霧", "小雨", "大雨", "嵐", "雪"];
+// 月ごとの出やすさ（%）：晴れ・曇り・霧・小雨・大雨・嵐・雪。雨（小雨・大雨・嵐）はもとの表の半分にして、減らした分を晴れに回している
 const WX_P = [
-  [20, 35, 5, 5, 0, 5, 30],
-  [25, 35, 5, 5, 0, 5, 25],
-  [30, 30, 5, 10, 0, 15, 10],
-  [35, 30, 10, 20, 0, 5, 0],
-  [50, 25, 5, 15, 5, 0, 0],
-  [15, 30, 5, 30, 20, 0, 0],
-  [40, 20, 0, 15, 15, 10, 0],
-  [40, 20, 0, 10, 15, 15, 0],
-  [30, 25, 5, 15, 10, 15, 0],
-  [50, 25, 5, 15, 5, 0, 0],
-  [30, 30, 15, 20, 0, 0, 5],
-  [20, 35, 5, 10, 0, 5, 25],
+  [24, 35, 5, 3, 0, 3, 30],
+  [29, 35, 5, 3, 0, 3, 25],
+  [42, 30, 5, 5, 0, 8, 10],
+  [47, 30, 10, 10, 0, 3, 0],
+  [59, 25, 5, 8, 3, 0, 0],
+  [40, 30, 5, 15, 10, 0, 0],
+  [59, 20, 0, 8, 8, 5, 0],
+  [59, 20, 0, 5, 8, 8, 0],
+  [49, 25, 5, 8, 5, 8, 0],
+  [59, 25, 5, 8, 3, 0, 0],
+  [40, 30, 15, 10, 0, 0, 5],
+  [27, 35, 5, 5, 0, 3, 25],
 ];
 // wind風 wave波 fog視界(近,遠m) gray灰色 dark暗さ rain雨 snow雪 storm雷 sense気配の届く距離
 const WX = [
