@@ -410,8 +410,10 @@ function astro(c) {
 
 // ==== 05-lake.js ====
 /* ---------- 湖の形 ---------- */
+// 多景島（約1.4ha）：湖岸線のデータは2haより小さい島を省いているので、地理院の水涯線（ベクトルタイル）から足す
+const TAKEI = [[9008, -5236], [8953, -5182], [8922, -5183], [8916, -5199], [8896, -5201], [8861, -5156], [8832, -5081], [8928, -5091], [8947, -5131], [8994, -5157], [9027, -5195], [9019, -5231], [9008, -5236]];
 const outer = LAKE.outer,
-  islands = LAKE.islands;
+  islands = [...LAKE.islands, TAKEI];
 function inPoly(x, y, poly) {
   let c = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -872,13 +874,23 @@ const HQ = QUAL === "high",
   LQ = QUAL === "low";
 const MOBILE = matchMedia("(pointer:coarse)").matches;
 /* 画質の表：高（high）・中（mid）・低（low）で何を省くか。重いときはここを調整する
+   reedPer ヨシ1か所あたりの株の数／hedgeDetail 生け垣の形の細かさ（0 で荒く）／rocks 岸の石を残す割合
    ?q=high / mid / low で強制できる。中と低はスマホ（MOBILE）だと水面の網目をさらに粗くする */
 const QUALITY_TABLE = {
-  high: { resStart: 1, resMax: 1, pixelMax: 2.5, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], reflection: 1, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1, msaa: 4, cloudSteps: 32 },
-  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.7, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1, msaa: 2, cloudSteps: 16 },
-  low: { resStart: 0.6, resMax: 0.9, pixelMax: 2, shadowMap: 512, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 3500, fireworkBurst: 0.55, msaa: 0, cloudSteps: 0 },
+  high: { resStart: 1, resMax: 1, pixelMax: 2.5, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], reedPer: 6, hedgeDetail: 1, rocks: 1, reflection: 1, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1, msaa: 4, cloudSteps: 32 },
+  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reedPer: 6, hedgeDetail: 1, rocks: 1, reflection: 0.7, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1, msaa: 2, cloudSteps: 16 },
+  low: { resStart: 0.6, resMax: 0.9, pixelMax: 2, shadowMap: 512, shadowRange: 40, waterGrid: 300, terrain: [280, 350], reedPer: 3, hedgeDetail: 0, rocks: 0.5, reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 3500, fireworkBurst: 0.55, msaa: 0, cloudSteps: 0 },
 };
 const QUALITY = { ...(QUALITY_TABLE[QUAL] || QUALITY_TABLE.mid) };
+// 画質に合わせて数を間引く（QUALITY.rocks が 0.5 なら2つに1つ残す）。配列をその場で縮めて返す
+function thinQ(a, f = QUALITY.rocks) {
+  if (f >= 1) return a;
+  const k = Math.max(1, Math.round(1 / f));
+  let j = 0;
+  for (let i = 0; i < a.length; i += k) a[j++] = a[i];
+  a.length = j;
+  return a;
+}
 if (!HQ && MOBILE) QUALITY.waterGrid = 180;
 if (!HQ && MOBILE) QUALITY.cloudSteps = 0; // スマートフォンは、立体的な雲をやめて動きの滑らかさを保つ
 let resScale = QUALITY.resStart;
@@ -1869,7 +1881,7 @@ const landContours = (() => {
 const ISLE_H = [
   [136.145, 35.42, 197],
   [136.065, 35.205, 220],
-  [136.205, 35.293, 40],
+  [136.178, 35.297, 40], // 多景島
 ].map(([a, b, h]) => [...ll(a, b), h]);
 const ISLES = [];
 // 沖島の南西側の集落：岸から約100mは低く平らな土地にして、その奥から山になる
@@ -1963,18 +1975,19 @@ function isleH(x, y) {
   return null;
 }
 // ヨシ（指定区域の近くの、浅い岸だけに立てる）
+// （中心は湖岸の上。内陸に置いていた7か所は、区域の中に岸がなくヨシが立たなかったので、いちばん近い岸へ寄せた）
 const REED_SITES = [
-  [136.235, 35.465, 2500],
-  [136.07, 35.345, 2200],
-  [135.995, 35.065, 1500],
-  [136.03, 35.405, 1500],
-  [136.045, 35.3, 1500],
-  [136.215, 35.43, 1500],
-  [136.205, 35.235, 1500],
-  [136.1, 35.15, 1500],
-  [135.97, 35.1, 1200],
-  [135.935, 35.025, 1500],
-  [135.93, 35.115, 1000],
+  [136.1986, 35.4591, 2500], // 片山（地名は近くの地理院の注記）
+  [136.07, 35.345, 2200], // 新旭
+  [135.9481, 35.076, 1500], // 杉江
+  [136.03, 35.405, 1500], // 今津
+  [136.045, 35.3, 1500], // 横江浜
+  [136.1968, 35.4319, 1500], // 延勝寺
+  [136.1945, 35.2499, 1500], // 三津屋
+  [136.0662, 35.1531, 1500], // 津田
+  [135.971, 35.1211, 1200], // 小浜
+  [135.9174, 35.0229, 1500], // 山田
+  [135.93, 35.115, 1000], // 堅田
 ].map(([lo, la, r]) => [...ll(lo, la), r]);
 const reedPts = [];
 {
@@ -2138,13 +2151,13 @@ if(uCut>0.){float pn=rn_(vRW*.03)*.65+rn_(vRW*.11)*.35;
   return m;
 }
 const reedGeo = reedGeom();
-const reeds = new THREE.InstancedMesh(reedGeo, reedMat(), reedPts.length * 6);
+const reeds = new THREE.InstancedMesh(reedGeo, reedMat(), reedPts.length * QUALITY.reedPer);
 {
   const m = new THREE.Matrix4(),
     R = rnd(9);
   let i = 0;
   for (const [x, y] of reedPts)
-    for (let k = 0; k < 6; k++) {
+    for (let k = 0; k < QUALITY.reedPer; k++) {
       const s = (0.6 + R() * 0.7) * (0.8 + 0.4 * vnoise(x / 700, y / 700));
       m.makeRotationY(R() * 3.14).premultiply(new THREE.Matrix4().makeScale(s, s * (0.85 + R() * 0.3), s));
       m.setPosition(x * S + (R() - 0.5) * 24, 0, y * S + (R() - 0.5) * 24);
@@ -3901,7 +3914,7 @@ const VILLAGES = [
   [136.275, 35.33],
   [136.245, 35.28],
   [136.205, 35.228],
-  [136.17, 35.18],
+  [136.1166, 35.2108], // 栗見出在家（岸から5km離れていた点を、湖岸の集落へ）
   [136.065, 35.2],
   [136.06, 35.16],
   [136.01, 35.11],
@@ -4610,7 +4623,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
     }
   }
   const H = new THREE.InstancedMesh(
-    lumpy(1, rnd(12), 1, 0.12).scale(1.8, 0.6, 0.7).translate(0, 0.5, 0), // 生け垣：細かさを1段落とす（数が多いので）
+    lumpy(1, rnd(12), QUALITY.hedgeDetail, 0.12).scale(1.8, 0.6, 0.7).translate(0, 0.5, 0), // 生け垣：細かさを1段落とす（数が多いので。低画質ではもう1段）
     NEAR_TREE_MAT(),
     hd.length,
   );
@@ -8282,6 +8295,7 @@ G.kaizu = (() => {
       }
     }
   }
+  thinQ(rocks);
   const ri = new THREE.InstancedMesh(
     new THREE.DodecahedronGeometry(1, 0),
     new THREE.MeshLambertMaterial({ color: 0xffffff }),
@@ -8329,6 +8343,7 @@ G.rocks = (() => {
     }
     if (pts.length > 6000) break;
   }
+  thinQ(pts);
   const I = new THREE.InstancedMesh(
     new THREE.DodecahedronGeometry(1, 0),
     new THREE.MeshLambertMaterial({ color: 0xffffff }),
@@ -8395,6 +8410,7 @@ G.isl = (() => {
       tr.push([x, y, gy - 0.3, 0.8 + R() * 0.6, R()]);
     }
   }
+  thinQ(rk);
   const I = new THREE.InstancedMesh(
     new THREE.DodecahedronGeometry(1, 0),
     new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true }),
@@ -9069,10 +9085,10 @@ G.life = (() => {
   if (LOOK.show.pines) {
     const R = rndFor("pines");
     const SITES = [
-      [135.958, 35.262, 1400],
-      [135.972, 35.284, 900],
-      [136.043, 35.334, 900],
-      [136.082, 35.172, 800],
+      [135.9616, 35.2332, 1400], // 近江舞子（位置は地理院の注記から）
+      [135.9751, 35.255, 900], // 北小松
+      [136.0229, 35.2991, 900], // 萩の浜
+      [136.082, 35.172, 800], // 宮ヶ浜（地理院の注記が見つからず、位置は概略のまま）
     ].map(([lo, la, r]) => [...shoreSnap(...ll(lo, la)), r]); // 湖岸線の上の点に寄せる
     const P = [];
     for (let i = 0; i < outer.length - 1; i++) {

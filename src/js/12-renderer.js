@@ -16,13 +16,23 @@ const HQ = QUAL === "high",
   LQ = QUAL === "low";
 const MOBILE = matchMedia("(pointer:coarse)").matches;
 /* 画質の表：高（high）・中（mid）・低（low）で何を省くか。重いときはここを調整する
+   reedPer ヨシ1か所あたりの株の数／hedgeDetail 生け垣の形の細かさ（0 で荒く）／rocks 岸の石を残す割合
    ?q=high / mid / low で強制できる。中と低はスマホ（MOBILE）だと水面の網目をさらに粗くする */
 const QUALITY_TABLE = {
-  high: { resStart: 1, resMax: 1, pixelMax: 2.5, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], reflection: 1, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1, msaa: 4, cloudSteps: 32 },
-  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.7, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1, msaa: 2, cloudSteps: 16 },
-  low: { resStart: 0.6, resMax: 0.9, pixelMax: 2, shadowMap: 512, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 3500, fireworkBurst: 0.55, msaa: 0, cloudSteps: 0 },
+  high: { resStart: 1, resMax: 1, pixelMax: 2.5, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], reedPer: 6, hedgeDetail: 1, rocks: 1, reflection: 1, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1, msaa: 4, cloudSteps: 32 },
+  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], reedPer: 6, hedgeDetail: 1, rocks: 1, reflection: 0.7, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1, msaa: 2, cloudSteps: 16 },
+  low: { resStart: 0.6, resMax: 0.9, pixelMax: 2, shadowMap: 512, shadowRange: 40, waterGrid: 300, terrain: [280, 350], reedPer: 3, hedgeDetail: 0, rocks: 0.5, reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 3500, fireworkBurst: 0.55, msaa: 0, cloudSteps: 0 },
 };
 const QUALITY = { ...(QUALITY_TABLE[QUAL] || QUALITY_TABLE.mid) };
+// 画質に合わせて数を間引く（QUALITY.rocks が 0.5 なら2つに1つ残す）。配列をその場で縮めて返す
+function thinQ(a, f = QUALITY.rocks) {
+  if (f >= 1) return a;
+  const k = Math.max(1, Math.round(1 / f));
+  let j = 0;
+  for (let i = 0; i < a.length; i += k) a[j++] = a[i];
+  a.length = j;
+  return a;
+}
 if (!HQ && MOBILE) QUALITY.waterGrid = 180;
 if (!HQ && MOBILE) QUALITY.cloudSteps = 0; // スマートフォンは、立体的な雲をやめて動きの滑らかさを保つ
 let resScale = QUALITY.resStart;

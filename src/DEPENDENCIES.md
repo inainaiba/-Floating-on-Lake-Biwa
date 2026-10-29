@@ -26,7 +26,7 @@
   - 01-settings.js：`Q`
 
 ## 05-lake.js
-- 作る：`inPoly`、`islands`、`outer`
+- 作る：`TAKEI`、`inPoly`、`islands`、`outer`
 - 使う：
   - 01-settings.js：`LAKE`
 
@@ -73,7 +73,7 @@
   - 10-start.js：`st`
 
 ## 12-renderer.js
-- 作る：`HQ`、`LQ`、`MOBILE`、`MOBILE_`、`QQ`、`QUAL`、`QUALITY`、`QUALITY_TABLE`、`camera`、`renderer`、`resScale`、`scene`
+- 作る：`HQ`、`LQ`、`MOBILE`、`MOBILE_`、`QQ`、`QUAL`、`QUALITY`、`QUALITY_TABLE`、`camera`、`renderer`、`resScale`、`scene`、`thinQ`
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`Q`
@@ -372,7 +372,7 @@
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inLake`
   - 10-start.js：`rnd`
-  - 12-renderer.js：`scene`
+  - 12-renderer.js：`scene`、`thinQ`
   - 20-villages-layout.js：`cvTex`、`landY`
 
 ## 40-shore-rocks.js
@@ -383,7 +383,7 @@
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inLake`
   - 10-start.js：`rnd`
-  - 12-renderer.js：`scene`
+  - 12-renderer.js：`scene`、`thinQ`
   - 16-terrain.js：`vnoise`
   - 18-buildings.js：`reedMask`
   - 20-villages-layout.js：`landY`
@@ -398,7 +398,7 @@
   - 05-lake.js：`inPoly`、`islands`
   - 06-inner-lakes.js：`inLake`
   - 10-start.js：`rnd`
-  - 12-renderer.js：`MOBILE`、`QUALITY`、`scene`
+  - 12-renderer.js：`MOBILE`、`QUALITY`、`scene`、`thinQ`
   - 16-terrain.js：`ISLES`、`isleH`、`okiZone`
   - 17-trees.js：`cardForest`
   - 18-buildings.js：`gable`
