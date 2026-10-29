@@ -5,3 +5,4 @@ dbg*.html
 check/now/
 check/sheet.png
 !check/base/*.png
+tools/.dem_cache/

@@ -4,9 +4,9 @@
 
 - `data/lake.json` … 湖岸線・島・港・橋・川（国土数値情報／OpenStreetMapから作成）
 - `data/buoys.xlsx` … ブイ一覧（集落名・集落形態・北緯・東経・YouTubeリンク）。編集後に `python3 build.py`
-- `data/relief.json` … 周囲の地形（地理院タイルの陰影起伏図から作成）
+- `data/dem.json` … 周囲の地形（国土地理院の標高タイルから作成。作り直しは `python3 tools/dem.py`）
 - `docs/index.html` … 組み立て後の公開用ファイル
-- `tools/` … データ準備（prep.py）と、Playwrightによる確認用の撮影スクリプト
+- `tools/` … データ準備（prep.py・dem.py）と、Playwrightによる確認用の撮影スクリプト
 
 ## ファイルの構成
 
@@ -16,7 +16,7 @@
   - `02-season.js` … **季節の表** `SEASON`、**色の表** `PALETTE`、**景観の調整値** `LOOK`（雲の影の濃さ・かすみの距離・灯りの明るさ・各要素の出る月など）と、**要素の出す／出さない** `LOOK.show`（竹林・ススキ・松並木・舟・えり・沖島の集落など）。見た目の強さや要素の入切はまずここで調整する
   - `12-renderer.js` … 描画の準備と**画質の表** `QUALITY_TABLE`（高・中・低）
   - `13-sky-dome.js` … 空（`SKY_FS_*`）　／　`14-water.js` … 水面（`W_FS_*`）。どちらもシェーダーを処理の順の部品に区切ってある
-  - `16-terrain.js` … 山並み・島・ヨシ（島の高さ `isleH`、山肌の色のシェーダーは `TERR_FS_*`）　／　`18-buildings.js` … 水上建築10種類
+  - `16-terrain.js` … 山並み（`data/dem.json` の標高）・島・ヨシ（島の高さ `isleH`、山肌の色のシェーダーは `TERR_FS_*`）　／　`18-buildings.js` … 水上建築10種類
   - `20-villages-layout.js` … 集落の配置と**地面の高さの窓口** `groundH`（島・湖・陸を振り分ける）・`landY`（陸の地面）
   - `21〜27` … 集落・田・湖岸の目印・港・森　／　`30-audio.js` … 音　／　`31-ui.js` … 画面の部品
   - `35〜43` … 鳥居・花火・ブイ・季節の出来事・海津・湖岸の石・島と沖島の集落・暮らしの気配・湖の詩情
@@ -62,7 +62,10 @@ Settings → Pages → Source を「Deploy from a branch」、Branch を `main` 
   - 湖岸線と島：琵琶湖の水面（relation/63499）。40m単位で簡略化し、20,000㎡未満の島は省く
   - 港・桟橋・橋・川・灯台：同じ範囲の港（harbour）、フェリー乗り場、漁港、橋、河川、灯台のデータ
   - 座標は北緯35.25°・東経136.08°を原点とする実寸のメートル（x 東、y 南）
-- `data/relief.json` … 国土地理院 地理院タイル（陰影起伏図）を縮小・数値化した周囲の地形
+- `data/dem.json` … 国土地理院 地理院タイル「標高タイル」（ズーム12、約30m）から `tools/dem.py` で作成
+  - 作品の座標で200m間隔に並べ直した、琵琶湖の水面（84.371m）からの高さ。湖の外形の外側26kmまで
+  - 1マス1バイト（低い土地ほど細かく刻む）。水面より低い土地と海は0
+  - 取り寄せたタイルは `tools/.dem_cache/` に置く（記録しない）
 - `data/buoys.xlsx` … ブイ一覧（集落名・集落形態・北緯・東経・YouTubeリンク・表示）。チームで編集する
 
 © OpenStreetMap contributors（ODbL）／国土地理院

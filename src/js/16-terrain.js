@@ -1,24 +1,12 @@
-/* ---------- 山並み：地形図を参考にした作品用の地形（標高は実寸。表示は縮尺Sに合わせ、高さを1.5倍に強調） ---------- */
+/* ---------- 山並み：国土地理院の標高タイルから作った実際の地形（標高は実寸。表示は縮尺Sに合わせ、高さを2.2倍に強調） ---------- */
 const VEX = 2.2,
   VFAR = 1.0;
-const RIDGES = [
-  // [始点lon,lat, 終点lon,lat, 高さm, 幅m]
-  [135.84, 35.1, 135.99, 35.42, 900, 4500], // 比良山地
-  [135.93, 35.5, 136.27, 35.62, 650, 5000], // 野坂山地（北）
-  [136.33, 35.33, 136.43, 35.65, 950, 5000], // 伊吹山地
-  [136.3, 34.85, 136.46, 35.28, 850, 4500], // 鈴鹿山脈
-  [135.92, 34.9, 136.15, 34.92, 420, 5000], // 湖南の丘陵（信楽方面）
-  [135.8, 34.95, 135.86, 35.08, 600, 3500],
-]; // 比叡山・西の山
+// 主な山頂（全体地図の山の印）
 const PEAKS = [
-  [135.876, 35.215, 1174, 3000],
-  [136.416, 35.418, 1377, 3500],
-  [136.42, 35.02, 1212, 3000],
-  [135.834, 35.067, 848, 2200],
-  [136.03, 35.03, 432, 900],
-  [136.09, 35.14, 280, 800],
-  [136.205, 35.215, 284, 900],
-  [136.05, 35.165, 330, 1100],
+  [135.876, 35.215, 1174, 3000], // 蓬莱山（比良山地）
+  [136.416, 35.418, 1377, 3500], // 伊吹山
+  [136.42, 35.02, 1212, 3000], // 御在所岳（鈴鹿山脈）
+  [135.834, 35.067, 848, 2200], // 比叡山
 ];
 function vnoise(x, y) {
   const h = (i, j) => {
@@ -35,121 +23,24 @@ function vnoise(x, y) {
     (h(i, j + 1) * (1 - f(u)) + h(i + 1, j + 1) * f(u)) * f(v)
   );
 }
-const RG = RIDGES.map(([a, b, c, d, h, w]) => [...ll(a, b), ...ll(c, d), h, w]),
-  PK = PEAKS.map(([a, b, h, w]) => [...ll(a, b), h, w]);
-// 近江平野（湖東・湖南の平地）：ここでは稜線の山を消し、独立峰だけ残す
-const PLAIN = [
-  [136.33, 35.42],
-  [136.3, 35.3],
-  [136.27, 35.2],
-  [136.25, 35.1],
-  [136.2, 35.02],
-  [136.12, 34.96],
-  [136.02, 34.95],
-  [135.93, 34.97],
-  [135.92, 35.02],
-  [135.96, 35.06],
-  [136.05, 35.1],
-  [136.12, 35.2],
-  [136.2, 35.3],
-  [136.24, 35.4],
-  [136.26, 35.48],
-].map((p) => ll(...p));
-function plainK(x, y) {
-  if (!inPoly(x, y, PLAIN)) return 0;
-  let m = 1e12;
-  for (let i = 0; i < PLAIN.length; i++) {
-    const a = PLAIN[i],
-      b = PLAIN[(i + 1) % PLAIN.length],
-      dx = b[0] - a[0],
-      dy = b[1] - a[1];
-    let u = ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy);
-    u = Math.max(0, Math.min(1, u));
-    m = Math.min(m, Math.hypot(a[0] + u * dx - x, a[1] + u * dy - y));
-  }
-  return Math.min(1, m / 2500);
-}
-const RELIEF = __RELIEF__; // 国土地理院の陰影図から作った「山らしさ」の濃さ（湖の外形で位置を合わせた概略）
-function relief(x, y) {
-  const [b0, b1, b2, b3] = RELIEF.bx;
-  let u = b0 + ((x - minX) / (maxX - minX)) * (b1 - b0),
-    v = b2 + ((y - minY) / (maxY - minY)) * (b3 - b2);
-  const uu = Math.max(0, Math.min(RELIEF.w - 1.001, u)),
-    vv = Math.max(0, Math.min(RELIEF.h - 1.001, v)),
-    out = Math.hypot(uu - u, vv - v);
-  u = uu;
-  v = vv;
-  const i = Math.floor(u),
+const PK = PEAKS.map(([a, b, h, w]) => [...ll(a, b), h, w]);
+// 標高の格子（tools/dem.py）：作品の座標で200m間隔、湖面からの高さ。1マス1バイトで h = top·(v/255)²
+const DEM = __DEM__;
+const DEM_D = Uint8Array.from(atob(DEM.d || ""), (c) => c.charCodeAt(0));
+function landH(x, y) {
+  const u = Math.max(0, Math.min(DEM.w - 1.001, (x - DEM.x0) / DEM.step)),
+    v = Math.max(0, Math.min(DEM.h - 1.001, (y - DEM.y0) / DEM.step)),
+    i = Math.floor(u),
     j = Math.floor(v),
     f = u - i,
     g = v - j,
-    D = RELIEF.d,
-    W = RELIEF.w;
-  return Math.min(
-    1,
-    ((D[j * W + i] * (1 - f) + D[j * W + i + 1] * f) * (1 - g) +
-      (D[(j + 1) * W + i] * (1 - f) + D[(j + 1) * W + i + 1] * f) * g) /
-      255 +
-      out * 0.02,
+    W = DEM.w,
+    q = (k) => (DEM_D[k] / 255) ** 2;
+  return (
+    DEM.top *
+    ((q(j * W + i) * (1 - f) + q(j * W + i + 1) * f) * (1 - g) +
+      (q((j + 1) * W + i) * (1 - f) + q((j + 1) * W + i + 1) * f) * g)
   );
-}
-function landH(x, y) {
-  const rv = relief(x, y);
-  if (rv >= 0) {
-    let p = 0;
-    for (const [px, py, h, w] of PK) {
-      const d = Math.hypot(x - px, y - py);
-      p = Math.max(p, h * Math.exp(-(d * d) / (w * w)));
-    }
-    let rd = 0,
-      amp = 1,
-      f = 1 / 2200;
-    for (let o = 0; o < 4; o++) {
-      rd += amp * (1 - Math.abs(vnoise(x * f + o * 7.1, y * f - o * 3.3) * 2 - 1));
-      amp *= 0.5;
-      f *= 2.1;
-    }
-    const base = Math.pow(rv, 1.3) * 950 * (0.65 + (0.5 * rd) / 1.9);
-    return 4 + Math.max(base, p * Math.min(1, rv * 3 + 0.3)) + 6 * vnoise(x / 3000, y / 3000);
-  }
-  let m = 0;
-  for (const [x1, y1, x2, y2, h, w] of RG) {
-    const dx = x2 - x1,
-      dy = y2 - y1;
-    let t = ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy);
-    const e = t < 0 ? -t : t > 1 ? t - 1 : 0;
-    t = Math.max(0, Math.min(1, t));
-    const d = Math.hypot(x - (x1 + dx * t), y - (y1 + dy * t));
-    m = Math.max(
-      m,
-      h * Math.exp(-(d * d) / (w * w)) * Math.exp(-e * e * 30) * (0.75 + 0.5 * vnoise(x / 3000, y / 3000)),
-    );
-  }
-  for (const [px, py, h, w] of PK) {
-    const d = Math.hypot(x - px, y - py);
-    m = Math.max(m, h * Math.exp(-(d * d) / (w * w)));
-  }
-  const n = vnoise(x / 1500, y / 1500) * 0.6 + vnoise(x / 600, y / 600) * 0.4;
-  m *= 0.8 + 0.4 * n;
-  let rd = 0,
-    amp = 1,
-    f = 1 / 2200;
-  for (let o = 0; o < 4; o++) {
-    rd += amp * (1 - Math.abs(vnoise(x * f + o * 7.1, y * f - o * 3.3) * 2 - 1));
-    amp *= 0.5;
-    f *= 2.1;
-  } // 尾根と谷のひだ
-  m *= 0.7 + (0.45 * rd) / 1.9;
-  const pk = plainK(x, y);
-  if (pk > 0) {
-    let p = 0;
-    for (const [px, py, h, w] of PK) {
-      const d = Math.hypot(x - px, y - py);
-      p = Math.max(p, h * Math.exp(-(d * d) / (w * w)));
-    }
-    m = m * (1 - pk) + p * pk + pk * (6 + 8 * vnoise(x / 3000, y / 3000));
-  }
-  return 4 + m;
 }
 const TM = 26000,
   TW = QUALITY.terrain[0],
@@ -170,7 +61,7 @@ for (let j = 0; j < TH; j++)
         rise = sm * sm * (3 - 2 * sm);
       terrH[j * TW + i] = inLake(x, y)
         ? -Math.min(14, 1 + d * 0.06)
-        : 1.6 + 2.4 * rise + 18 * (1 - Math.exp(-d / 450)) + landH(x, y) * Math.min(1, 0.15 * rise + d / 2500);
+        : 1.6 + 2.4 * rise + 6 * (1 - Math.exp(-d / 450)) + landH(x, y) * Math.min(1, 0.15 * rise + d / 800);
     }
   }
 for (let pass = 0; pass < 3; pass++) {
