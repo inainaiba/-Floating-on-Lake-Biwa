@@ -127,6 +127,16 @@ const TERR_FS_SLOPE = `// ── 山肌の色の重なり ──
 // 傾き → 岩肌 → 低地と浜 → 田の区画 → 森（杉林・樹冠・新緑と深緑）→ 紅葉 → 冬枯れと雪 → 霞・雲の影・山の縁の光
 vec3 nrm=normalize(cross(dFdx(vec3(vXZ.x,vH,vXZ.y)),dFdy(vec3(vXZ.x,vH,vXZ.y))));
 if(nrm.y<0.)nrm=-nrm;
+// 山ひだの細部：標高データ（200m間隔）より細かい沢を、斜面の落ちる向きに伸びた筋として描く（実寸で幅約700m・300m・140mの3段）。
+// 沢の底ほど暗く（rocc）、平地には付けず、遠くて細かすぎる所（ちらつく距離）では消す
+vec3 wn=normalize(vWN); // 頂点の間でなめらかにつないだ向き（三角形ごとの向きを使うと、筋が三角形の境で途切れる）
+float rocc=0.,rmt=smoothstep(20.,80.,vH)*smoothstep(.12,.45,length(wn.xz)); // 傾きが約7°〜27°（高さの強調込み）で効き始める
+if(rmt>0.){float fw=length(fwidth(vXZ));vec2 dn=normalize(wn.xz+1e-4),pp=vec2(-dn.y,dn.x);
+ for(int o=0;o<3;o++){float sc=o==0?.0071:o==1?.0167:.036,w=o==0?.5:o==1?.32:.22; // 作品の1単位は実寸5m
+  float fd=1.-smoothstep(.12,.4,fw*sc);
+  vec2 q=vec2(dot(vXZ,pp)*sc,dot(vXZ,dn)*sc*.3)+float(o)*17.3+nzN(vXZ*sc*.5)*.8;
+  rocc+=(1.-smoothstep(0.,.45,abs(nzN(q)*2.-1.)))*w*fd*smoothstep(.25,.75,nzN(q*vec2(.45,.6)+5.3));} // 沢ごとに深さを変えて、櫛の目のような並びを崩す
+ rocc*=rmt;}
 vec3 nrmE=normalize(vec3(nrm.x*3.,nrm.y,nrm.z*3.));
 float slope=1.-abs(nrm.y);
 diffuseColor.rgb*=.78+.5*smoothstep(.0,.6,1.-slope)*.25+.12;
@@ -204,6 +214,8 @@ for(int o=0;o<3;o++){float sc=o==0?.16:o==1?.055:.02;vec2 q=vXZ*sc,qi=floor(q),q
  tc+=(bump*.6*face-(1.-bump)*.35)*(1.-smoothstep(.25,.6,fw*sc))*(o==0?.5:o==1?.45:.4);}
 diffuseColor.rgb*=1.+tc*.5*wood*(1.-uSnow*.6);}
 }
+// 山ひだの細部の陰影：森の色で塗り替えたあとに、沢の底を暗く、その間の尾根をわずかに明るく（上の rocc）
+diffuseColor.rgb*=1.-.75*rocc+.08*rmt;
 // 尾根は明るく乾いた色、谷は暗く湿った色（山ひだ）
 {float cvv=clamp(vCv,-1.,1.),land_=smoothstep(3.,14.,vH);
 diffuseColor.rgb*=1.+land_*(cvv>0.?cvv*.22:cvv*.3);
@@ -239,6 +251,13 @@ diffuseColor.rgb+=vec3(1.,.55,.3)*face*low*smoothstep(40.,180.,vH)*.35;
 diffuseColor.rgb=mix(diffuseColor.rgb,mix(uHaze*1.1,uHaze*vec3(.5,.56,.68),smoothstep(${glf(LOOK.farDarkFrom)},${glf(LOOK.farDarkTo)},dc_)),clamp(hz,0.,1.)*${glf(LOOK.hazeAmount)});
 diffuseColor.rgb*=1.+.12*hz;
 }`;
+// 夜の山並み（霧をかけた後の色に重ねる。夜は光が弱く、色を変えても暗さに埋もれるため）：
+// 月に向いた斜面に青白い光の縁、遠い稜線ほど夜空の地平の色に近づけて、重なる山を見分けられるように
+const TERR_FS_NIGHT = `if(uNt>0.){float dn_=length(cameraPosition.xz-vXZ);vec2 md=normalize(uMoonT.xz+1e-4);
+ float fm=pow(max(dot(normalize(nrm.xz+1e-4),md),0.),2.)*smoothstep(.05,.5,1.-nrm.y)*smoothstep(40.,180.,vH);
+ vec3 hz_=linearToOutputTexel(vec4(uHaze*(1.15+.6*uMoonL),1.)).rgb;
+ gl_FragColor.rgb+=vec3(.1,.12,.17)*fm*uMoonL*uNt*(1.-smoothstep(500.,5000.,dn_));
+ gl_FragColor.rgb=mix(gl_FragColor.rgb,hz_,uNt*smoothstep(200.,3500.,dn_)*.72);}`; // 作品の1単位は実寸5m（約1kmから17km先で地平の色へ）
 const terrMat = new THREE.MeshLambertMaterial({ vertexColors: true });
 terrMat.onBeforeCompile = (sh) => {
   sh.uniforms.uHaze = { value: new THREE.Color(0x9fb4c8) };
@@ -250,26 +269,30 @@ terrMat.onBeforeCompile = (sh) => {
   sh.uniforms.uCT = { value: 0 };
   sh.uniforms.uCSh = { value: 1 };
   sh.uniforms.uSunT = { value: new THREE.Vector3(0, 1, 0) };
+  sh.uniforms.uMoonT = { value: new THREE.Vector3(0, 1, 0) };
+  sh.uniforms.uMoonL = { value: 0 };
+  sh.uniforms.uNt = { value: 0 };
   sh.uniforms.uSL = { value: 0 };
   sh.uniforms.uWin = { value: 0 };
   sh.uniforms.uAut = { value: 0 };
   terrMat.userData.sh = sh;
   sh.vertexShader = sh.vertexShader
-    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;attribute float aCv;varying float vCv;")
+    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;attribute float aCv;varying float vCv;varying vec3 vWN;")
     .replace(
       "#include <begin_vertex>",
-      "#include <begin_vertex>\nvH=position.y;vXZ=(modelMatrix*vec4(position,1.)).xz;vCv=aCv;",
+      "#include <begin_vertex>\nvH=position.y;vXZ=(modelMatrix*vec4(position,1.)).xz;vCv=aCv;vWN=normal;",
     );
   sh.fragmentShader = sh.fragmentShader
     .replace(
       "#include <common>",
-      "#include <common>\nvarying float vH;varying vec2 vXZ;varying float vCv;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;",
+      "#include <common>\n" + GLSL_NOISE + "\nvarying float vH;varying vec2 vXZ;varying float vCv;varying vec3 vWN;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;uniform vec3 uMoonT;uniform float uMoonL;uniform float uNt;",
     )
     .replace(
       "#include <color_fragment>",
       `#include <color_fragment>
 ${TERR_FS_SLOPE}${TERR_FS_ROCK}${TERR_FS_SHORE}${TERR_FS_FOREST}${TERR_FS_AUTUMN}${TERR_FS_WINTER}${TERR_FS_HAZE}`,
-    );
+    )
+    .replace("#include <fog_fragment>", "#include <fog_fragment>\n" + TERR_FS_NIGHT);
 };
 const terr = new THREE.Mesh(terrGeo, terrMat);
 terr.receiveShadow = true;
@@ -547,7 +570,7 @@ function reedGeom() {
   for (let i = 0; i < n.count; i++) n.setXYZ(i, 0, 1, 0);
   return g;
 } // 上向きの法線で、板の向きによる明暗の差をなくす
-const reedU = { uT: { value: 0 }, uW: { value: new THREE.Vector2(1, 0) }, uCut: { value: 0 }, tAlt: { value: null } };
+const reedU = { uT: { value: 0 }, uW: { value: new THREE.Vector2(1, 0) }, uCut: { value: 0 }, tAlt: { value: null }, uSunD: { value: new THREE.Vector3(0.5, 0.7, 0.3) } };
 function reedMat() {
   const m = new THREE.MeshBasicMaterial({
     map: REED_TEX.summer,
