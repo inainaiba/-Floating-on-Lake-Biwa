@@ -68,6 +68,7 @@ function frame(now) {
   updateCamera(dt, t, hx, hz);
   const pC = performance.now();
   renderFrame(c, W, wxNow, day, sunAngle);
+  if (G.snapNow) finishPhoto(); // 撮影（32-photo.js）：描いた直後に画像にする
   if (prof) {
     const pD = performance.now(),
       add = (k, v) => (prof[k] = (prof[k] || 0) * 0.9 + v * 0.1);

@@ -297,14 +297,13 @@
   - 29-controls.js：`dist`、`distT`、`gl`
   - 30-audio.js：`SND`、`audioInit`
 
-## 32-drawing.js
-- 作る：`DL`、`makeDrawing`
+## 32-photo.js
+- 作る：`DL`、`finishPhoto`、`takePhoto`
 - 使う：
-  - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`maxX`、`maxY`、`minX`、`minY`
-  - 11-state.js：`B`
-  - 28-map.js：`contours`
+  - 00-head.js：`G`
+  - 12-renderer.js：`renderer`
   - 31-ui.js：`$`
+  - 33-resize.js（後ろの部品・関数なので可）：`resize`
 
 ## 33-resize.js
 - 作る：`resize`
@@ -586,6 +585,7 @@
   - 28-map.js：`drawFar`
   - 29-controls.js：`dist`、`distT`、`isFar`、`pitch`、`yaw`、`yawT`
   - 30-audio.js：`audioUpdate`
+  - 32-photo.js：`finishPhoto`
   - 33-resize.js：`resize`
   - 34-frame-state.js：`fpsN`、`fpsT`、`last`、`trailT`
   - 36-fireworks.js：`FW`
@@ -664,6 +664,7 @@
 - `G.scene`：53-frame.js
 - `G.shigure`：49-frame-sky-light.js
 - `G.shore`：46-shore-life.js
+- `G.snapNow`：32-photo.js
 - `G.street`：21-villages-walls-roofs.js
 - `G.sunY`：49-frame-sky-light.js
 - `G.tFix`：53-frame.js

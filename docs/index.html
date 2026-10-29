@@ -92,12 +92,12 @@ body.far #rest{display:none}
  <div class="golab">湖へ放つ</div><div id="go" aria-label="go"><svg viewBox="0 0 24 24"><path d="M3 14c3-3 6 3 9 0s6 3 9 0"/><path d="M12 4v7M9 8l3 3 3-3"/></svg></div>
 </div>
 <div id="snd" class="ico" aria-label="sound"><svg viewBox="0 0 24 24"><path d="M4 10h4l5-4v12l-5-4H4z"/><path class="w" d="M16 9c1.5 1.5 1.5 4.5 0 6M18.5 6.5c3 3 3 8 0 11"/></svg></div>
-<div id="save" class="ico" aria-label="save"><svg viewBox="0 0 24 24"><path d="M6 4h12v16H6z"/><path d="M9 15c2-4 3 1 6-5"/></svg></div>
+<div id="save" class="ico" aria-label="photo"><svg viewBox="0 0 24 24"><path d="M4 8h3.5l1.5-2h6l1.5 2H20v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg></div>
 <div id="shot"><img alt=""></div>
 <div id="rest" aria-label="drift"><svg viewBox="0 0 24 24"><path d="M3 16c3-3 6 3 9 0s6 3 9 0"/><path d="M8 9h9M14 6l3 3-3 3"/></svg></div>
 <div id="hint">ドラッグで見回す・ピンチで寄る<br><span style="font-size:11px;opacity:.8">Drag to look, pinch to zoom</span></div>
 </div>
-<div id="ab">この作品について</div><div id="about"><div class="in"><h2>Floating</h2><p>琵琶湖に、建築を浮かべる。</p><p class="how">見回す：ドラッグ　寄る：ピンチ・ホイール<br>舵：左下の円・矢印キー（離すとまた漂う）<br>行き先：右上の地図でタップ<br>映像：赤いブイに近づいてタップ</p><p class="replay" id="replayHint">案内をもう一度見る</p><p class="src">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a><br><a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a> ／ <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></p><p class="cl">閉じる</p></div></div>
+<div id="ab">この作品について</div><div id="about"><div class="in"><h2>Floating</h2><p>琵琶湖に、建築を浮かべる。</p><p class="how">見回す：ドラッグ　寄る：ピンチ・ホイール<br>舵：左下の円・矢印キー（離すとまた漂う）<br>行き先：右上の地図でタップ<br>写真：右上のカメラ（いま見ている景色を保存）<br>映像：赤いブイに近づいてタップ</p><p class="replay" id="replayHint">案内をもう一度見る</p><p class="src">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a><br><a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a> ／ <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></p><p class="cl">閉じる</p></div></div>
 <div id="veil"><div id="ld">湖を描いています<span>Drawing the lake</span></div></div>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 <script type="module">
@@ -7116,83 +7116,50 @@ document.addEventListener("visibilitychange", () => {
   document.hidden ? SND.ctx.suspend() : SND.on && SND.ctx.resume();
 });
 
-// ==== 32-drawing.js ====
-/* ---------- 持ち帰る線画：湖岸線・等深線・自分の軌跡・出発点・最後の点。文字なし、白と黒だけ、縦長 ---------- */
-function makeDrawing() {
-  const W_ = 1080,
-    H_ = 1920,
-    cv = document.createElement("canvas");
-  cv.width = W_;
-  cv.height = H_;
-  const g = cv.getContext("2d");
-  g.fillStyle = "#fff";
-  g.fillRect(0, 0, W_, H_);
-  const pts = [...B.trail, [B.x, B.y]];
-  let a = 1e9,
-    b = 1e9,
-    c2 = -1e9,
-    d = -1e9;
-  for (const [x, y] of pts) {
-    a = Math.min(a, x);
-    b = Math.min(b, y);
-    c2 = Math.max(c2, x);
-    d = Math.max(d, y);
-  }
-  // 構図：移動距離に応じて。短ければ軌跡に寄り、長ければ湖全体
-  const cx = (a + c2) / 2,
-    cy = (b + d) / 2,
-    span = Math.max(c2 - a, ((d - b) * W_) / H_, 6000) * 1.5,
-    lakeSpan = Math.max(maxX - minX, ((maxY - minY) * W_) / H_) * 1.08;
-  const k = Math.min(1, Math.max(0, (B.dist - 3000) / 40000)),
-    sp = Math.min(lakeSpan, span * (1 - k) + lakeSpan * k),
-    ccx = cx * (1 - k) + ((minX + maxX) / 2) * k,
-    ccy = cy * (1 - k) + ((minY + maxY) / 2) * k;
-  const sc = W_ / sp,
-    X = (x) => W_ / 2 + (x - ccx) * sc,
-    Y = (y) => H_ / 2 + (y - ccy) * sc;
-  g.lineJoin = g.lineCap = "round";
-  g.strokeStyle = "rgba(0,0,0,.16)";
-  g.lineWidth = 1.2;
-  g.beginPath();
-  for (const P of contours)
-    for (let i = 0; i < P.length; i += 2) {
-      g.moveTo(X(P[i][0]), Y(P[i][1]));
-      g.lineTo(X(P[i + 1][0]), Y(P[i + 1][1]));
-    }
-  g.stroke();
-  g.strokeStyle = "#000";
-  g.lineWidth = 2.4;
-  g.beginPath();
-  for (const poly of [outer, ...islands]) {
-    poly.forEach(([x, y], i) => (i ? g.lineTo(X(x), Y(y)) : g.moveTo(X(x), Y(y))));
-    g.closePath();
-  }
-  g.stroke();
-  g.lineWidth = 3.2;
-  g.beginPath();
-  pts.forEach(([x, y], i) => (i ? g.lineTo(X(x), Y(y)) : g.moveTo(X(x), Y(y))));
-  g.stroke();
-  g.lineWidth = 2.4;
-  g.fillStyle = "#fff";
-  g.beginPath();
-  g.arc(X(pts[0][0]), Y(pts[0][1]), 9, 0, 7);
-  g.fill();
-  g.stroke();
-  g.fillStyle = "#000";
-  g.beginPath();
-  g.arc(X(B.x), Y(B.y), 5, 0, 7);
-  g.fill();
-  return cv;
+// ==== 32-photo.js ====
+/* ---------- 撮影：いま見ている湖の景色を写真にする（画面の部品は写さない）。航路は全体地図で見られる ---------- */
+// 押した次のフレームで、表示より高い解像度（画面の3倍まで・長い辺2400pxまで）で一度だけ描き直して画像にし、元に戻す
+function takePhoto() {
+  const w = innerWidth,
+    h = innerHeight,
+    d = Math.min(3, 2400 / Math.max(w, h), Math.max(devicePixelRatio, 1) * 1.5);
+  renderer.setPixelRatio(d);
+  renderer.setSize(w, h, false);
+  G.snapNow = true; // 次の描画のあとで画像にする（53-frame.js）
 }
-$("save").onclick = () => {
-  const cv = makeDrawing();
-  cv.toBlob((bl) => {
-    const u = URL.createObjectURL(bl);
-    $("shot").querySelector("img").src = u;
-    $("shot").classList.add("on");
-    DL && DL.save({ filename: "floating.png", data: bl }).catch(() => {});
-  }, "image/png");
-};
+// 描いた直後のフレームの中で呼ぶ（描画の結果が残っているうちに読み出すため）
+function finishPhoto() {
+  G.snapNow = false;
+  const cv = renderer.domElement;
+  cv.toBlob(
+    (bl) => {
+      resize(); // 表示の解像度に戻す
+      if (!bl) return;
+      const u = URL.createObjectURL(bl),
+        img = $("shot").querySelector("img");
+      if (img.src.startsWith("blob:")) URL.revokeObjectURL(img.src);
+      img.src = u;
+      $("shot").classList.add("on");
+      const t = new Date(),
+        p = (n) => String(n).padStart(2, "0"),
+        name = `floating-${t.getFullYear()}${p(t.getMonth() + 1)}${p(t.getDate())}-${p(t.getHours())}${p(t.getMinutes())}${p(t.getSeconds())}.jpg`;
+      // 作品のページ（Artifact）では書き出しの仕組みで保存し、ほかではそのまま画像として保存する。
+      // スマートフォンでは、出てきた写真を長押ししても写真に保存できる
+      if (DL) DL.save({ filename: name, data: bl }).catch(() => {});
+      else {
+        const a = document.createElement("a");
+        a.href = u;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+    },
+    "image/jpeg",
+    0.92,
+  );
+}
+$("save").onclick = () => takePhoto();
 let DL = null;
 try {
   window.claude &&
@@ -10538,6 +10505,7 @@ function frame(now) {
   updateCamera(dt, t, hx, hz);
   const pC = performance.now();
   renderFrame(c, W, wxNow, day, sunAngle);
+  if (G.snapNow) finishPhoto(); // 撮影（32-photo.js）：描いた直後に画像にする
   if (prof) {
     const pD = performance.now(),
       add = (k, v) => (prof[k] = (prof[k] || 0) * 0.9 + v * 0.1);
