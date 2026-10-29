@@ -31,7 +31,7 @@
   - 01-settings.js：`LAKE`
 
 ## 06-inner-lakes.js
-- 作る：`INNER`、`RECLAIMED`、`blob`、`bridgeY`、`channel`、`inInner`、`inLake`、`inMain`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`
+- 作る：`INNER`、`RECLAIMED`、`RIVERS`、`RIV_CELL`、`blob`、`bridgeY`、`channel`、`inInner`、`inLake`、`inMain`、`inRiver`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`、`rivIdx`
 - 使う：
   - 01-settings.js：`LAKE`
   - 03-coords.js：`ll`
@@ -119,6 +119,7 @@
 - 使う：
   - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
+  - 06-inner-lakes.js：`inRiver`
   - 10-start.js：`rnd`
   - 12-renderer.js：`scene`
   - 16-terrain.js：`reedU`
@@ -156,7 +157,7 @@
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`inInner`、`inLake`、`maxY`、`minY`
+  - 06-inner-lakes.js：`inInner`、`inLake`、`inRiver`、`maxY`、`minY`
   - 07-depth.js：`depth`、`distShore`
   - 10-start.js：`rnd`
   - 16-terrain.js：`TH`、`TW`、`VEX`、`isleH`、`tdx`、`tdy`、`terrH`、`tx0`、`ty0`
@@ -205,7 +206,7 @@
   - 01-settings.js：`RAIL`、`S`
   - 03-coords.js：`ll`
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`inInner`、`inLake`、`innerPolys`
+  - 06-inner-lakes.js：`inInner`、`inLake`、`inRiver`、`innerPolys`
   - 07-depth.js：`depth`、`distShore`、`shoreSnap`
   - 10-start.js：`rnd`
   - 12-renderer.js：`QUALITY`、`scene`
@@ -240,6 +241,17 @@
   - 16-terrain.js：`VEX`
   - 17-trees.js：`cardForest`
   - 20-villages-layout.js：`houses`、`terrainAt`
+
+## 26b-rivers.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`
+  - 01-settings.js：`S`
+  - 06-inner-lakes.js：`RIVERS`
+  - 12-renderer.js：`scene`
+  - 14-water.js：`water`
+  - 18-buildings.js：`ring`
+  - 20-villages-layout.js：`landY`
 
 ## 27-sky-day.js
 - 作る：`SKY`、`skyAt`
@@ -441,7 +453,7 @@
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`inInner`、`inLake`
+  - 06-inner-lakes.js：`inInner`、`inLake`、`inRiver`
   - 07-depth.js：`depth`
   - 10-start.js：`rnd`、`rndFor`
   - 12-renderer.js：`MOBILE`、`QUALITY`、`camera`、`scene`
@@ -570,7 +582,7 @@
   - 01-settings.js：`Q`、`S`
   - 03-coords.js：`ll`
   - 04-clock.js：`MO`、`PH`、`clock`
-  - 06-inner-lakes.js：`inLake`、`inMain`
+  - 06-inner-lakes.js：`inLake`、`inMain`、`inRiver`
   - 07-depth.js：`distShore`
   - 08-weather.js：`WXQ`
   - 09-wind.js：`wind`
@@ -658,6 +670,7 @@
 - `G.resetSky`：49-frame-sky-light.js
 - `G.resetTrail`：50-frame-float.js
 - `G.rf`：52-frame-render.js
+- `G.riverCount`：26b-rivers.js
 - `G.rocks`：40-shore-rocks.js
 - `G.roofTex`：20-villages-layout.js
 - `G.rt`：52-frame-render.js

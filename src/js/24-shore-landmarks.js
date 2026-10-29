@@ -137,7 +137,7 @@ scene.add(brk);
         const q = 40 + R() * 30,
           px = x + nx * q,
           py = y + ny * q;
-        if (!inLake(px, py) && distShore(px, py) > 25) tr.push([px, py, 0.7 + R() * 0.6]);
+        if (!inLake(px, py) && !inRiver(px, py) && distShore(px, py) > 25) tr.push([px, py, 0.7 + R() * 0.6]);
       }
     }
   }

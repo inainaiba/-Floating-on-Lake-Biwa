@@ -131,6 +131,15 @@ const houses = [],
           hw = (hs.w / 2 + 1) / S,
           hd = (hs.d / 2 + 1) / S;
         if ([[-1, -1], [1, -1], [1, 1], [-1, 1]].some(([u, v]) => inLake(x + u * hw * c - v * hd * sn, y + u * hw * sn + v * hd * c))) continue;
+        // 陸の川は細いので、四隅の間を抜けることがある：敷地の中を7×7の点で調べる
+        let wet = false;
+        for (let i = 0; i < 7 && !wet; i++)
+          for (let j = 0; j < 7 && !wet; j++) {
+            const u = i / 3 - 1,
+              v = j / 3 - 1;
+            wet = inRiver(x + u * hw * c - v * hd * sn, y + u * hw * sn + v * hd * c);
+          }
+        if (wet) continue;
       }
       houses.push(hs);
     }
@@ -168,6 +177,7 @@ const houses = [],
           if (
             isLand(x, y) &&
             !inInner(x, y) &&
+            !inRiver(x, y) &&
             terrainAt(x, y) < 25 &&
             !houses.some((h) => Math.hypot(h.x - x, h.y - y) < 120)
           )

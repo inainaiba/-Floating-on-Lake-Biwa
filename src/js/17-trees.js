@@ -186,6 +186,7 @@ function cardTreeMat(kind, v, near, far) {
 }
 // 種類ごとに3枚の絵を描き分け、木ごとにどれかを使う
 function cardForest(kind, list, hgt, wid, near, far, shadow) {
+  list = list.filter(([x, y]) => !inRiver(x, y)); // 川の上には立てない
   placeLog("木・" + ({ broad: "広葉樹", pine: "松", cedar: "杉", bamboo: "竹" }[kind] || kind), "land", list);
   for (let v = 0; v < 3; v++) {
     const sel = list.filter((_, i) => i % 3 === v);
