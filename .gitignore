@@ -6,3 +6,5 @@ check/now/
 check/sheet.png
 !check/base/*.png
 tools/.dem_cache/
+tools/.bv_cache/
+__pycache__/

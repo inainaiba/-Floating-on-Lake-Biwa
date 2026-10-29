@@ -173,6 +173,7 @@ G.EV = (() => {
       }
     }
   }
+  placeLog("海津大崎の桜", "land", sak);
   const NL = 4,
     sakI = new THREE.InstancedMesh(
       lumpy(1, rnd(77), 2, 0.3),

@@ -11,7 +11,7 @@
   - 31-ui.js（後ろの部品・要注意）：`$`
 
 ## 01-settings.js
-- 作る：`LAKE`、`Q`、`RM`、`S`、`SPEED`
+- 作る：`LAKE`、`Q`、`RAIL`、`RM`、`S`、`SPEED`
 
 ## 02-season.js
 - 作る：`LOOK`、`PALETTE`、`SEASON`、`glf`、`v3`
@@ -26,7 +26,7 @@
   - 01-settings.js：`Q`
 
 ## 05-lake.js
-- 作る：`inPoly`、`islands`、`outer`
+- 作る：`TAKEI`、`inPoly`、`islands`、`outer`
 - 使う：
   - 01-settings.js：`LAKE`
 
@@ -39,10 +39,10 @@
   - 10-start.js（後ろの部品・関数なので可）：`rnd`
 
 ## 07-depth.js
-- 作る：`CELL`、`GH`、`GW`、`depth`、`depthG`、`distShore`、`pockets`、`segs`、`shoreSnap`
+- 作る：`CELL`、`DEPTH`、`GH`、`GW`、`depth`、`depthG`、`distShore`、`segs`、`shoreSnap`
 - 使う：
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`bridgeY`、`inInner`、`inLake`、`inMain`、`maxX`、`maxY`、`minX`、`minY`
+  - 06-inner-lakes.js：`inInner`、`inLake`、`inMain`、`maxX`、`maxY`、`minX`、`minY`
 
 ## 08-weather.js
 - 作る：`LEVEL`、`WX`、`WXQ`、`WX_NAMES`、`WX_P`、`weather`、`wxPick`
@@ -73,7 +73,7 @@
   - 10-start.js：`st`
 
 ## 12-renderer.js
-- 作る：`HQ`、`LQ`、`MOBILE`、`MOBILE_`、`QQ`、`QUAL`、`QUALITY`、`QUALITY_TABLE`、`camera`、`renderer`、`resScale`、`scene`
+- 作る：`HQ`、`LQ`、`MOBILE`、`MOBILE_`、`QQ`、`QUAL`、`QUALITY`、`QUALITY_TABLE`、`camera`、`renderer`、`resScale`、`scene`、`thinQ`
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`Q`
@@ -117,7 +117,7 @@
 ## 17-trees.js
 - 作る：`TREE_TEX`、`cardForest`、`cardTreeGeom`、`cardTreeMat`、`paintTree`、`treeTex`
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
   - 10-start.js：`rnd`
   - 12-renderer.js：`scene`
@@ -202,7 +202,7 @@
 - 作る：`brk`、`shoreTrees`、`treeI`、`treeM`、`treeSeason`
 - 使う：
   - 00-head.js：`G`、`placeLog`
-  - 01-settings.js：`S`
+  - 01-settings.js：`RAIL`、`S`
   - 03-coords.js：`ll`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inInner`、`inLake`、`innerPolys`
@@ -353,7 +353,7 @@
 ## 38-seasonal-events.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
   - 05-lake.js：`outer`
@@ -372,7 +372,7 @@
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inLake`
   - 10-start.js：`rnd`
-  - 12-renderer.js：`scene`
+  - 12-renderer.js：`scene`、`thinQ`
   - 20-villages-layout.js：`cvTex`、`landY`
 
 ## 40-shore-rocks.js
@@ -383,7 +383,7 @@
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inLake`
   - 10-start.js：`rnd`
-  - 12-renderer.js：`scene`
+  - 12-renderer.js：`scene`、`thinQ`
   - 16-terrain.js：`vnoise`
   - 18-buildings.js：`reedMask`
   - 20-villages-layout.js：`landY`
@@ -398,7 +398,7 @@
   - 05-lake.js：`inPoly`、`islands`
   - 06-inner-lakes.js：`inLake`
   - 10-start.js：`rnd`
-  - 12-renderer.js：`MOBILE`、`QUALITY`、`scene`
+  - 12-renderer.js：`MOBILE`、`QUALITY`、`scene`、`thinQ`
   - 16-terrain.js：`ISLES`、`isleH`、`okiZone`
   - 17-trees.js：`cardForest`
   - 18-buildings.js：`gable`
@@ -420,7 +420,7 @@
 ## 43-moments.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
   - 04-clock.js：`DAY`

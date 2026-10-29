@@ -40,6 +40,7 @@ G.isl = (() => {
       tr.push([x, y, gy - 0.3, 0.8 + R() * 0.6, R()]);
     }
   }
+  thinQ(rk);
   const I = new THREE.InstancedMesh(
     new THREE.DodecahedronGeometry(1, 0),
     new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true }),

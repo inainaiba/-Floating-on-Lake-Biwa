@@ -20,6 +20,7 @@ G.rocks = (() => {
     }
     if (pts.length > 6000) break;
   }
+  thinQ(pts);
   const I = new THREE.InstancedMesh(
     new THREE.DodecahedronGeometry(1, 0),
     new THREE.MeshLambertMaterial({ color: 0xffffff }),

@@ -1,4 +1,4 @@
-/* ---------- 水深の簡易モデル（作品用・測量成果ではない） ---------- */
+/* ---------- 湖の深さ（国土地理院の等深線から。data/depth.json） ---------- */
 const CELL = 400,
   GW = Math.ceil((maxX - minX) / CELL) + 1,
   GH = Math.ceil((maxY - minY) / CELL) + 1;
@@ -40,32 +40,30 @@ function shoreSnap(x, y) {
   }
   return best;
 }
-const pockets = [
-  [...ll(136.1, 35.38), 9000, 22],
-  [...ll(136.0, 35.24), 6000, 10],
-];
-for (let j = 0; j < GH; j++)
-  for (let i = 0; i < GW; i++) {
-    const x = minX + i * CELL,
-      y = minY + j * CELL;
-    if (!inLake(x, y)) continue;
-    if (!inMain(x, y)) {
-      depthG[j * GW + i] = 1.4;
-      continue;
+// 湖の深さの格子（tools/depth.py）：地理院のベクトルタイルの等深線から補間した、200m間隔の実際の深さ。1マス1バイトで d = top·(v/255)²
+const DEPTH = __DEPTH__;
+{
+  const D = Uint8Array.from(atob(DEPTH.d || ""), (c) => c.charCodeAt(0)),
+    q = (i, j) => (D[Math.min(DEPTH.h - 1, Math.max(0, j)) * DEPTH.w + Math.min(DEPTH.w - 1, Math.max(0, i))] / 255) ** 2 * DEPTH.top;
+  for (let j = 0; j < GH; j++)
+    for (let i = 0; i < GW; i++) {
+      const x = minX + i * CELL,
+        y = minY + j * CELL;
+      if (!inLake(x, y)) continue;
+      if (!inMain(x, y)) {
+        depthG[j * GW + i] = 1.4; // 内湖
+        continue;
+      }
+      const u = (x - DEPTH.x0) / DEPTH.step,
+        v = (y - DEPTH.y0) / DEPTH.step,
+        i0 = Math.floor(u),
+        j0 = Math.floor(v),
+        f = u - i0,
+        g = v - j0;
+      depthG[j * GW + i] =
+        (q(i0, j0) * (1 - f) + q(i0 + 1, j0) * f) * (1 - g) + (q(i0, j0 + 1) * (1 - f) + q(i0 + 1, j0 + 1) * f) * g;
     }
-    const d = distShore(x, y);
-    let z;
-    if (y > bridgeY) {
-      z = 6 * (1 - Math.exp(-d / 700));
-    } else {
-      z = 82 * (1 - Math.exp(-d / 2600));
-      for (const [px, py, r, a] of pockets)
-        z += a * Math.exp(-((x - px) ** 2 + (y - py) ** 2) / (r * r)) * (1 - Math.exp(-d / 1500));
-      const blend = Math.min(1, (bridgeY - y) / 4000);
-      z = z * blend + 6 * (1 - Math.exp(-d / 700)) * (1 - blend);
-    }
-    depthG[j * GW + i] = Math.min(104, z);
-  }
+}
 function depth(x, y) {
   if (!inMain(x, y) && inInner(x, y)) return 1.4;
   const fx = (x - minX) / CELL,

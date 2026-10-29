@@ -65,7 +65,7 @@ G.moments = (() => {
   };
 
   // 刈ったヨシの束（12〜2月）：ヨシ原のそばの岸に立てかける
-  const bundles = reedPts.filter((p, i) => i % 23 === 0 && !inLake(p[0] + 40, p[1]) ).slice(0, 220);
+  const bundles = reedPts.filter((p, i) => i % 23 === 0 && [40, 45, 50].every((d) => !inLake(p[0] + d, p[1] - 3) && !inLake(p[0] + d, p[1] + 3))).slice(0, 220);
   const bI = new THREE.InstancedMesh(
     new THREE.ConeGeometry(0.9, 3.2, 7, 1, true).translate(0, 1.6, 0),
     new THREE.MeshLambertMaterial({ color: 0xc9a86a, side: THREE.DoubleSide }),
@@ -81,6 +81,7 @@ G.moments = (() => {
       for (let k = 0; k < 3; k++) {
         const xx = x + 40 + k * 5,
           yy = y + (R() - 0.5) * 6;
+        placeLog("刈ったヨシの束", "land", [[xx, yy]]);
         Qq.setFromEuler(E.set((R() - 0.5) * 0.25, R() * 6, (R() - 0.5) * 0.25));
         M.compose(V.set(xx * S, landY(xx, yy), yy * S), Qq, Sc.set(1, 0.9 + R() * 0.3, 1));
         bI.setMatrixAt(i * 3 + k, M);

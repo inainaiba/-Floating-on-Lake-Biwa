@@ -75,6 +75,7 @@ G.kaizu = (() => {
       }
     }
   }
+  thinQ(rocks);
   const ri = new THREE.InstancedMesh(
     new THREE.DodecahedronGeometry(1, 0),
     new THREE.MeshLambertMaterial({ color: 0xffffff }),

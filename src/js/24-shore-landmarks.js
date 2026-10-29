@@ -19,41 +19,43 @@ scene.add(brk);
 
 // 湖西線の高架（西岸の集落の背後を走る）
 {
-  const L = [
-    [135.905, 35.075],
-    [135.925, 35.12],
-    [135.95, 35.16],
-    [135.975, 35.21],
-    [135.99, 35.25],
-    [136.015, 35.29],
-    [136.04, 35.33],
-    [136.06, 35.37],
-    [136.04, 35.42],
-    [136.07, 35.47],
-  ].map((p) => ll(...p));
-  // 線路を約120mごとの点にする。湖の上に出た点は、いちばん近い陸へ寄せる
-  const pts = [];
-  for (let i = 0; i < L.length - 1; i++) {
+  // 線路の道筋：地理院のベクトルタイルの湖西線（tools/rail.py → data/rail.json）
+  const L = (RAIL.kosei || []).map((p) => ll(...p));
+  // 線路を約120mごとの点にする。湖岸線の簡略化で湖の上に出た点は、西（陸の側）へ押して岸から少し内に置く
+  // （点を捨てると、前後の点が湖を横切る長い桁でつながってしまう）
+  const onLand = (x, y) => !inLake(x, y) && distShore(x, y) > 100;
+  const toLand = (x, y) => {
+    for (let d = 0; d <= 8000; d += 30) if (onLand(x - d, y)) return [x - d, y];
+    return [x, y];
+  };
+  const nearLand = (x, y) => {
+    for (let r = 0; r <= 1500; r += 30)
+      for (let k = 0; k < (r ? 24 : 1); k++) {
+        const q = (k / 24) * Math.PI * 2;
+        if (onLand(x + Math.cos(q) * r, y + Math.sin(q) * r)) return [x + Math.cos(q) * r, y + Math.sin(q) * r];
+      }
+    return toLand(x, y);
+  };
+  let pts = [];
+  for (let i = 0, s = 0; i < L.length - 1; i++) {
     const [a, b] = [L[i], L[i + 1]],
       len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    for (let s = 0; s < len; s += 120) {
-      const u = s / len;
-      let x = a[0] + (b[0] - a[0]) * u,
-        y = a[1] + (b[1] - a[1]) * u;
-      if (inLake(x, y)) {
-        let best = null;
-        for (let r = 60; r <= 2400 && !best; r += 60)
-          for (let k = 0; k < 24 && !best; k++) {
-            const q = (k / 24) * Math.PI * 2,
-              px = x + Math.cos(q) * r,
-              py = y + Math.sin(q) * r;
-            if (!inLake(px, py) && distShore(px, py) > 80) best = [px, py];
-          }
-        if (!best) continue;
-        [x, y] = best;
-      }
-      pts.push([x, y]);
+    for (; s < len; s += 120) pts.push(toLand(a[0] + ((b[0] - a[0]) * s) / len, a[1] + ((b[1] - a[1]) * s) / len));
+    s -= len; // 次の区間へ、120mの刻みを持ち越す
+  }
+  if (L.length) pts.push(toLand(...L[L.length - 1]));
+  // 押した点どうしの桁が入江を横切るときは、間に点を足して岸に沿わせる（川を渡る所は湖ではないのでそのまま）
+  for (let pass = 0; pass < 12; pass++) {
+    const out = [pts[0]];
+    for (let i = 1; i < pts.length; i++) {
+      const [a, b] = [pts[i - 1], pts[i]],
+        n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 20);
+      let wet = false;
+      for (let k = 1; k < n && !wet; k++) wet = inLake(a[0] + ((b[0] - a[0]) * k) / n, a[1] + ((b[1] - a[1]) * k) / n);
+      if (wet) out.push(nearLand((a[0] + b[0]) / 2, (a[1] + b[1]) / 2));
+      out.push(b);
     }
+    pts = out;
   }
   // 高さ：地面の高さ＋約9。前後でならして、なめらかに上り下りする
   const gh = pts.map(([x, y]) => landY(x, y));
@@ -350,6 +352,7 @@ const shoreTrees = [];
     }
   });
 }
+placeLog("内湖のまわりの木", "land", shoreTrees);
 const treeM = treeFade(new THREE.MeshLambertMaterial({ vertexColors: true }), 260, 420),
   treeI = new THREE.InstancedMesh(treeGeom("broad"), treeM, shoreTrees.length);
 {
