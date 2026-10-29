@@ -6,7 +6,50 @@ const depthG = new Float32Array(GW * GH);
 const segs = [];
 for (const poly of [outer, ...islands])
   for (let i = 0; i < poly.length - 1; i++) segs.push(poly[i], poly[i + 1]);
-function distShore(x, y) {
+// 岸の線分を1km四方の升に分けておき、近い升から順に調べる（全部の線分を毎回調べると、何十万回も呼ぶ所で重いため）
+const SEG_CELL = 1000,
+  segIdx = new Map();
+for (let i = 0; i < segs.length; i += 2) {
+  const a = segs[i],
+    b = segs[i + 1];
+  for (let u = Math.floor(Math.min(a[0], b[0]) / SEG_CELL); u <= Math.floor(Math.max(a[0], b[0]) / SEG_CELL); u++)
+    for (let v = Math.floor(Math.min(a[1], b[1]) / SEG_CELL); v <= Math.floor(Math.max(a[1], b[1]) / SEG_CELL); v++) {
+      const k = u * 4096 + v;
+      if (!segIdx.has(k)) segIdx.set(k, []);
+      segIdx.get(k).push(i);
+    }
+}
+function segD2(i, x, y) {
+  const a = segs[i],
+    b = segs[i + 1],
+    dx = b[0] - a[0],
+    dy = b[1] - a[1];
+  let t = ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy || 1);
+  t = t < 0 ? 0 : t > 1 ? 1 : t;
+  const ex = a[0] + t * dx - x,
+    ey = a[1] + t * dy - y;
+  return ex * ex + ey * ey;
+}
+// cap：それより遠いかどうかだけ分かればよいときの上限（遠ければ cap を返す。地形のように遠くで値が変わらない所で使う）
+function distShore(x, y, cap = Infinity) {
+  const cu = Math.floor(x / SEG_CELL),
+    cv = Math.floor(y / SEG_CELL),
+    kMax = Math.min(8, Math.ceil(cap / SEG_CELL) + 1);
+  let m = 1e12;
+  // 輪の幅 k の升まで調べて、見つかった距離が k 升分より近ければ、それより外にもっと近い線分はない
+  for (let k = 0; k <= kMax; k++) {
+    for (let u = cu - k; u <= cu + k; u++)
+      for (let v = cv - k; v <= cv + k; v++) {
+        if (Math.max(Math.abs(u - cu), Math.abs(v - cv)) !== k) continue;
+        const l = segIdx.get(u * 4096 + v);
+        if (l) for (const i of l) m = Math.min(m, segD2(i, x, y));
+      }
+    if (m < (k * SEG_CELL) ** 2) return Math.sqrt(m);
+  }
+  if (cap < Infinity) return Math.min(cap, Math.sqrt(m));
+  return distShoreAll(x, y); // 岸から8km以上離れた所は、すべての線分を調べる
+}
+function distShoreAll(x, y) {
   let m = 1e12;
   for (let i = 0; i < segs.length; i += 2) {
     const a = segs[i],

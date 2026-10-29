@@ -39,7 +39,7 @@
   - 10-start.js（後ろの部品・関数なので可）：`rnd`
 
 ## 07-depth.js
-- 作る：`CELL`、`DEPTH`、`GH`、`GW`、`depth`、`depthG`、`distShore`、`segs`、`shoreSnap`
+- 作る：`CELL`、`DEPTH`、`GH`、`GW`、`SEG_CELL`、`depth`、`depthG`、`distShore`、`distShoreAll`、`segD2`、`segIdx`、`segs`、`shoreSnap`
 - 使う：
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inInner`、`inLake`、`inMain`、`maxX`、`maxY`、`minX`、`minY`
@@ -101,7 +101,7 @@
   - 12-renderer.js：`scene`
 
 ## 16-terrain.js
-- 作る：`DEM`、`DEM_D`、`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_DEM`、`ISLE_H`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`SNOW`、`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_NIGHT`、`TERR_FS_ROCK`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleGrid`、`isleH`、`isleShape`、`landContours`、`landH`、`okiZone`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`tdx`、`tdy`、`terr`、`terrGeo`、`terrGeo_`、`terrH`、`terrMat`、`tx0`、`ty0`、`vnoise`
+- 作る：`DEM`、`DEM_D`、`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_DEM`、`ISLE_H`、`NEAR`、`NEAR_U`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`SNOW`、`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_NIGHT`、`TERR_FS_ROCK`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleGrid`、`isleH`、`isleShape`、`landContours`、`landH`、`nearAt`、`nearBlk`、`nearRes`、`okiZone`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`tdx`、`tdy`、`terr`、`terrB`、`terrColor`、`terrGeo`、`terrGeo_`、`terrGrid`、`terrH`、`terrMat`、`terrShape`、`terrShapeB`、`tx0`、`ty0`、`vnoise`
 - 使う：
   - 00-head.js：`G`、`GLSL_NOISE`
   - 01-settings.js：`S`
@@ -161,7 +161,7 @@
   - 07-depth.js：`depth`、`distShore`
   - 10-start.js：`rnd`、`rndFor`
   - 12-renderer.js：`QUALITY`
-  - 16-terrain.js：`TH`、`TW`、`VEX`、`isleH`、`tdx`、`tdy`、`terrH`、`tx0`、`ty0`
+  - 16-terrain.js：`TH`、`TW`、`VEX`、`isleH`、`nearAt`、`tdx`、`tdy`、`terrH`、`tx0`、`ty0`
   - 18-buildings.js：`buildHouse`
   - 19-boats.js：`PORT`
 
@@ -660,6 +660,7 @@
 - `G.moments`：43-moments.js
 - `G.moonLit`：49-frame-sky-light.js
 - `G.morning`：49-frame-sky-light.js
+- `G.nearPatch`：16-terrain.js
 - `G.netTx2`：18-buildings.js
 - `G.noRefl`：52-frame-render.js
 - `G.okishima`：41-islands.js

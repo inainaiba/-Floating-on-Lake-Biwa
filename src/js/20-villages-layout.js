@@ -40,6 +40,8 @@ function groundH(x, y) {
   return inLake(x, y) ? 0 : landY(x, y);
 }
 function terrainAt(x, y) {
+  const nh = nearAt(x, y); // 岸近くは細かい地形（16-terrain.js）
+  if (nh !== null) return Math.max(0, nh);
   const i = (x - tx0) / tdx,
     j = (y - ty0) / tdy,
     i0 = Math.floor(i),
