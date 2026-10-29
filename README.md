@@ -8,7 +8,7 @@
 - `data/rail.json` … 湖西線の道筋（国土地理院のベクトルタイルから作成。作り直しは `python3 tools/rail.py`）
 - `data/depth.json` … 湖の深さ（国土地理院のベクトルタイルの等深線から作成。作り直しは `python3 tools/depth.py`）
 - `docs/index.html` … 組み立て後の公開用ファイル
-- `tools/` … データ準備（prep.py・dem.py・rail.py・depth.py）と、Playwrightによる確認用の撮影スクリプト
+- `tools/` … データ準備（prep.py・dem.py・rail.py・depth.py と、まとめて動かす data.py）と、Playwrightによる確認用の撮影スクリプト
 
 ## ファイルの構成
 
@@ -47,7 +47,7 @@ GitHub に記録するたびに、GitHub の側で自動確認（`.github/workfl
 3. 全体の点検は `python3 tools/audit.py`：集落・街並み・沖島の家が水にはみ出していないか、湖西線の高架の桁が地面にめり込んだり本湖の上を渡ったりしていないか、木（森・集落・岸・島・竹林）・桜・ヨシの束などが決まった側（陸・湖の上・岸の近く）にあるかを数で調べ、代表の場面ごとの処理時間の内訳と描画の回数・三角形の数を出す
 4. 見た目を意図して変えたときは、`python3 tools/check.py` で全24場面を撮り、あわせて開始地点を10回試して陸や島に埋まらないかを調べる（シェーダーや WebGL の誤り、three.js のシェーダー改造で置き換えの目印が見つからない場合も、ブラウザのコンソールから拾って失敗にする）。問題なければ `python3 tools/check.py --accept` で基準を更新して記録する
 
-準備（初回だけ）：`npm install`（確認用に three.js を手元に置く）、Python の `playwright`・`Pillow`・`openpyxl`
+準備（初回だけ）：`npm install`（確認用に three.js を手元に置く）、`pip install -r tools/requirements.txt`（確認に使う `playwright`・`Pillow`・`openpyxl` と、データを作る道具に使う `numpy`・`mapbox-vector-tile`・`shapely`・`scipy`）
 
 確認用の視点操作は、URLに `?debug` を付けたときだけ有効。確認はページを1回だけ読み込み、月・時刻・天気・建物を切り替えながら撮る（全18場面で約10分）。風は実時間で揺らぐため、差の数値は0.05程度までは自然な揺れ。
 
@@ -59,6 +59,8 @@ Settings → Pages → Source を「Deploy from a branch」、Branch を `main` 
 共有カードの画像は `docs/og.jpg`（`tools/og_image.js` で撮り直せる）。
 
 ## データの作り方
+
+地理院タイルから作るデータ（地形・湖西線・湖の深さ）は `python3 tools/data.py` でまとめて作り直せる（`python3 tools/data.py depth` のように名前を並べると、そのデータだけ）。取り寄せたタイルは `tools/.dem_cache/`・`tools/.bv_cache/` に残る。作り直したら `git diff data/` で変わり方を確かめ、`python3 tools/check.py` で全場面を撮ってから記録する。
 
 - `data/lake.json` … OpenStreetMap のデータ（2026年10月に Overpass で書き出した GeoJSON）から `tools/prep.py` で作成
   - 湖岸線と島：琵琶湖の水面（relation/63499）。40m単位で簡略化し、20,000㎡未満の島は省く

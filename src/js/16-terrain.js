@@ -3,8 +3,8 @@ const VEX = 2.2,
   VFAR = 1.0;
 // 主な山頂（全体地図の山の印）
 const PEAKS = [
-  [135.876, 35.215, 1174, 3000], // 蓬莱山（比良山地）
-  [136.416, 35.418, 1377, 3500], // 伊吹山
+  [135.8858, 35.2096, 1174, 3000], // 蓬莱山（比良山地。山頂の位置は地理院の注記から）
+  [136.4061, 35.4193, 1377, 3500], // 伊吹山
   [136.42, 35.02, 1212, 3000], // 御在所岳（鈴鹿山脈）
   [135.834, 35.067, 848, 2200], // 比叡山
 ];
@@ -572,6 +572,10 @@ function reedMat() {
       .replace(
         "#include <map_fragment>",
         `#include <map_fragment>
+// 板の形を隠す：茎の列ごとに背丈をばらつかせ（上の縁を不揃いに）、板の左右の端ほど低くまばらにして、株の丸い形にする
+if(uCut<=0.){float cl=rh_(vec2(floor(vMapUv.x*40.),floor(vRW.x*.13+vRW.y*.17))),sd=smoothstep(0.,.45,min(vMapUv.x,1.-vMapUv.x));
+ diffuseColor.a*=step(vRH,(.62+.38*cl)*(.5+.5*sd));
+ diffuseColor.a*=step(cl*.9,sd*1.25);}
 if(uCut>0.){float pn=rn_(vRW*.03)*.65+rn_(vRW*.11)*.35;
  float keep=smoothstep(.66,.74,pn);
  if(keep>.5){vec4 tA=texture2D(tAlt,vMapUv);diffuseColor=vec4(diffuse*tA.rgb,opacity*tA.a);}
@@ -589,14 +593,27 @@ const reeds = new THREE.InstancedMesh(reedGeo, reedMat(), reedPts.length * QUALI
 {
   const m = new THREE.Matrix4(),
     R = rnd(9);
+  // ヨシ原の縁：まわりの株が少ない所（群落の端・沖側）ほど低く細くして、四角い塊の縁を崩す
+  const cell = (x, y) => Math.floor(x / 60) + "," + Math.floor(y / 60),
+    cnt = new Map();
+  for (const [x, y] of reedPts) cnt.set(cell(x, y), (cnt.get(cell(x, y)) || 0) + 1);
+  const around = (x, y) => {
+    let n = 0;
+    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) n += cnt.get(cell(x + a * 60, y + b * 60)) || 0;
+    return n;
+  };
+  const ns = reedPts.map(([x, y]) => around(x, y)),
+    med = [...ns].sort((a, b) => a - b)[ns.length >> 1] || 1;
   let i = 0;
-  for (const [x, y] of reedPts)
+  reedPts.forEach(([x, y], j) => {
+    const e = Math.min(1, Math.max(0, (ns[j] / med - 0.2) / 0.7));
     for (let k = 0; k < QUALITY.reedPer; k++) {
-      const s = (0.6 + R() * 0.7) * (0.8 + 0.4 * vnoise(x / 700, y / 700));
-      m.makeRotationY(R() * 3.14).premultiply(new THREE.Matrix4().makeScale(s, s * (0.85 + R() * 0.3), s));
+      const s = (0.6 + R() * 0.7) * (0.8 + 0.4 * vnoise(x / 700, y / 700)) * (0.7 + 0.3 * e);
+      m.makeRotationY(R() * 3.14).premultiply(new THREE.Matrix4().makeScale(s, s * (0.85 + R() * 0.3) * (0.55 + 0.45 * e), s));
       m.setPosition(x * S + (R() - 0.5) * 24, 0, y * S + (R() - 0.5) * 24);
       reeds.setMatrixAt(i++, m);
     }
+  });
   reeds.count = i;
 }
 

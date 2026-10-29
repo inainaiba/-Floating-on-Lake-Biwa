@@ -9,13 +9,14 @@ const nearestIn = (x, y) => {
     }
   return [x, y];
 };
+// 港の位置：長浜・柳が崎は地理院の注記に合わせた（雄琴・琵琶湖大橋は注記がなく概略のまま）
 const PORT_LL = {
   imazu: [136.033, 35.413],
   chikubu: [136.143, 35.417],
-  nagahama: [136.262, 35.381],
+  nagahama: [136.2641, 35.372],
   otsu: [135.866, 35.012],
   nionohama: [135.879, 35.004],
-  yanagasaki: [135.871, 35.022],
+  yanagasaki: [135.8671, 35.0268],
   ogoto: [135.899, 35.075],
   ohashi: [135.932, 35.104],
 };
@@ -24,10 +25,10 @@ const PORT = Object.fromEntries(
   Object.entries({
     imazu: [136.033, 35.413],
     chikubu: [136.143, 35.417],
-    nagahama: [136.262, 35.381],
+    nagahama: [136.2641, 35.372],
     otsu: [135.866, 35.012],
     nionohama: [135.879, 35.004],
-    yanagasaki: [135.871, 35.022],
+    yanagasaki: [135.8671, 35.0268],
     ogoto: [135.899, 35.075],
     ohashi: [135.932, 35.104],
   }).map(([k, [lo, la]]) => [k, nearestIn(...ll(lo, la))]),
