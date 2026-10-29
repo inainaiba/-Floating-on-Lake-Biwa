@@ -6,8 +6,9 @@
 - `data/buoys.xlsx` … ブイ一覧（集落名・集落形態・北緯・東経・YouTubeリンク）。編集後に `python3 build.py`
 - `data/dem.json` … 周囲の地形（国土地理院の標高タイルから作成。作り直しは `python3 tools/dem.py`）
 - `data/rail.json` … 湖西線の道筋（国土地理院のベクトルタイルから作成。作り直しは `python3 tools/rail.py`）
+- `data/depth.json` … 湖の深さ（国土地理院のベクトルタイルの等深線から作成。作り直しは `python3 tools/depth.py`）
 - `docs/index.html` … 組み立て後の公開用ファイル
-- `tools/` … データ準備（prep.py・dem.py・rail.py）と、Playwrightによる確認用の撮影スクリプト
+- `tools/` … データ準備（prep.py・dem.py・rail.py・depth.py）と、Playwrightによる確認用の撮影スクリプト
 
 ## ファイルの構成
 
@@ -71,6 +72,10 @@ Settings → Pages → Source を「Deploy from a branch」、Branch を `main` 
   - 湖西線（路線コード 40201000069）の断片をつなぎ、比叡山坂本の北からマキノの北まで（25mより細かい曲がりは省く）
   - 高架は、湖岸線の簡略化で湖に出た所だけ陸の側へ寄せる。取り寄せたタイルは `tools/.bv_cache/` に置く（記録しない）
   - 作り直しには Python の `mapbox-vector-tile`・`shapely` が要る
+- `data/depth.json` … 国土地理院 地理院タイル「ベクトルタイル」（ズーム14）の等深線（湖の深さの線）から `tools/depth.py` で作成
+  - 湖岸線と島の輪郭を深さ0として加え、三角形でつないで補間した200m間隔の格子（最深は約98m。実際の最深部は約104m）
+  - ヨシ原（4mより浅い所）・えり（5mより浅い所）・舟の通れる所・水の色（浅瀬・沖）がこの深さで決まる
+  - 作り直しには Python の `mapbox-vector-tile`・`shapely`・`scipy` が要る
 - `data/buoys.xlsx` … ブイ一覧（集落名・集落形態・北緯・東経・YouTubeリンク・表示）。チームで編集する
 
 © OpenStreetMap contributors（ODbL）／国土地理院

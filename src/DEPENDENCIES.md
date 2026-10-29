@@ -39,10 +39,10 @@
   - 10-start.js（後ろの部品・関数なので可）：`rnd`
 
 ## 07-depth.js
-- 作る：`CELL`、`GH`、`GW`、`depth`、`depthG`、`distShore`、`pockets`、`segs`、`shoreSnap`
+- 作る：`CELL`、`DEPTH`、`GH`、`GW`、`depth`、`depthG`、`distShore`、`segs`、`shoreSnap`
 - 使う：
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`bridgeY`、`inInner`、`inLake`、`inMain`、`maxX`、`maxY`、`minX`、`minY`
+  - 06-inner-lakes.js：`inInner`、`inLake`、`inMain`、`maxX`、`maxY`、`minX`、`minY`
 
 ## 08-weather.js
 - 作る：`LEVEL`、`WX`、`WXQ`、`WX_NAMES`、`WX_P`、`weather`、`wxPick`
