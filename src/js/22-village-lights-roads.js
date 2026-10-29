@@ -110,3 +110,45 @@ scene.add(windows);
   );
   scene.add(rdM);
 }
+// 実際の道（20-villages-layout.js の streets）：幅の段ごとの帯。地形の網目は粗いので、約60mごとに区切って地面に沿わせる
+{
+  const pos = [],
+    HW = [9, 11, 16, 22, 26, 30]; // 道の半分の幅（実寸m）：地理院の幅の段 0〜5（作品では家と同じく実物大に見えるよう5倍）
+  for (const { w, p } of streets) {
+    const hw = HW[Math.min(5, w)];
+    for (let i = 0; i < p.length - 1; i++) {
+      const [ax, ay] = p[i],
+        [bx, by] = p[i + 1],
+        L = Math.hypot(bx - ax, by - ay);
+      if (L < 1) continue;
+      const nx = (-(by - ay) / L) * hw,
+        ny = ((bx - ax) / L) * hw,
+        n = Math.max(1, Math.ceil(L / 60));
+      for (let k = 0; k < n; k++) {
+        const x1 = ax + ((bx - ax) * k) / n,
+          y1 = ay + ((by - ay) * k) / n,
+          x2 = ax + ((bx - ax) * (k + 1)) / n,
+          y2 = ay + ((by - ay) * (k + 1)) / n;
+        if (inLake(x1, y1) || inLake(x2, y2) || inRiver((x1 + x2) / 2, (y1 + y2) / 2)) continue;
+        pos.push(x1 + nx, y1 + ny, x2 + nx, y2 + ny, x2 - nx, y2 - ny, x1 + nx, y1 + ny, x2 - nx, y2 - ny, x1 - nx, y1 - ny);
+      }
+    }
+  }
+  if (pos.length) {
+    const g = new THREE.BufferGeometry(),
+      v = new Float32Array((pos.length / 2) * 3);
+    for (let i = 0, j = 0; i < pos.length; i += 2, j += 3) {
+      v[j] = pos[i] * S;
+      v[j + 1] = landY(pos[i], pos[i + 1]) + 0.08;
+      v[j + 2] = pos[i + 1] * S;
+    }
+    g.setAttribute("position", new THREE.BufferAttribute(v, 3));
+    g.computeVertexNormals();
+    scene.add(
+      new THREE.Mesh(
+        g,
+        new THREE.MeshLambertMaterial({ color: 0x6f6d66, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 }),
+      ),
+    );
+  }
+}

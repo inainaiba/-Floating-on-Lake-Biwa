@@ -151,7 +151,7 @@
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
 ## 20-villages-layout.js
-- 作る：`ROOF_COLS`、`VILLAGES`、`breaks`、`cvTex`、`groundH`、`houses`、`isLand`、`landY`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`terrainAt`、`wallG`、`wallM`、`wallTex`
+- 作る：`ROOF_COLS`、`TOWNS`、`VILLAGES`、`breaks`、`cvTex`、`groundH`、`houseOk`、`houses`、`isLand`、`landY`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`streets`、`terrainAt`、`wallG`、`wallM`、`wallTex`
 - 使う：
   - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
@@ -159,7 +159,8 @@
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inInner`、`inLake`、`inRiver`、`maxY`、`minY`
   - 07-depth.js：`depth`、`distShore`
-  - 10-start.js：`rnd`
+  - 10-start.js：`rnd`、`rndFor`
+  - 12-renderer.js：`QUALITY`
   - 16-terrain.js：`TH`、`TW`、`VEX`、`isleH`、`tdx`、`tdy`、`terrH`、`tx0`、`ty0`
   - 18-buildings.js：`buildHouse`
   - 19-boats.js：`PORT`
@@ -185,11 +186,11 @@
 - 作る：`winGeo`、`windows`、`wp`
 - 使う：
   - 01-settings.js：`S`
-  - 06-inner-lakes.js：`inLake`
+  - 06-inner-lakes.js：`inLake`、`inRiver`
   - 07-depth.js：`distShore`
   - 12-renderer.js：`scene`
   - 16-terrain.js：`VEX`
-  - 20-villages-layout.js：`houses`、`landY`、`roads`
+  - 20-villages-layout.js：`houses`、`landY`、`roads`、`streets`
 
 ## 23-paddies.js
 - 作る：`PADDY`、`ghI`、`paddyI`、`paddyM`、`paddySeason`
