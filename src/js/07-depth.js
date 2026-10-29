@@ -65,6 +65,22 @@ function distShoreAll(x, y) {
   }
   return Math.sqrt(m);
 }
+// 本湖の升の表（200m四方）：升の中心が岸から升の対角の半分より遠ければ、升全体が湖か陸のどちらか（0 陸・1 湖・2 岸にかかる）
+{
+  const c = 200,
+    x0 = minX - c,
+    y0 = minY - c,
+    w = Math.ceil((maxX - minX) / c) + 3,
+    h = Math.ceil((maxY - minY) / c) + 3,
+    a = new Uint8Array(w * h);
+  for (let j = 0; j < h; j++)
+    for (let i = 0; i < w; i++) {
+      const x = x0 + (i + 0.5) * c,
+        y = y0 + (j + 0.5) * c;
+      a[j * w + i] = distShore(x, y, c) > c * 0.75 ? (inMainPoly(x, y) ? 1 : 0) : 2;
+    }
+  LAKE_MASK = { x0, y0, c, w, h, a };
+}
 // いちばん近い岸の点（湖岸・島の輪郭の上）
 function shoreSnap(x, y) {
   let m = 1e12,

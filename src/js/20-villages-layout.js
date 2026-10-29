@@ -65,6 +65,26 @@ const houses = [],
   streets = []; // 実際の道（地理院のベクトルタイル）：{ w: 幅の段, p: [[x, y], …] }。描くのは 22-village-lights-roads.js
 // 実際の家並み（tools/towns.py → data/towns.json）：岸に近い順に並んでいる。1軒8バイト（x/2, y/2, 幅, 奥行き, 向き×40, 種類）
 const TOWNS = __TOWNS__;
+// 家の位置の升（120m四方）：近くに家があるかを、全部の家を調べずに確かめる（森・田の置き場所で何十万回も使う）
+const houseGrid = new Map();
+function addHouse(hs) {
+  houses.push(hs);
+  const k = Math.floor(hs.x / 120) * 65536 + Math.floor(hs.y / 120);
+  if (!houseGrid.has(k)) houseGrid.set(k, []);
+  houseGrid.get(k).push(hs);
+}
+// (x, y) から r 以内に家があるか。box が真なら縦横それぞれ r 以内（四角）で調べる
+function houseNear(x, y, r, box = false) {
+  const n = Math.ceil(r / 120),
+    cu = Math.floor(x / 120),
+    cv = Math.floor(y / 120);
+  for (let u = cu - n; u <= cu + n; u++)
+    for (let v = cv - n; v <= cv + n; v++) {
+      const l = houseGrid.get(u * 65536 + v);
+      if (l) for (const h of l) if (box ? Math.abs(h.x - x) < r && Math.abs(h.y - y) < r : Math.hypot(h.x - x, h.y - y) < r) return true;
+    }
+  return false;
+}
 // 家を建ててよいか：陸の上で、内湖・川・急な斜面でなく、四隅が湖に出ず、敷地に川が通らない
 function houseOk(hs) {
   const { x, y } = hs;
@@ -115,7 +135,7 @@ if (TOWNS && TOWNS.n) {
       roof: R(),
       ground: 0,
     };
-    if (houseOk(hs)) houses.push(hs);
+    if (houseOk(hs)) addHouse(hs);
   }
   const rb = Uint8Array.from(atob(TOWNS.r), (ch) => ch.charCodeAt(0)),
     rv = new DataView(rb.buffer);
@@ -176,7 +196,7 @@ if (TOWNS && TOWNS.n) {
         }
         if (steep) continue;
       }
-      if (houses.some((h) => Math.hypot(h.x - x, h.y - y) < 62)) continue; // 家どうしの間隔（実寸で約95m＝作品内で約9.5m）
+      if (houseNear(x, y, 62)) continue; // 家どうしの間隔（実寸で約95m＝作品内で約9.5m）
       if (R() < 0.07) continue;
       const north = (y - minY) / (maxY - minY) < 0.45,
         south = (y - minY) / (maxY - minY) > 0.75;
@@ -209,7 +229,7 @@ if (TOWNS && TOWNS.n) {
           }
         if (wet) continue;
       }
-      houses.push(hs);
+      addHouse(hs);
     }
     // 岸沿いの道
     for (let k = -8; k < 8; k++) {
@@ -247,7 +267,7 @@ if (TOWNS && TOWNS.n) {
             !inInner(x, y) &&
             !inRiver(x, y) &&
             terrainAt(x, y) < 25 &&
-            !houses.some((h) => Math.hypot(h.x - x, h.y - y) < 120)
+            !houseNear(x, y, 120)
           )
             paddies.push({ x, y, rot: Math.atan2(ty, tx), v: R() });
         }

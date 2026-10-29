@@ -56,7 +56,20 @@ const RECLAIMED = [
   [136.205, 35.432, 300, 700, 0.5],
 ].map((a, i) => blob(a[0], a[1], a[2], a[3], a[4], 90 + i));
 const inInner = (x, y) => innerPolys.some((p) => inPoly(x, y, p)) || innerChan.some((p) => inPoly(x, y, p));
-const inMain = (x, y) => inPoly(x, y, outer) && !islands.some((h) => inPoly(x, y, h));
+// 本湖の中か。07-depth.js で作る升の表（LAKE_MASK）があれば、岸から離れた所はそれで答え、岸の近くだけ多角形で調べる
+let LAKE_MASK = null;
+const inMainPoly = (x, y) => inPoly(x, y, outer) && !islands.some((h) => inPoly(x, y, h));
+const inMain = (x, y) => {
+  if (LAKE_MASK) {
+    const M = LAKE_MASK,
+      i = Math.floor((x - M.x0) / M.c),
+      j = Math.floor((y - M.y0) / M.c);
+    if (i < 0 || j < 0 || i >= M.w || j >= M.h) return false; // 湖の外形の外
+    const v = M.a[j * M.w + i];
+    if (v < 2) return v === 1;
+  }
+  return inMainPoly(x, y);
+};
 const inLake = (x, y) => inMain(x, y) || inInner(x, y);
 // 陸の川と池（tools/rivers.py → data/rivers.json）：内湖と重なるものは除く。家・田・木を川の上に置かないための判定
 const RIVERS = (__RIVERS__ || []).filter((p) => !p[0].some(([x, y]) => inInner(x, y)));

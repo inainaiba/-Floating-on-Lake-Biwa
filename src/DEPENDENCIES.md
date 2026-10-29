@@ -31,7 +31,7 @@
   - 01-settings.js：`LAKE`
 
 ## 06-inner-lakes.js
-- 作る：`INNER`、`RECLAIMED`、`RIVERS`、`RIV_CELL`、`blob`、`bridgeY`、`channel`、`inInner`、`inLake`、`inMain`、`inRiver`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`、`rivIdx`
+- 作る：`INNER`、`LAKE_MASK`、`RECLAIMED`、`RIVERS`、`RIV_CELL`、`blob`、`bridgeY`、`channel`、`inInner`、`inLake`、`inMain`、`inMainPoly`、`inRiver`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`、`rivIdx`
 - 使う：
   - 01-settings.js：`LAKE`
   - 03-coords.js：`ll`
@@ -42,7 +42,7 @@
 - 作る：`CELL`、`DEPTH`、`GH`、`GW`、`SEG_CELL`、`depth`、`depthG`、`distShore`、`distShoreAll`、`segD2`、`segIdx`、`segs`、`shoreSnap`
 - 使う：
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`inInner`、`inLake`、`inMain`、`maxX`、`maxY`、`minX`、`minY`
+  - 06-inner-lakes.js：`LAKE_MASK`、`inInner`、`inLake`、`inMain`、`inMainPoly`、`maxX`、`maxY`、`minX`、`minY`
 
 ## 08-weather.js
 - 作る：`LEVEL`、`WX`、`WXQ`、`WX_NAMES`、`WX_P`、`weather`、`wxPick`
@@ -134,7 +134,7 @@
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
 ## 19-boats.js
-- 作る：`FISH`、`P`、`PN`、`PORT`、`PORT_LL`、`PORT_SITES`、`REED_YEAR`、`ROUTES`、`ROUTE_OFF`、`WAKE_N`、`WP`、`W_SENSE`、`astar`、`avoid`、`boatMeshes`、`boatState`、`clearLine`、`fishPorts`、`flash`、`makeBoat`、`nearestIn`、`nextFlash`、`pPos`、`portLamps`、`precipGeo`、`rainMesh`、`routePos`、`sPos`、`smB`、`smP`、`smoke`、`smokeGeo`、`snowGeo`、`snowMesh`、`updateBoats`、`updatePrecip`、`wake`、`wakeBob`、`wakeI`、`wakeP`
+- 作る：`FISH`、`MinHeap`、`P`、`PN`、`PORT`、`PORT_LL`、`PORT_SITES`、`REED_YEAR`、`ROUTES`、`ROUTE_OFF`、`WAKE_N`、`WP`、`W_SENSE`、`astar`、`avoid`、`boatMeshes`、`boatState`、`clearLine`、`fishPorts`、`flash`、`makeBoat`、`nearestIn`、`nextFlash`、`pPos`、`portLamps`、`precipGeo`、`rainMesh`、`routePos`、`sPos`、`smB`、`smP`、`smoke`、`smokeGeo`、`snowGeo`、`snowMesh`、`updateBoats`、`updatePrecip`、`wake`、`wakeBob`、`wakeI`、`wakeP`
 - 使う：
   - 00-head.js：`placeLog`
   - 01-settings.js：`LAKE`、`S`
@@ -151,7 +151,7 @@
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
 ## 20-villages-layout.js
-- 作る：`ROOF_COLS`、`TOWNS`、`VILLAGES`、`breaks`、`cvTex`、`groundH`、`houseOk`、`houses`、`isLand`、`landY`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`streets`、`terrainAt`、`wallG`、`wallM`、`wallTex`
+- 作る：`ROOF_COLS`、`TOWNS`、`VILLAGES`、`addHouse`、`breaks`、`cvTex`、`groundH`、`houseGrid`、`houseNear`、`houseOk`、`houses`、`isLand`、`landY`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`streets`、`terrainAt`、`wallG`、`wallM`、`wallTex`
 - 使う：
   - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
@@ -241,7 +241,7 @@
   - 12-renderer.js：`MOBILE`、`QUALITY`
   - 16-terrain.js：`VEX`
   - 17-trees.js：`cardForest`
-  - 20-villages-layout.js：`houses`、`terrainAt`
+  - 20-villages-layout.js：`houseNear`、`terrainAt`
 
 ## 26b-rivers.js
 - 作る：（なし）
