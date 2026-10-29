@@ -9,6 +9,7 @@ const skyU = {
   uCu: { value: 0 },
   uDark: { value: 0 },
   uMp: { value: 0.5 },
+  uMoonL: { value: 1 },
   uCi: { value: 0.25 },
   uRay: { value: 0 },
   uLt: { value: 0 },
@@ -30,7 +31,7 @@ const skyU = {
 /* 空の描画（フラグメント）：処理の順に区切った部品。一つの main の中で上から順につながる。
    前の部品で作った値（y, sd, cp, cl, nt など）を後の部品が使うので、順番は入れ替えない。 */
 const SKY_FS_HEAD = `uniform vec3 uTop,uHor,uSunD,uSunC2;
-uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;uniform float uMw;uniform vec3 uMoonD;uniform float uVeil,uWin;uniform vec3 uCity;
+uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;uniform float uMw;uniform vec3 uMoonD;uniform float uVeil,uWin;uniform vec3 uCity;uniform float uMoonL;
 uniform vec3 uLd;
 varying vec3 vD;
 ${GLSL_NOISE}
@@ -176,7 +177,7 @@ float st=tw_*step(mix(.992,.984,uWin),h1)*(.3+.7*fract(h1*91.))*smoothstep(.25,.
 float mw=exp(-pow(dot(vD,mwd)*4.,2.))*(.55+.45*nzF5(vD.xz*9.+vD.y*4.))*uMw*(.75+.5*smoothstep(.35,.75,nzF5(vD.xz*22.+3.)));
  st+=step(.97,h1)*mw*.9*smoothstep(.25,.0,length(f1));
 c+=vec3(.55,.6,.8)*mw*.06*nt*(1.-uDark);
- c=mix(c,mix(vec3(.08,.14,.32),vec3(.01,.02,.08),pow(y,.6)),nt*.9);
+ c=mix(c,mix(mix(vec3(.035,.045,.085),vec3(.08,.14,.32),uMoonL),mix(vec3(.004,.006,.018),vec3(.01,.02,.08),uMoonL),pow(y,.6)),nt*.9);
 c+=mw*nt*vec3(.05,.055,.08)*(1.-uDark);
  c+=vec3(.22,.2,.28)*mw*nt*smoothstep(.05,.35,y)*(1.-cl*.8);
  c+=mix(vec3(1.,.85,.7),vec3(.75,.85,1.),fract(h1*37.+h2*11.))*st*3.2*uStar*smoothstep(.04,.3,y)*nt*(1.-cl*.7);

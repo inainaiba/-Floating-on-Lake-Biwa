@@ -256,6 +256,8 @@ vec2 hso=uHouse.xy-normalize(uSun.xz+1e-4)*uHouse.z*.9/max(uSun.y,.25)*.6;
 vec2 hsE=uHouse.xy-normalize(uSun.xz+1e-4)*uHouse.z*.55/max(uSun.y,${glf(LOOK.longShadowMinSun)});
 float hs;{vec2 ab=hsE-uHouse.xy;float tt=clamp(dot(vP.xz-uHouse.xy,ab)/max(dot(ab,ab),1e-3),0.,1.);hs=smoothstep(uHouse.z*.8,uHouse.z*.3,length(vP.xz-uHouse.xy-ab*tt))*(1.-tt*.5);}
 // 喫水の陰 × 波の斜面の陰影 × 建物の影 を一度に掛ける
+// 建物のすぐ下の暗がり：床下に光が届かず、水が暗く、空も映らない
+{float cont=smoothstep(uHouse.z*1.05,uHouse.z*.55,ub);body*=1.-.3*cont;skyR*=1.-.35*cont;}
 body*=(1.-.38*smoothstep(uHouse.z*1.15,uHouse.z*.3,ub))*(.9+.22*clamp(dot(N,normalize(vec3(uSun.x,1.2,uSun.z))),0.,1.))*(1.-hs*.28*clamp(uSun.y*3.,0.,1.));
 // 浅瀬では建物の影が湖底に落ち、水深の分だけ日の向こうへずれる
 {float shal=smoothstep(5.,.3,dep);vec2 bo=hso-normalize(uSun.xz+1e-4)*dep*1.8/max(uSun.y,.3);float bsh=smoothstep(uHouse.z*1.1,uHouse.z*.35,length(vP.xz-bo));body*=1.-bsh*.38*shal*clamp(uSun.y*3.,0.,1.);}
@@ -275,13 +277,15 @@ float fn=.5+.5*sin(vP0.x*.9+sin(vP0.z*.7)*2.+uT*.7);
 float shoreF=(.35+1.6*smoothstep(.0,.25,texture2D(uDepth,uv-normalize(uWd+1e-4)*25./uBox.zw).r*255./6.-dep)*(1.-uCalm))*smoothstep(.15,0.,dep)*smoothstep(.75,1.,swn)*(.4+.6*fn)*.7*(.35+uFoam*.6)*smoothstep(700.,30.,dc);
 foam+=shoreF+smoothstep(.22,.04,dep)*smoothstep(.0,.04,dep)*.12*(.6+.4*sin(uT2*1.2+vP0.x*.4));
 foam+=(1.-uCalm)*smoothstep(.3,1.,1.-uCalm)*step(.985,fract(sin(dot(floor(vec2(dot(vP0.xz,uWd)*.05-uT2*.08,dot(vP0.xz,vec2(-uWd.y,uWd.x))*.012)),vec2(4.3,9.1)))*733.))*smoothstep(250.,1200.,dc)*smoothstep(6000.,2500.,dc)*.7;
-body=mix(body,vec3(.48,.56,.42),smoothstep(.5,0.,dep)*.3);
+// 水際の浅い所：境目が直線にならないよう、ゆらぎを足してなだらかに
+float depS=max(0.,dep+(nzF4(vP0.xz*.025+1.7)-.5)*.4);
+body=mix(body,vec3(.48,.56,.42),smoothstep(.8,0.,depS)*.3);
 {vec2 sq=vP0.xz*1.6,si=floor(sq);
 float sn=fract(sin(dot(si,vec2(7.1,3.9)))*91.),sd2=length(fract(sq)-.5);
 float sandy=smoothstep(.4,.6,nzF4(vP0.xz*.0012+3.7));
 vec3 stone=mix(mix(vec3(.55,.48,.36),vec3(.38,.36,.4),sn)*(1.-smoothstep(.3,.5,sd2)*.4),mix(vec3(.78,.72,.6),vec3(.84,.79,.68),sn),sandy);
-body=mix(body,stone,smoothstep(.45,0.,dep)*.55);
-}body*=1.-.15*smoothstep(.6,.1,dep);
+body=mix(body,stone,smoothstep(.75,0.,depS)*.45);
+}body*=1.-.12*smoothstep(.9,.1,depS);
 body+=vec3(.05,.06,.04)*smoothstep(.4,0.,dep)*pow(abs(sin(vP0.x*1.7+uT2)*sin(vP0.z*1.9-uT2*.8)),3.)*clamp(uSun.y*3.,0.,1.);
 float rr=0.;
 {for(int k=0;

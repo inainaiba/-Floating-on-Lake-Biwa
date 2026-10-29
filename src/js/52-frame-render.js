@@ -20,13 +20,14 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
           uWarm: { value: 0 },
           uDay: { value: 1 },
           uMorn: { value: 0 },
+          uMoonL: { value: 1 },
         },
         depthTest: false,
         depthWrite: false,
         vertexShader: `varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy,0.,1.);}`,
         fragmentShader: `uniform sampler2D tD;uniform float uAsp;uniform vec3 uSunS;uniform float uBlue;
 
-uniform float uWarm,uDay,uMorn,uTm;
+uniform float uWarm,uDay,uMorn,uTm,uMoonL;
 varying vec2 vU;
    vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);
 }
@@ -53,6 +54,8 @@ c=c*(.9-.05*uWarm)+mix(vec3(.08,.09,.1),vec3(.1,.085,.09),uWarm)*lift+.012;
 vec3 tint=mix(mix(${v3(PALETTE.gradeDayTint)},${v3(PALETTE.gradeDuskTint)},uWarm),${v3(PALETTE.gradeNightTint)},ngt);
  // 昼は水色、朝夕は桃色寄り
     c*=tint;
+// 月のない夜：青みを抜いて暗く。灯りの暖かさが引き立つ
+{float dk=ngt*(1.-uMoonL);float ll=dot(c,vec3(.299,.587,.114));c=mix(c,mix(vec3(ll),c,.75)*vec3(1.02,1.,.94),dk*.7);c*=1.-dk*.18;}
 c=mix(c,mix(${v3(PALETTE.gradeHorizonLow)},${v3(PALETTE.gradeHorizonHigh)},smoothstep(.35,1.,vU.y)),uWarm*.32);
           // 朝夕は地平が桃・ラベンダー
     vec3 hi=vec3(1.,.98,.96);
@@ -163,6 +166,7 @@ c+=gr*(.022-.01*l);
     }
     u.uBlue.value = G.morning ? Math.max(0, 1 - Math.abs((G.sunY || 0) + 0.13) / 0.11) * (1 - wxNow.gray * 0.5) : 0;
   }
+  G.gq.material.uniforms.uMoonL.value = G.moonLit;
   G.gq.material.uniforms.uTm.value = (performance.now() / 1000) % 100;
   G.gq.material.uniforms.uDay.value = Math.min(1, day * 2.5) * (1 - wxNow.dark);
   G.gq.material.uniforms.uMorn.value = Math.max(0, 1 - Math.abs(c.phase - 0.34) / 0.08) * (1 - wxNow.gray * 0.5);

@@ -201,7 +201,7 @@ scene.add(brk);
   stones.forEach(([x, y], i) => {
     const s = 0.4 + R() * 1.2;
     M.compose(
-      new THREE.Vector3(x * S, 0.55, y * S),
+      new THREE.Vector3(x * S, inLake(x, y) ? 0 : terrainAt(x, y) * S * VEX + 0.05, y * S), // 浜の高さに据える（湖の中は水際に半分沈む）
       new THREE.Quaternion().setFromEuler(new THREE.Euler(R() * 3, R() * 3, 0)),
       new THREE.Vector3(s, s * 0.6, s),
     );

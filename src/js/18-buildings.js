@@ -699,6 +699,36 @@ house.lamp = new THREE.Mesh(
 house.light = new THREE.PointLight(0xffc98a, 0, 60, 1.2);
 let BP = BUILDINGS[0].p,
   glassMats = [];
+// 喫水線の濡れた色：水面のすぐ上は濡れて暗く艶があり、水に浸かる所は緑がかって暗い（建物の形によらず、高さで決める）
+const wetU = { value: 0 };
+function wetPatch(mat) {
+  if (!mat || mat.userData.wet || !/Standard|Lambert|Phong/.test(mat.type)) return;
+  mat.userData.wet = 1;
+  const prev = mat.onBeforeCompile,
+    prevKey = mat.customProgramCacheKey.call(mat);
+  mat.onBeforeCompile = (sh, r) => {
+    if (prev) prev.call(mat, sh, r);
+    sh.uniforms.uWL = wetU;
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying float vWY;")
+      .replace(
+        "#include <project_vertex>",
+        "#include <project_vertex>\n{vec4 wq=vec4(transformed,1.);\n#ifdef USE_INSTANCING\nwq=instanceMatrix*wq;\n#endif\nvWY=(modelMatrix*wq).y;}",
+      );
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nvarying float vWY;uniform float uWL;")
+      .replace(
+        "#include <color_fragment>",
+        "#include <color_fragment>\n{float wz=vWY-uWL;float wet=1.-smoothstep(.02,.32,wz);diffuseColor.rgb*=mix(1.,.62,wet);diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.8,.95,.85)*.7,smoothstep(.0,-.12,wz));}",
+      );
+    if (sh.fragmentShader.includes("#include <roughnessmap_fragment>"))
+      sh.fragmentShader = sh.fragmentShader.replace(
+        "#include <roughnessmap_fragment>",
+        "#include <roughnessmap_fragment>\nroughnessFactor*=mix(1.,.45,1.-smoothstep(.02,.32,vWY-uWL));",
+      );
+  };
+  mat.customProgramCacheKey = () => prevKey + "|wet";
+}
 function buildHouse() {
   while (house.children.length) house.remove(house.children[0]);
   const Bd = BUILDINGS[CUST.b];
@@ -780,6 +810,9 @@ function buildHouse() {
   g.updateMatrixWorld(true);
   const top = new THREE.Box3().setFromObject(g);
   house.add(g);
+  g.traverse((o) => {
+    if (o.isMesh && !o.material.transparent) wetPatch(o.material);
+  });
   // 灯りの位置：建物の内側・頂部（光源の玉そのものは見せない）
   const [lx, ly, lz] = Bd.lamp || [0, 2, 0];
   house.lamp.position.set(lx * k, ly * k, lz * k);

@@ -905,6 +905,7 @@ const skyU = {
   uCu: { value: 0 },
   uDark: { value: 0 },
   uMp: { value: 0.5 },
+  uMoonL: { value: 1 },
   uCi: { value: 0.25 },
   uRay: { value: 0 },
   uLt: { value: 0 },
@@ -926,7 +927,7 @@ const skyU = {
 /* 空の描画（フラグメント）：処理の順に区切った部品。一つの main の中で上から順につながる。
    前の部品で作った値（y, sd, cp, cl, nt など）を後の部品が使うので、順番は入れ替えない。 */
 const SKY_FS_HEAD = `uniform vec3 uTop,uHor,uSunD,uSunC2;
-uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;uniform float uMw;uniform vec3 uMoonD;uniform float uVeil,uWin;uniform vec3 uCity;
+uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;uniform float uMw;uniform vec3 uMoonD;uniform float uVeil,uWin;uniform vec3 uCity;uniform float uMoonL;
 uniform vec3 uLd;
 varying vec3 vD;
 ${GLSL_NOISE}
@@ -1072,7 +1073,7 @@ float st=tw_*step(mix(.992,.984,uWin),h1)*(.3+.7*fract(h1*91.))*smoothstep(.25,.
 float mw=exp(-pow(dot(vD,mwd)*4.,2.))*(.55+.45*nzF5(vD.xz*9.+vD.y*4.))*uMw*(.75+.5*smoothstep(.35,.75,nzF5(vD.xz*22.+3.)));
  st+=step(.97,h1)*mw*.9*smoothstep(.25,.0,length(f1));
 c+=vec3(.55,.6,.8)*mw*.06*nt*(1.-uDark);
- c=mix(c,mix(vec3(.08,.14,.32),vec3(.01,.02,.08),pow(y,.6)),nt*.9);
+ c=mix(c,mix(mix(vec3(.035,.045,.085),vec3(.08,.14,.32),uMoonL),mix(vec3(.004,.006,.018),vec3(.01,.02,.08),uMoonL),pow(y,.6)),nt*.9);
 c+=mw*nt*vec3(.05,.055,.08)*(1.-uDark);
  c+=vec3(.22,.2,.28)*mw*nt*smoothstep(.05,.35,y)*(1.-cl*.8);
  c+=mix(vec3(1.,.85,.7),vec3(.75,.85,1.),fract(h1*37.+h2*11.))*st*3.2*uStar*smoothstep(.04,.3,y)*nt*(1.-cl*.7);
@@ -1385,6 +1386,8 @@ vec2 hso=uHouse.xy-normalize(uSun.xz+1e-4)*uHouse.z*.9/max(uSun.y,.25)*.6;
 vec2 hsE=uHouse.xy-normalize(uSun.xz+1e-4)*uHouse.z*.55/max(uSun.y,${glf(LOOK.longShadowMinSun)});
 float hs;{vec2 ab=hsE-uHouse.xy;float tt=clamp(dot(vP.xz-uHouse.xy,ab)/max(dot(ab,ab),1e-3),0.,1.);hs=smoothstep(uHouse.z*.8,uHouse.z*.3,length(vP.xz-uHouse.xy-ab*tt))*(1.-tt*.5);}
 // 喫水の陰 × 波の斜面の陰影 × 建物の影 を一度に掛ける
+// 建物のすぐ下の暗がり：床下に光が届かず、水が暗く、空も映らない
+{float cont=smoothstep(uHouse.z*1.05,uHouse.z*.55,ub);body*=1.-.3*cont;skyR*=1.-.35*cont;}
 body*=(1.-.38*smoothstep(uHouse.z*1.15,uHouse.z*.3,ub))*(.9+.22*clamp(dot(N,normalize(vec3(uSun.x,1.2,uSun.z))),0.,1.))*(1.-hs*.28*clamp(uSun.y*3.,0.,1.));
 // 浅瀬では建物の影が湖底に落ち、水深の分だけ日の向こうへずれる
 {float shal=smoothstep(5.,.3,dep);vec2 bo=hso-normalize(uSun.xz+1e-4)*dep*1.8/max(uSun.y,.3);float bsh=smoothstep(uHouse.z*1.1,uHouse.z*.35,length(vP.xz-bo));body*=1.-bsh*.38*shal*clamp(uSun.y*3.,0.,1.);}
@@ -1404,13 +1407,15 @@ float fn=.5+.5*sin(vP0.x*.9+sin(vP0.z*.7)*2.+uT*.7);
 float shoreF=(.35+1.6*smoothstep(.0,.25,texture2D(uDepth,uv-normalize(uWd+1e-4)*25./uBox.zw).r*255./6.-dep)*(1.-uCalm))*smoothstep(.15,0.,dep)*smoothstep(.75,1.,swn)*(.4+.6*fn)*.7*(.35+uFoam*.6)*smoothstep(700.,30.,dc);
 foam+=shoreF+smoothstep(.22,.04,dep)*smoothstep(.0,.04,dep)*.12*(.6+.4*sin(uT2*1.2+vP0.x*.4));
 foam+=(1.-uCalm)*smoothstep(.3,1.,1.-uCalm)*step(.985,fract(sin(dot(floor(vec2(dot(vP0.xz,uWd)*.05-uT2*.08,dot(vP0.xz,vec2(-uWd.y,uWd.x))*.012)),vec2(4.3,9.1)))*733.))*smoothstep(250.,1200.,dc)*smoothstep(6000.,2500.,dc)*.7;
-body=mix(body,vec3(.48,.56,.42),smoothstep(.5,0.,dep)*.3);
+// 水際の浅い所：境目が直線にならないよう、ゆらぎを足してなだらかに
+float depS=max(0.,dep+(nzF4(vP0.xz*.025+1.7)-.5)*.4);
+body=mix(body,vec3(.48,.56,.42),smoothstep(.8,0.,depS)*.3);
 {vec2 sq=vP0.xz*1.6,si=floor(sq);
 float sn=fract(sin(dot(si,vec2(7.1,3.9)))*91.),sd2=length(fract(sq)-.5);
 float sandy=smoothstep(.4,.6,nzF4(vP0.xz*.0012+3.7));
 vec3 stone=mix(mix(vec3(.55,.48,.36),vec3(.38,.36,.4),sn)*(1.-smoothstep(.3,.5,sd2)*.4),mix(vec3(.78,.72,.6),vec3(.84,.79,.68),sn),sandy);
-body=mix(body,stone,smoothstep(.45,0.,dep)*.55);
-}body*=1.-.15*smoothstep(.6,.1,dep);
+body=mix(body,stone,smoothstep(.75,0.,depS)*.45);
+}body*=1.-.12*smoothstep(.9,.1,depS);
 body+=vec3(.05,.06,.04)*smoothstep(.4,0.,dep)*pow(abs(sin(vP0.x*1.7+uT2)*sin(vP0.z*1.9-uT2*.8)),3.)*clamp(uSun.y*3.,0.,1.);
 float rr=0.;
 {for(int k=0;
@@ -1715,9 +1720,12 @@ for (let j = 0; j < TH; j++)
       y = ty0 + j * tdy;
     {
       const d = distShore(x, y);
+      // 岸はなだらかに：陸は水際で低く（浜）、内へゆっくり上がる。湖は岸から少しずつ深くなる
+      const sm = Math.min(1, d / 300),
+        rise = sm * sm * (3 - 2 * sm);
       terrH[j * TW + i] = inLake(x, y)
-        ? -14
-        : 4 + 18 * (1 - Math.exp(-d / 450)) + landH(x, y) * Math.min(1, 0.15 + d / 2500);
+        ? -Math.min(14, 1 + d * 0.06)
+        : 1.6 + 2.4 * rise + 18 * (1 - Math.exp(-d / 450)) + landH(x, y) * Math.min(1, 0.15 * rise + d / 2500);
     }
   }
 for (let pass = 0; pass < 3; pass++) {
@@ -1762,6 +1770,19 @@ const terrGeo = new THREE.PlaneGeometry((TW - 1) * tdx * S, (TH - 1) * tdy * S, 
     col.set([c.r, c.g, c.b], k * 3);
   }
   terrGeo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  // 尾根と谷：まわりより高い所（尾根）は明るく、低い所（谷）は暗く。2つの広さで見て、大きな山ひだと小さな沢の両方を拾う
+  const cv = new Float32Array(pos.count),
+    at = (i, j) => Math.max(0, terrH[Math.min(TH - 1, Math.max(0, j)) * TW + Math.min(TW - 1, Math.max(0, i))]);
+  for (let k = 0; k < pos.count; k++) {
+    const i = k % TW,
+      j = Math.floor(k / TW),
+      h = at(i, j);
+    if (h <= 0) continue;
+    let v = 0;
+    for (const r of [1, 3]) v += (h - (at(i - r, j) + at(i + r, j) + at(i, j - r) + at(i, j + r)) / 4) / (r === 1 ? 5 : 15);
+    cv[k] = Math.max(-1, Math.min(1, v));
+  }
+  terrGeo.setAttribute("aCv", new THREE.BufferAttribute(cv, 1));
   terrGeo.computeVertexNormals();
 }
 /* 山肌の色（地形のフラグメントに差し込む）：処理の順に区切った部品。上から順につながる。 */
@@ -1835,7 +1856,23 @@ wc*=.82+.32*cr*(.6+.4*lit)*smoothstep(160.,20.,length(cameraPosition.xz-vXZ))+.0
 wc*=1.+min(uSpr,0.)*.18;
 diffuseColor.rgb=mix(diffuseColor.rgb,wc,wood*.95);
 diffuseColor.rgb*=1.+.25*wood*(dot(nrmE,normalize(vec3(.55,.6,.4)))-.45);
-}diffuseColor.rgb*=1.-wood*.28*(1.-uSnow*.5*(1.-uSnow*smoothstep(90.,120.,vH)));
+// 中景・遠景の樹冠：木の塊のふくらみ。日の当たる側を明るく、反対を暗く（細かすぎて ちらつく距離では消す）
+{vec2 sl=normalize(uSunT.xz+vec2(1e-4));
+float fw=length(fwidth(vXZ));
+float tc=0.;
+for(int o=0;o<3;o++){float sc=o==0?.16:o==1?.055:.02;vec2 q=vXZ*sc,qi=floor(q),qf=fract(q);
+ vec2 jt=vec2(fract(sin(dot(qi,vec2(7.7,3.1)))*91.),fract(sin(dot(qi,vec2(2.3,8.9)))*91.))*.5+.25;
+ vec2 dd=qf-jt;float r=length(dd);
+ float bump=1.-smoothstep(.12,.5,r);
+ float face=dot(dd,-sl)/(r+.05);
+ tc+=(bump*.6*face-(1.-bump)*.35)*(1.-smoothstep(.25,.6,fw*sc))*(o==0?.5:o==1?.45:.4);}
+diffuseColor.rgb*=1.+tc*.5*wood*(1.-uSnow*.6);}
+}
+// 尾根は明るく乾いた色、谷は暗く湿った色（山ひだ）
+{float cvv=clamp(vCv,-1.,1.),land_=smoothstep(3.,14.,vH);
+diffuseColor.rgb*=1.+land_*(cvv>0.?cvv*.22:cvv*.3);
+diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.06,1.03,.9),land_*max(cvv,0.)*.5);
+diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.86,.95,1.02),land_*max(-cvv,0.)*.6);}diffuseColor.rgb*=1.-wood*.28*(1.-uSnow*.5*(1.-uSnow*smoothstep(90.,120.,vH)));
 `;
 // 紅葉
 const TERR_FS_AUTUMN = `// 紅葉
@@ -1882,15 +1919,15 @@ terrMat.onBeforeCompile = (sh) => {
   sh.uniforms.uAut = { value: 0 };
   terrMat.userData.sh = sh;
   sh.vertexShader = sh.vertexShader
-    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;")
+    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;attribute float aCv;varying float vCv;")
     .replace(
       "#include <begin_vertex>",
-      "#include <begin_vertex>\nvH=position.y;vXZ=(modelMatrix*vec4(position,1.)).xz;",
+      "#include <begin_vertex>\nvH=position.y;vXZ=(modelMatrix*vec4(position,1.)).xz;vCv=aCv;",
     );
   sh.fragmentShader = sh.fragmentShader
     .replace(
       "#include <common>",
-      "#include <common>\nvarying float vH;varying vec2 vXZ;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;",
+      "#include <common>\nvarying float vH;varying vec2 vXZ;varying float vCv;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;",
     )
     .replace(
       "#include <color_fragment>",
@@ -2087,7 +2124,7 @@ function reedTex(kind) {
     spring: { stem: "#7fa257", leaf: "#94b866", plume: null, h: 0.55 },
     autumn: { stem: "#a98d55", leaf: "#94864a", plume: "#8a6a52", h: 1 },
     winter: { stem: "#c8a868", leaf: null, plume: "#d8c49a", h: 1 },
-    cut: { stem: "#c4ad80", leaf: null, plume: null, h: 0.2 },
+    cut: { stem: "#9c8a66", leaf: null, plume: null, h: 0.2 },
     burnt: { stem: "#6a5a48", leaf: null, plume: null, h: 0.14 },
   }[kind];
   // 刈り跡・焼け跡は短い株を密に並べ、点々ではなく淡い帯に見せる
@@ -2173,7 +2210,7 @@ function reedGeom() {
   for (let i = 0; i < n.count; i++) n.setXYZ(i, 0, 1, 0);
   return g;
 } // 上向きの法線で、板の向きによる明暗の差をなくす
-const reedU = { uT: { value: 0 }, uW: { value: new THREE.Vector2(1, 0) } };
+const reedU = { uT: { value: 0 }, uW: { value: new THREE.Vector2(1, 0) }, uCut: { value: 0 }, tAlt: { value: null } };
 function reedMat() {
   const m = new THREE.MeshBasicMaterial({
     map: REED_TEX.summer,
@@ -2184,11 +2221,28 @@ function reedMat() {
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uT = reedU.uT;
     sh.uniforms.uW = reedU.uW;
+    sh.uniforms.uCut = reedU.uCut;
+    sh.uniforms.tAlt = reedU.tAlt;
     sh.vertexShader = sh.vertexShader
-      .replace("#include <common>", "#include <common>\nuniform float uT;uniform vec2 uW;")
+      .replace("#include <common>", "#include <common>\nuniform float uT;uniform vec2 uW;varying vec2 vRW;varying float vRH;")
       .replace(
         "#include <project_vertex>",
-        "vec4 wp=modelMatrix*instanceMatrix*vec4(transformed,1.);float hh=clamp(transformed.y/4.2,0.,1.);float sw=(.35+.65*sin(uT*1.6+wp.x*.35+wp.z*.27)+.3*sin(uT*.6+dot(wp.xz,normalize(uW+1e-4))*.08))*hh*hh;wp.xz+=uW*sw;vec4 mvPosition=viewMatrix*wp;gl_Position=projectionMatrix*mvPosition;",
+        "vec4 wp=modelMatrix*instanceMatrix*vec4(transformed,1.);float hh=clamp(transformed.y/4.2,0.,1.);float sw=(.35+.65*sin(uT*1.6+wp.x*.35+wp.z*.27)+.3*sin(uT*.6+dot(wp.xz,normalize(uW+1e-4))*.08))*hh*hh;wp.xz+=uW*sw;vec4 mvPosition=viewMatrix*wp;gl_Position=projectionMatrix*mvPosition;vRW=wp.xz;vRH=hh;",
+      );
+    // 刈り取り後のヨシ原：刈り残しの立ったヨシの群れ、株の高さのむら、まばらな所と水の見える すき間、板の端をまばらに
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform float uCut;uniform sampler2D tAlt;varying vec2 vRW;varying float vRH;float rh_(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5);}float rn_(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(rh_(i),rh_(i+vec2(1,0)),f.x),mix(rh_(i+vec2(0,1)),rh_(i+1.),f.x),f.y);}")
+      .replace(
+        "#include <map_fragment>",
+        `#include <map_fragment>
+if(uCut>0.){float pn=rn_(vRW*.03)*.65+rn_(vRW*.11)*.35;
+ float keep=smoothstep(.66,.74,pn);
+ if(keep>.5){vec4 tA=texture2D(tAlt,vMapUv);diffuseColor=vec4(diffuse*tA.rgb,opacity*tA.a);}
+ else{float col=rh_(floor(vRW*2.3)+floor(vMapUv.x*36.));
+  diffuseColor.a*=step(vRH,(.08+.16*col)*(.55+.9*pn));
+  diffuseColor.a*=smoothstep(.3,.42,pn+col*.1);
+  diffuseColor.rgb*=.8+.4*col;}
+ diffuseColor.a*=step(rh_(vec2(floor(vMapUv.x*48.),floor(vRW.x*.2+vRW.y*.2))),smoothstep(0.,.3,min(vMapUv.x,1.-vMapUv.x))*1.25);}`,
       );
   };
   return m;
@@ -3170,6 +3224,36 @@ house.lamp = new THREE.Mesh(
 house.light = new THREE.PointLight(0xffc98a, 0, 60, 1.2);
 let BP = BUILDINGS[0].p,
   glassMats = [];
+// 喫水線の濡れた色：水面のすぐ上は濡れて暗く艶があり、水に浸かる所は緑がかって暗い（建物の形によらず、高さで決める）
+const wetU = { value: 0 };
+function wetPatch(mat) {
+  if (!mat || mat.userData.wet || !/Standard|Lambert|Phong/.test(mat.type)) return;
+  mat.userData.wet = 1;
+  const prev = mat.onBeforeCompile,
+    prevKey = mat.customProgramCacheKey.call(mat);
+  mat.onBeforeCompile = (sh, r) => {
+    if (prev) prev.call(mat, sh, r);
+    sh.uniforms.uWL = wetU;
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying float vWY;")
+      .replace(
+        "#include <project_vertex>",
+        "#include <project_vertex>\n{vec4 wq=vec4(transformed,1.);\n#ifdef USE_INSTANCING\nwq=instanceMatrix*wq;\n#endif\nvWY=(modelMatrix*wq).y;}",
+      );
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nvarying float vWY;uniform float uWL;")
+      .replace(
+        "#include <color_fragment>",
+        "#include <color_fragment>\n{float wz=vWY-uWL;float wet=1.-smoothstep(.02,.32,wz);diffuseColor.rgb*=mix(1.,.62,wet);diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.8,.95,.85)*.7,smoothstep(.0,-.12,wz));}",
+      );
+    if (sh.fragmentShader.includes("#include <roughnessmap_fragment>"))
+      sh.fragmentShader = sh.fragmentShader.replace(
+        "#include <roughnessmap_fragment>",
+        "#include <roughnessmap_fragment>\nroughnessFactor*=mix(1.,.45,1.-smoothstep(.02,.32,vWY-uWL));",
+      );
+  };
+  mat.customProgramCacheKey = () => prevKey + "|wet";
+}
 function buildHouse() {
   while (house.children.length) house.remove(house.children[0]);
   const Bd = BUILDINGS[CUST.b];
@@ -3251,6 +3335,9 @@ function buildHouse() {
   g.updateMatrixWorld(true);
   const top = new THREE.Box3().setFromObject(g);
   house.add(g);
+  g.traverse((o) => {
+    if (o.isMesh && !o.material.transparent) wetPatch(o.material);
+  });
   // 灯りの位置：建物の内側・頂部（光源の玉そのものは見せない）
   const [lx, ly, lz] = Bd.lamp || [0, 2, 0];
   house.lamp.position.set(lx * k, ly * k, lz * k);
@@ -5231,7 +5318,7 @@ scene.add(brk);
   stones.forEach(([x, y], i) => {
     const s = 0.4 + R() * 1.2;
     M.compose(
-      new THREE.Vector3(x * S, 0.55, y * S),
+      new THREE.Vector3(x * S, inLake(x, y) ? 0 : terrainAt(x, y) * S * VEX + 0.05, y * S), // 浜の高さに据える（湖の中は水際に半分沈む）
       new THREE.Quaternion().setFromEuler(new THREE.Euler(R() * 3, R() * 3, 0)),
       new THREE.Vector3(s, s * 0.6, s),
     );
@@ -9777,6 +9864,15 @@ function updateSkyLight(dt, t, c, W) {
   G.sunY = sunDirSky.y;
   G.morning = c.phase < 0.5;
   const sky = skyAt(AS.phaseEff); // 空の色は、実際の太陽の高さに合わせた時刻で
+  // 月明かり：満ちた月が空にあるほど 1。月のない夜は暗く、青みを抜く（灯りの暖かさを引き立てる）
+  G.moonLit = (1 - Math.abs(skyU.uMp.value - 0.5) * 2) * Math.min(1, Math.max(0, (AS.moon.y + 0.05) / 0.25));
+  skyU.uMoonL.value = G.moonLit;
+  {
+    const nt0 = Math.max(0, 1 - day * 8),
+      dk = nt0 * (1 - G.moonLit),
+      l = sky.r * 0.3 + sky.g * 0.59 + sky.b * 0.11;
+    sky.lerp(new THREE.Color(l, l, l * 1.08), dk * 0.6).multiplyScalar(1 - dk * 0.45);
+  }
   {
     const g = new THREE.Color(
       sky.r * 0.3 + sky.g * 0.59 + sky.b * 0.11,
@@ -9918,9 +10014,12 @@ function updateSkyLight(dt, t, c, W) {
   // 水位（見えやすいよう誇張）
   const lvl = LEVEL[c.month] / 100;
   water.position.y = lvl * 1.2;
+  wetU.value = water.position.y;
   // ヨシの一年
   {
     const rk = REED_MONTH[c.month];
+    reedU.uCut.value = rk === "cut" || rk === "burnt" ? 1 : 0;
+    reedU.tAlt.value = REED_TEX[rk === "burnt" ? "cut" : "winter"];
     for (const r of [reeds, innerReeds]) {
       r.material.map = REED_TEX[rk];
       r.position.y = r === reeds ? lvl * 1.2 : INNER_Y * 0;
@@ -9970,11 +10069,12 @@ function updateSkyLight(dt, t, c, W) {
     // 満月の夜は青白く明るく、新月の夜は暗い
     const full = 1 - Math.abs(skyU.uMp.value - 0.5) * 2,
       nt = Math.max(0, 1 - day * 8);
-    hemi.intensity *= 1 + nt * ((full - 0.5) * 0.7) * (1 - wxNow.gray * 0.8);
+    hemi.intensity *= 1 + nt * (G.moonLit * 0.95 - 0.5) * (1 - wxNow.gray * 0.8);
     // 影の柔らかさ：昼はくっきり、朝夕と曇りはぼんやり
     sun.shadow.radius = 1.2 + (1 - Math.min(1, day * 1.6)) * 4 + wxNow.gray * 5;
   }
   hemi.color.set(day < 0.1 ? 0x8a9ac8 : 0xb9d3f2); // 晴れた日の影は空の青を映す
+  if (day < 0.1) hemi.color.lerp(new THREE.Color(0x6a6e78), 1 - G.moonLit); // 月のない夜は青みのない暗さ
   if (day < 0.05) sun.color.setRGB(0.7, 0.78, 1);
   waterU.uSunC.value.copy(sun.color).multiplyScalar((day > 0 ? 0.9 : 0.35) * (1 - wxNow.gray));
   if (terrMat.userData.haze)
@@ -10242,13 +10342,14 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
           uWarm: { value: 0 },
           uDay: { value: 1 },
           uMorn: { value: 0 },
+          uMoonL: { value: 1 },
         },
         depthTest: false,
         depthWrite: false,
         vertexShader: `varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy,0.,1.);}`,
         fragmentShader: `uniform sampler2D tD;uniform float uAsp;uniform vec3 uSunS;uniform float uBlue;
 
-uniform float uWarm,uDay,uMorn,uTm;
+uniform float uWarm,uDay,uMorn,uTm,uMoonL;
 varying vec2 vU;
    vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);
 }
@@ -10275,6 +10376,8 @@ c=c*(.9-.05*uWarm)+mix(vec3(.08,.09,.1),vec3(.1,.085,.09),uWarm)*lift+.012;
 vec3 tint=mix(mix(${v3(PALETTE.gradeDayTint)},${v3(PALETTE.gradeDuskTint)},uWarm),${v3(PALETTE.gradeNightTint)},ngt);
  // 昼は水色、朝夕は桃色寄り
     c*=tint;
+// 月のない夜：青みを抜いて暗く。灯りの暖かさが引き立つ
+{float dk=ngt*(1.-uMoonL);float ll=dot(c,vec3(.299,.587,.114));c=mix(c,mix(vec3(ll),c,.75)*vec3(1.02,1.,.94),dk*.7);c*=1.-dk*.18;}
 c=mix(c,mix(${v3(PALETTE.gradeHorizonLow)},${v3(PALETTE.gradeHorizonHigh)},smoothstep(.35,1.,vU.y)),uWarm*.32);
           // 朝夕は地平が桃・ラベンダー
     vec3 hi=vec3(1.,.98,.96);
@@ -10385,6 +10488,7 @@ c+=gr*(.022-.01*l);
     }
     u.uBlue.value = G.morning ? Math.max(0, 1 - Math.abs((G.sunY || 0) + 0.13) / 0.11) * (1 - wxNow.gray * 0.5) : 0;
   }
+  G.gq.material.uniforms.uMoonL.value = G.moonLit;
   G.gq.material.uniforms.uTm.value = (performance.now() / 1000) % 100;
   G.gq.material.uniforms.uDay.value = Math.min(1, day * 2.5) * (1 - wxNow.dark);
   G.gq.material.uniforms.uMorn.value = Math.max(0, 1 - Math.abs(c.phase - 0.34) / 0.08) * (1 - wxNow.gray * 0.5);
@@ -10488,7 +10592,7 @@ if (Q.has("debug")) {
   G.S = S;
   G.prof = {};
   G.scene = scene;
-  G.dbg = { houses, inLake, inMain, isleH, terrainAt, distShore, landY, PLACE_LOG };
+  G.dbg = { houses, inLake, inMain, isleH, terrainAt, distShore, landY, PLACE_LOG, scene, terr, water };
   window.__setH = (k, yw, pt, ds) => {
     const h = houses[k];
     B.x = h.x; B.y = h.y; camX = h.x * S; camZ = h.y * S;

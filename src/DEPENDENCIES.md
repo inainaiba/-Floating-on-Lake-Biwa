@@ -124,7 +124,7 @@
   - 16-terrain.js：`reedU`
 
 ## 18-buildings.js
-- 作る：`BODY_COLORS`、`BP`、`BUILDINGS`、`CUST`、`LIGHT_COLORS`、`MAT`、`WOODTX`、`bbox`、`box`、`buildHouse`、`gable`、`glassMats`、`glowBox`、`house`、`hullShape`、`inReeds`、`posts`、`reedMask`、`ring`、`ringPts`、`rod`
+- 作る：`BODY_COLORS`、`BP`、`BUILDINGS`、`CUST`、`LIGHT_COLORS`、`MAT`、`WOODTX`、`bbox`、`box`、`buildHouse`、`gable`、`glassMats`、`glowBox`、`house`、`hullShape`、`inReeds`、`posts`、`reedMask`、`ring`、`ringPts`、`rod`、`wetPatch`、`wetU`
 - 使う：
   - 00-head.js：`G`、`mergeStatic`
   - 01-settings.js：`Q`
@@ -519,7 +519,7 @@
   - 13-sky-dome.js：`hemi`、`skyDome`、`skyU`、`sun`
   - 14-water.js：`setWaves`、`water`、`waterU`、`waves`
   - 16-terrain.js：`FOREST_TINT`、`INNER_Y`、`REED_MONTH`、`REED_TEX`、`SNOW`、`innerReeds`、`reedU`、`reeds`、`terrMat`
-  - 18-buildings.js：`CUST`、`LIGHT_COLORS`、`glassMats`、`house`
+  - 18-buildings.js：`CUST`、`LIGHT_COLORS`、`glassMats`、`house`、`wetU`
   - 19-boats.js：`W_SENSE`、`flash`、`nextFlash`、`portLamps`、`smB`、`smoke`、`smokeGeo`、`updatePrecip`
   - 20-villages-layout.js：`roofM`、`roofSnowU`
   - 22-village-lights-roads.js：`windows`
@@ -578,7 +578,8 @@
   - 10-start.js：`rnd`
   - 11-state.js：`B`、`STATE`、`camX`、`camZ`
   - 12-renderer.js：`QUALITY`、`camera`、`renderer`、`resScale`、`scene`
-  - 16-terrain.js：`isleH`
+  - 14-water.js：`water`
+  - 16-terrain.js：`isleH`、`terr`
   - 18-buildings.js：`CUST`、`buildHouse`、`reedMask`
   - 19-boats.js：`boatState`、`updateBoats`
   - 20-villages-layout.js：`groundH`、`houses`、`landY`、`terrainAt`
@@ -644,6 +645,7 @@
 - `G.lock`：53-frame.js
 - `G.lt`：49-frame-sky-light.js
 - `G.moments`：43-moments.js
+- `G.moonLit`：49-frame-sky-light.js
 - `G.morning`：49-frame-sky-light.js
 - `G.netTx2`：18-buildings.js
 - `G.noRefl`：52-frame-render.js

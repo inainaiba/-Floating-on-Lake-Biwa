@@ -88,7 +88,7 @@ if (Q.has("debug")) {
   G.S = S;
   G.prof = {};
   G.scene = scene;
-  G.dbg = { houses, inLake, inMain, isleH, terrainAt, distShore, landY, PLACE_LOG };
+  G.dbg = { houses, inLake, inMain, isleH, terrainAt, distShore, landY, PLACE_LOG, scene, terr, water };
   window.__setH = (k, yw, pt, ds) => {
     const h = houses[k];
     B.x = h.x; B.y = h.y; camX = h.x * S; camZ = h.y * S;

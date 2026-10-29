@@ -28,6 +28,15 @@ function updateSkyLight(dt, t, c, W) {
   G.sunY = sunDirSky.y;
   G.morning = c.phase < 0.5;
   const sky = skyAt(AS.phaseEff); // 空の色は、実際の太陽の高さに合わせた時刻で
+  // 月明かり：満ちた月が空にあるほど 1。月のない夜は暗く、青みを抜く（灯りの暖かさを引き立てる）
+  G.moonLit = (1 - Math.abs(skyU.uMp.value - 0.5) * 2) * Math.min(1, Math.max(0, (AS.moon.y + 0.05) / 0.25));
+  skyU.uMoonL.value = G.moonLit;
+  {
+    const nt0 = Math.max(0, 1 - day * 8),
+      dk = nt0 * (1 - G.moonLit),
+      l = sky.r * 0.3 + sky.g * 0.59 + sky.b * 0.11;
+    sky.lerp(new THREE.Color(l, l, l * 1.08), dk * 0.6).multiplyScalar(1 - dk * 0.45);
+  }
   {
     const g = new THREE.Color(
       sky.r * 0.3 + sky.g * 0.59 + sky.b * 0.11,
@@ -169,9 +178,12 @@ function updateSkyLight(dt, t, c, W) {
   // 水位（見えやすいよう誇張）
   const lvl = LEVEL[c.month] / 100;
   water.position.y = lvl * 1.2;
+  wetU.value = water.position.y;
   // ヨシの一年
   {
     const rk = REED_MONTH[c.month];
+    reedU.uCut.value = rk === "cut" || rk === "burnt" ? 1 : 0;
+    reedU.tAlt.value = REED_TEX[rk === "burnt" ? "cut" : "winter"];
     for (const r of [reeds, innerReeds]) {
       r.material.map = REED_TEX[rk];
       r.position.y = r === reeds ? lvl * 1.2 : INNER_Y * 0;
@@ -221,11 +233,12 @@ function updateSkyLight(dt, t, c, W) {
     // 満月の夜は青白く明るく、新月の夜は暗い
     const full = 1 - Math.abs(skyU.uMp.value - 0.5) * 2,
       nt = Math.max(0, 1 - day * 8);
-    hemi.intensity *= 1 + nt * ((full - 0.5) * 0.7) * (1 - wxNow.gray * 0.8);
+    hemi.intensity *= 1 + nt * (G.moonLit * 0.95 - 0.5) * (1 - wxNow.gray * 0.8);
     // 影の柔らかさ：昼はくっきり、朝夕と曇りはぼんやり
     sun.shadow.radius = 1.2 + (1 - Math.min(1, day * 1.6)) * 4 + wxNow.gray * 5;
   }
   hemi.color.set(day < 0.1 ? 0x8a9ac8 : 0xb9d3f2); // 晴れた日の影は空の青を映す
+  if (day < 0.1) hemi.color.lerp(new THREE.Color(0x6a6e78), 1 - G.moonLit); // 月のない夜は青みのない暗さ
   if (day < 0.05) sun.color.setRGB(0.7, 0.78, 1);
   waterU.uSunC.value.copy(sun.color).multiplyScalar((day > 0 ? 0.9 : 0.35) * (1 - wxNow.gray));
   if (terrMat.userData.haze)

@@ -165,9 +165,12 @@ for (let j = 0; j < TH; j++)
       y = ty0 + j * tdy;
     {
       const d = distShore(x, y);
+      // 岸はなだらかに：陸は水際で低く（浜）、内へゆっくり上がる。湖は岸から少しずつ深くなる
+      const sm = Math.min(1, d / 300),
+        rise = sm * sm * (3 - 2 * sm);
       terrH[j * TW + i] = inLake(x, y)
-        ? -14
-        : 4 + 18 * (1 - Math.exp(-d / 450)) + landH(x, y) * Math.min(1, 0.15 + d / 2500);
+        ? -Math.min(14, 1 + d * 0.06)
+        : 1.6 + 2.4 * rise + 18 * (1 - Math.exp(-d / 450)) + landH(x, y) * Math.min(1, 0.15 * rise + d / 2500);
     }
   }
 for (let pass = 0; pass < 3; pass++) {
@@ -212,6 +215,19 @@ const terrGeo = new THREE.PlaneGeometry((TW - 1) * tdx * S, (TH - 1) * tdy * S, 
     col.set([c.r, c.g, c.b], k * 3);
   }
   terrGeo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  // 尾根と谷：まわりより高い所（尾根）は明るく、低い所（谷）は暗く。2つの広さで見て、大きな山ひだと小さな沢の両方を拾う
+  const cv = new Float32Array(pos.count),
+    at = (i, j) => Math.max(0, terrH[Math.min(TH - 1, Math.max(0, j)) * TW + Math.min(TW - 1, Math.max(0, i))]);
+  for (let k = 0; k < pos.count; k++) {
+    const i = k % TW,
+      j = Math.floor(k / TW),
+      h = at(i, j);
+    if (h <= 0) continue;
+    let v = 0;
+    for (const r of [1, 3]) v += (h - (at(i - r, j) + at(i + r, j) + at(i, j - r) + at(i, j + r)) / 4) / (r === 1 ? 5 : 15);
+    cv[k] = Math.max(-1, Math.min(1, v));
+  }
+  terrGeo.setAttribute("aCv", new THREE.BufferAttribute(cv, 1));
   terrGeo.computeVertexNormals();
 }
 /* 山肌の色（地形のフラグメントに差し込む）：処理の順に区切った部品。上から順につながる。 */
@@ -285,7 +301,23 @@ wc*=.82+.32*cr*(.6+.4*lit)*smoothstep(160.,20.,length(cameraPosition.xz-vXZ))+.0
 wc*=1.+min(uSpr,0.)*.18;
 diffuseColor.rgb=mix(diffuseColor.rgb,wc,wood*.95);
 diffuseColor.rgb*=1.+.25*wood*(dot(nrmE,normalize(vec3(.55,.6,.4)))-.45);
-}diffuseColor.rgb*=1.-wood*.28*(1.-uSnow*.5*(1.-uSnow*smoothstep(90.,120.,vH)));
+// 中景・遠景の樹冠：木の塊のふくらみ。日の当たる側を明るく、反対を暗く（細かすぎて ちらつく距離では消す）
+{vec2 sl=normalize(uSunT.xz+vec2(1e-4));
+float fw=length(fwidth(vXZ));
+float tc=0.;
+for(int o=0;o<3;o++){float sc=o==0?.16:o==1?.055:.02;vec2 q=vXZ*sc,qi=floor(q),qf=fract(q);
+ vec2 jt=vec2(fract(sin(dot(qi,vec2(7.7,3.1)))*91.),fract(sin(dot(qi,vec2(2.3,8.9)))*91.))*.5+.25;
+ vec2 dd=qf-jt;float r=length(dd);
+ float bump=1.-smoothstep(.12,.5,r);
+ float face=dot(dd,-sl)/(r+.05);
+ tc+=(bump*.6*face-(1.-bump)*.35)*(1.-smoothstep(.25,.6,fw*sc))*(o==0?.5:o==1?.45:.4);}
+diffuseColor.rgb*=1.+tc*.5*wood*(1.-uSnow*.6);}
+}
+// 尾根は明るく乾いた色、谷は暗く湿った色（山ひだ）
+{float cvv=clamp(vCv,-1.,1.),land_=smoothstep(3.,14.,vH);
+diffuseColor.rgb*=1.+land_*(cvv>0.?cvv*.22:cvv*.3);
+diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.06,1.03,.9),land_*max(cvv,0.)*.5);
+diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.86,.95,1.02),land_*max(-cvv,0.)*.6);}diffuseColor.rgb*=1.-wood*.28*(1.-uSnow*.5*(1.-uSnow*smoothstep(90.,120.,vH)));
 `;
 // 紅葉
 const TERR_FS_AUTUMN = `// 紅葉
@@ -332,15 +364,15 @@ terrMat.onBeforeCompile = (sh) => {
   sh.uniforms.uAut = { value: 0 };
   terrMat.userData.sh = sh;
   sh.vertexShader = sh.vertexShader
-    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;")
+    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;attribute float aCv;varying float vCv;")
     .replace(
       "#include <begin_vertex>",
-      "#include <begin_vertex>\nvH=position.y;vXZ=(modelMatrix*vec4(position,1.)).xz;",
+      "#include <begin_vertex>\nvH=position.y;vXZ=(modelMatrix*vec4(position,1.)).xz;vCv=aCv;",
     );
   sh.fragmentShader = sh.fragmentShader
     .replace(
       "#include <common>",
-      "#include <common>\nvarying float vH;varying vec2 vXZ;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;",
+      "#include <common>\nvarying float vH;varying vec2 vXZ;varying float vCv;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;",
     )
     .replace(
       "#include <color_fragment>",
@@ -537,7 +569,7 @@ function reedTex(kind) {
     spring: { stem: "#7fa257", leaf: "#94b866", plume: null, h: 0.55 },
     autumn: { stem: "#a98d55", leaf: "#94864a", plume: "#8a6a52", h: 1 },
     winter: { stem: "#c8a868", leaf: null, plume: "#d8c49a", h: 1 },
-    cut: { stem: "#c4ad80", leaf: null, plume: null, h: 0.2 },
+    cut: { stem: "#9c8a66", leaf: null, plume: null, h: 0.2 },
     burnt: { stem: "#6a5a48", leaf: null, plume: null, h: 0.14 },
   }[kind];
   // 刈り跡・焼け跡は短い株を密に並べ、点々ではなく淡い帯に見せる
@@ -623,7 +655,7 @@ function reedGeom() {
   for (let i = 0; i < n.count; i++) n.setXYZ(i, 0, 1, 0);
   return g;
 } // 上向きの法線で、板の向きによる明暗の差をなくす
-const reedU = { uT: { value: 0 }, uW: { value: new THREE.Vector2(1, 0) } };
+const reedU = { uT: { value: 0 }, uW: { value: new THREE.Vector2(1, 0) }, uCut: { value: 0 }, tAlt: { value: null } };
 function reedMat() {
   const m = new THREE.MeshBasicMaterial({
     map: REED_TEX.summer,
@@ -634,11 +666,28 @@ function reedMat() {
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uT = reedU.uT;
     sh.uniforms.uW = reedU.uW;
+    sh.uniforms.uCut = reedU.uCut;
+    sh.uniforms.tAlt = reedU.tAlt;
     sh.vertexShader = sh.vertexShader
-      .replace("#include <common>", "#include <common>\nuniform float uT;uniform vec2 uW;")
+      .replace("#include <common>", "#include <common>\nuniform float uT;uniform vec2 uW;varying vec2 vRW;varying float vRH;")
       .replace(
         "#include <project_vertex>",
-        "vec4 wp=modelMatrix*instanceMatrix*vec4(transformed,1.);float hh=clamp(transformed.y/4.2,0.,1.);float sw=(.35+.65*sin(uT*1.6+wp.x*.35+wp.z*.27)+.3*sin(uT*.6+dot(wp.xz,normalize(uW+1e-4))*.08))*hh*hh;wp.xz+=uW*sw;vec4 mvPosition=viewMatrix*wp;gl_Position=projectionMatrix*mvPosition;",
+        "vec4 wp=modelMatrix*instanceMatrix*vec4(transformed,1.);float hh=clamp(transformed.y/4.2,0.,1.);float sw=(.35+.65*sin(uT*1.6+wp.x*.35+wp.z*.27)+.3*sin(uT*.6+dot(wp.xz,normalize(uW+1e-4))*.08))*hh*hh;wp.xz+=uW*sw;vec4 mvPosition=viewMatrix*wp;gl_Position=projectionMatrix*mvPosition;vRW=wp.xz;vRH=hh;",
+      );
+    // 刈り取り後のヨシ原：刈り残しの立ったヨシの群れ、株の高さのむら、まばらな所と水の見える すき間、板の端をまばらに
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform float uCut;uniform sampler2D tAlt;varying vec2 vRW;varying float vRH;float rh_(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5);}float rn_(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(rh_(i),rh_(i+vec2(1,0)),f.x),mix(rh_(i+vec2(0,1)),rh_(i+1.),f.x),f.y);}")
+      .replace(
+        "#include <map_fragment>",
+        `#include <map_fragment>
+if(uCut>0.){float pn=rn_(vRW*.03)*.65+rn_(vRW*.11)*.35;
+ float keep=smoothstep(.66,.74,pn);
+ if(keep>.5){vec4 tA=texture2D(tAlt,vMapUv);diffuseColor=vec4(diffuse*tA.rgb,opacity*tA.a);}
+ else{float col=rh_(floor(vRW*2.3)+floor(vMapUv.x*36.));
+  diffuseColor.a*=step(vRH,(.08+.16*col)*(.55+.9*pn));
+  diffuseColor.a*=smoothstep(.3,.42,pn+col*.1);
+  diffuseColor.rgb*=.8+.4*col;}
+ diffuseColor.a*=step(rh_(vec2(floor(vMapUv.x*48.),floor(vRW.x*.2+vRW.y*.2))),smoothstep(0.,.3,min(vMapUv.x,1.-vMapUv.x))*1.25);}`,
       );
   };
   return m;
