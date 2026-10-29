@@ -81,6 +81,7 @@ G.moments = (() => {
       for (let k = 0; k < 3; k++) {
         const xx = x + 40 + k * 5,
           yy = y + (R() - 0.5) * 6;
+        placeLog("刈ったヨシの束", "land", [[xx, yy]]);
         Qq.setFromEuler(E.set((R() - 0.5) * 0.25, R() * 6, (R() - 0.5) * 0.25));
         M.compose(V.set(xx * S, landY(xx, yy), yy * S), Qq, Sc.set(1, 0.9 + R() * 0.3, 1));
         bI.setMatrixAt(i * 3 + k, M);

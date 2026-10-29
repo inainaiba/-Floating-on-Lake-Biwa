@@ -5,6 +5,8 @@
 
 調べること
   ・集落の家・南湖の街並み・沖島の家：建物の四隅が湖（または島の外の水）に出ていないか
+  ・湖西線の高架：桁が地面にめり込んでいないか、本湖の上を渡っていないか
+  ・置き場所の記録（placeLog）：木（森・集落・岸・島・竹林）・松並木・ススキ・桜・ヨシの束・港や湖の上の景物が、決まった側（湖の上・陸・岸の近く）にあるか
   ・代表の場面ごとの処理時間の内訳（移動・空と光・景物・描画）と、描画の回数・三角形の数
 この環境はソフトウェア描画なので、時間の絶対値は実機よりずっと遅い。場面どうし・部分どうしの比較に使う。
 """
@@ -37,7 +39,10 @@ OVERLAP = r"""()=>{
  // 湖西線の高架：桁どうしのすき間（約60以上の飛び）と、桁の下に地面が出ていないか
  const K=G.kosei;if(K){let gaps=0,under=0;for(let i=0;i<K.pts.length-1;i++){const a=K.pts[i],b=K.pts[i+1];if(Math.hypot(b[0]-a[0],b[1]-a[1])*S<0.01)continue;
   for(const u of [.25,.5,.75]){const x=a[0]+(b[0]-a[0])*u,y=a[1]+(b[1]-a[1])*u,h=K.ht[i]+(K.ht[i+1]-K.ht[i])*u;if(D.landY(x,y)>h-1.2)under++;}}
-  out.kosei=[K.pts.length,under,['桁が地面にめり込む所 '+under]];}
+  out.kosei=[K.pts.length,under,['桁が地面にめり込む所 '+under]];
+  // 桁が本湖の上を渡っていないか（内湖や川をまたぐ短い橋は許す）
+  let wet=0,ex=[];for(let i=0;i<K.pts.length-1;i++){const a=K.pts[i],b=K.pts[i+1];for(const u of [.25,.5,.75]){const x=a[0]+(b[0]-a[0])*u,y=a[1]+(b[1]-a[1])*u;if(D.inMain(x,y)){wet++;ex.push([Math.round(x),Math.round(y)]);break;}}}
+  out['湖西線の桁（本湖の上に出ない）']=[K.pts.length-1,wet,ex.slice(0,5)];}
  // 湖岸の景物：記録した位置が、それぞれの決まり（湖の上・陸・岸の近く）を守っているか
  const ok={water:(x,y)=>D.inLake(x,y),land:(x,y)=>!D.inLake(x,y)||D.isleH(x,y)!==null,shore:(x,y)=>D.distShore(x,y)<250};
  const agg={};for(const L of D.PLACE_LOG){const a=agg[L.name]||(agg[L.name]={n:0,bad:[],rule:L.rule});for(const p of L.pts){a.n++;if(!ok[L.rule](p[0],p[1]))a.bad.push([+p[0].toFixed(0),+p[1].toFixed(0)]);}}

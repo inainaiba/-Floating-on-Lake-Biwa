@@ -19,20 +19,10 @@ scene.add(brk);
 
 // 湖西線の高架（西岸の集落の背後を走る）
 {
-  const L = [
-    [135.905, 35.075],
-    [135.925, 35.12],
-    [135.95, 35.16],
-    [135.975, 35.21],
-    [135.99, 35.25],
-    [136.015, 35.29],
-    [136.04, 35.33],
-    [136.06, 35.37],
-    [136.04, 35.42],
-    [136.07, 35.47],
-  ].map((p) => ll(...p));
-  // 線路を約120mごとの点にする。湖の上に出た点は、西（陸の側）へ押して岸から少し内に置く
-  // （近い陸を探して点を捨てると、前後の点が湖を横切る長い桁でつながってしまう）
+  // 線路の道筋：地理院のベクトルタイルの湖西線（tools/rail.py → data/rail.json）
+  const L = (RAIL.kosei || []).map((p) => ll(...p));
+  // 線路を約120mごとの点にする。湖岸線の簡略化で湖の上に出た点は、西（陸の側）へ押して岸から少し内に置く
+  // （点を捨てると、前後の点が湖を横切る長い桁でつながってしまう）
   const onLand = (x, y) => !inLake(x, y) && distShore(x, y) > 100;
   const toLand = (x, y) => {
     for (let d = 0; d <= 8000; d += 30) if (onLand(x - d, y)) return [x - d, y];
@@ -47,14 +37,13 @@ scene.add(brk);
     return toLand(x, y);
   };
   let pts = [];
-  for (let i = 0; i < L.length - 1; i++) {
+  for (let i = 0, s = 0; i < L.length - 1; i++) {
     const [a, b] = [L[i], L[i + 1]],
       len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    for (let s = 0; s < len; s += 120) {
-      const u = s / len;
-      pts.push(toLand(a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u));
-    }
+    for (; s < len; s += 120) pts.push(toLand(a[0] + ((b[0] - a[0]) * s) / len, a[1] + ((b[1] - a[1]) * s) / len));
+    s -= len; // 次の区間へ、120mの刻みを持ち越す
   }
+  if (L.length) pts.push(toLand(...L[L.length - 1]));
   // 押した点どうしの桁が入江を横切るときは、間に点を足して岸に沿わせる（川を渡る所は湖ではないのでそのまま）
   for (let pass = 0; pass < 12; pass++) {
     const out = [pts[0]];
@@ -363,6 +352,7 @@ const shoreTrees = [];
     }
   });
 }
+placeLog("内湖のまわりの木", "land", shoreTrees);
 const treeM = treeFade(new THREE.MeshLambertMaterial({ vertexColors: true }), 260, 420),
   treeI = new THREE.InstancedMesh(treeGeom("broad"), treeM, shoreTrees.length);
 {

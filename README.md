@@ -5,8 +5,9 @@
 - `data/lake.json` … 湖岸線・島・港・橋・川（国土数値情報／OpenStreetMapから作成）
 - `data/buoys.xlsx` … ブイ一覧（集落名・集落形態・北緯・東経・YouTubeリンク）。編集後に `python3 build.py`
 - `data/dem.json` … 周囲の地形（国土地理院の標高タイルから作成。作り直しは `python3 tools/dem.py`）
+- `data/rail.json` … 湖西線の道筋（国土地理院のベクトルタイルから作成。作り直しは `python3 tools/rail.py`）
 - `docs/index.html` … 組み立て後の公開用ファイル
-- `tools/` … データ準備（prep.py・dem.py）と、Playwrightによる確認用の撮影スクリプト
+- `tools/` … データ準備（prep.py・dem.py・rail.py）と、Playwrightによる確認用の撮影スクリプト
 
 ## ファイルの構成
 
@@ -42,7 +43,7 @@ GitHub に記録するたびに、GitHub の側で自動確認（`.github/workfl
    - 組み立て（`build.py`）→ 代表4場面と全体地図の撮影・比較、開始地点の検査3回（`tools/check.py --quick`）→ GitHubへ記録
    - ページのエラーが出たら記録せずに止まる。比較画像は `check/sheet.png`
    - 数分で GitHub Pages に反映される
-3. 全体の点検は `python3 tools/audit.py`：集落・街並み・沖島の家が水にはみ出していないか、湖西線の高架の桁が地面にめり込んでいないかを数で調べ、代表の場面ごとの処理時間の内訳と描画の回数・三角形の数を出す
+3. 全体の点検は `python3 tools/audit.py`：集落・街並み・沖島の家が水にはみ出していないか、湖西線の高架の桁が地面にめり込んだり本湖の上を渡ったりしていないか、木（森・集落・岸・島・竹林）・桜・ヨシの束などが決まった側（陸・湖の上・岸の近く）にあるかを数で調べ、代表の場面ごとの処理時間の内訳と描画の回数・三角形の数を出す
 4. 見た目を意図して変えたときは、`python3 tools/check.py` で全24場面を撮り、あわせて開始地点を10回試して陸や島に埋まらないかを調べる（シェーダーや WebGL の誤り、three.js のシェーダー改造で置き換えの目印が見つからない場合も、ブラウザのコンソールから拾って失敗にする）。問題なければ `python3 tools/check.py --accept` で基準を更新して記録する
 
 準備（初回だけ）：`npm install`（確認用に three.js を手元に置く）、Python の `playwright`・`Pillow`・`openpyxl`
@@ -66,6 +67,10 @@ Settings → Pages → Source を「Deploy from a branch」、Branch を `main` 
   - 作品の座標で200m間隔に並べ直した、琵琶湖の水面（84.371m）からの高さ。湖の外形の外側26kmまで
   - 1マス1バイト（低い土地ほど細かく刻む）。水面より低い土地と海は0
   - 取り寄せたタイルは `tools/.dem_cache/` に置く（記録しない）
+- `data/rail.json` … 国土地理院 地理院タイル「ベクトルタイル」（ズーム13）の鉄道から `tools/rail.py` で作成
+  - 湖西線（路線コード 40201000069）の断片をつなぎ、比叡山坂本の北からマキノの北まで（25mより細かい曲がりは省く）
+  - 高架は、湖岸線の簡略化で湖に出た所だけ陸の側へ寄せる。取り寄せたタイルは `tools/.bv_cache/` に置く（記録しない）
+  - 作り直しには Python の `mapbox-vector-tile`・`shapely` が要る
 - `data/buoys.xlsx` … ブイ一覧（集落名・集落形態・北緯・東経・YouTubeリンク・表示）。チームで編集する
 
 © OpenStreetMap contributors（ODbL）／国土地理院

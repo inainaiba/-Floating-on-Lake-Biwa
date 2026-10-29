@@ -11,7 +11,7 @@
   - 31-ui.js（後ろの部品・要注意）：`$`
 
 ## 01-settings.js
-- 作る：`LAKE`、`Q`、`RM`、`S`、`SPEED`
+- 作る：`LAKE`、`Q`、`RAIL`、`RM`、`S`、`SPEED`
 
 ## 02-season.js
 - 作る：`LOOK`、`PALETTE`、`SEASON`、`glf`、`v3`
@@ -117,7 +117,7 @@
 ## 17-trees.js
 - 作る：`TREE_TEX`、`cardForest`、`cardTreeGeom`、`cardTreeMat`、`paintTree`、`treeTex`
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
   - 10-start.js：`rnd`
   - 12-renderer.js：`scene`
@@ -202,7 +202,7 @@
 - 作る：`brk`、`shoreTrees`、`treeI`、`treeM`、`treeSeason`
 - 使う：
   - 00-head.js：`G`、`placeLog`
-  - 01-settings.js：`S`
+  - 01-settings.js：`RAIL`、`S`
   - 03-coords.js：`ll`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inInner`、`inLake`、`innerPolys`
@@ -353,7 +353,7 @@
 ## 38-seasonal-events.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
   - 05-lake.js：`outer`
@@ -420,7 +420,7 @@
 ## 43-moments.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
   - 04-clock.js：`DAY`
