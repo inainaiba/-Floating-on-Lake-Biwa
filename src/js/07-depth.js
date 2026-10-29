@@ -1,5 +1,5 @@
 /* ---------- 湖の深さ（国土地理院の等深線から。data/depth.json） ---------- */
-const CELL = 400,
+const CELL = 200, // 深さのデータ（data/depth.json）と同じ200m間隔
   GW = Math.ceil((maxX - minX) / CELL) + 1,
   GH = Math.ceil((maxY - minY) / CELL) + 1;
 const depthG = new Float32Array(GW * GH);

@@ -214,7 +214,7 @@ scene.add(brk);
 }
 // 浮御堂（堅田）：湖に張り出した宝形造の小堂と橋
 {
-  const [x, y] = shoreSnap(...ll(135.917, 35.115)), // 堅田の岸の点
+  const [x, y] = shoreSnap(...ll(135.9216, 35.1099)), // 堅田の岸の点（浮御堂の位置は地理院の注記から）
     g = new THREE.Group(),
     dk = new THREE.MeshLambertMaterial({ color: 0x5a5650 }),
     wd = new THREE.MeshLambertMaterial({ color: 0x7a5a3a });

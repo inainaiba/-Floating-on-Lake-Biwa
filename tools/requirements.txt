@@ -1,0 +1,9 @@
+# 確認（tools/check.py・tools/audit.py）と組み立て（build.py）に使う
+playwright==1.63.0
+pillow
+openpyxl
+# 地理院タイルからデータを作る道具（tools/data.py → dem.py・rail.py・depth.py）に使う
+numpy
+mapbox-vector-tile
+shapely
+scipy
