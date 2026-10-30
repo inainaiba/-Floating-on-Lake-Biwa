@@ -5505,6 +5505,53 @@ scene.add(windows);
   }
 }
 
+// ==== 22b-town-glow.js ====
+/* ---------- 町の灯り：実際の家並み（20-villages-layout.js の houses）から、家の集まる所を1.5km四方で数え、
+   夜、その上にやわらかな灯りのにじみを置く。遠くの町が灯りの帯として見える。雲に映る街明かりの方角にも使う（49-frame-sky-light.js） ---------- */
+G.towns = (() => {
+  const C = 1500,
+    cells = new Map();
+  for (const h of houses) {
+    const k = Math.floor(h.x / C) * 4096 + Math.floor(h.y / C);
+    const c = cells.get(k) || { n: 0, x: 0, y: 0 };
+    c.n++;
+    c.x += h.x;
+    c.y += h.y;
+    cells.set(k, c);
+  }
+  const list = [...cells.values()]
+    .filter((c) => c.n >= 12)
+    .map((c) => ({ x: c.x / c.n, y: c.y / c.n, n: c.n }))
+    .sort((a, b) => b.n - a.n);
+  const pos = [],
+    sz = [];
+  for (const t of list) {
+    pos.push(t.x * S, landY(t.x, t.y) + 9, t.y * S);
+    sz.push(30 + Math.sqrt(t.n) * 9); // 家の数が多いほど大きく
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("aSize", new THREE.Float32BufferAttribute(sz, 1));
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uOp: { value: 0 }, tDot: { value: G.dotTex }, uScale: { value: 1 } },
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    fog: false,
+    vertexShader: `attribute float aSize;uniform float uScale;varying float vF;
+void main(){vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;
+float d=-mv.z;gl_PointSize=clamp(aSize*uScale/max(d,1.),1.,220.);
+vF=smoothstep(60.,400.,d);}`, // 近くでは消す（家の窓の灯りが見える距離）
+    fragmentShader: `uniform sampler2D tDot;uniform float uOp;varying float vF;
+void main(){float a=texture2D(tDot,gl_PointCoord).a;gl_FragColor=vec4(vec3(1.,.66,.36)*a*a*uOp*vF*.55,1.);}`,
+  });
+  const pts = new THREE.Points(geo, mat);
+  pts.frustumCulled = false;
+  pts.visible = false;
+  scene.add(pts);
+  return { list, pts, mat };
+})();
+
 // ==== 23-paddies.js ====
 // 田んぼ（季節で色が変わる。春は水が張られて空を映す）
 const paddyM = new THREE.MeshLambertMaterial({ color: 0xffffff });
@@ -10429,9 +10476,24 @@ function updateSkyLight(dt, t, c, W) {
     skyU.uVeil.value = Math.min(1, Math.max(0, 1 - Math.abs(wxNow.gray - 0.45) * 3.5) + Math.max(0, skyU.uCi.value - 0.45) * 1.2) * (wxNow.rain > 0.3 ? 0 : 1);
     skyU.uWin.value = c.month === 11 || c.month <= 1 ? 1 : c.month === 10 || c.month === 2 ? 0.5 : 0;
     {
-      // 街の方角（大津・草津のあたり）
-      const [ox, oy] = ll(135.9, 35.02);
-      skyU.uCity.value.set(ox * S - camera.position.x, 0, oy * S - camera.position.z).normalize();
+      // 雲に映る街明かりの方角：大きな町（22b-town-glow.js）を、家の数と近さで重みづけして合わせる
+      const v = skyU.uCity.value.set(0, 0, 0);
+      for (const t of (G.towns ? G.towns.list : []).slice(0, 8)) {
+        const dx = t.x * S - camera.position.x,
+          dz = t.y * S - camera.position.z,
+          d = Math.hypot(dx, dz) + 200;
+        v.x += (dx / d) * (t.n / d);
+        v.z += (dz / d) * (t.n / d);
+      }
+      if (v.lengthSq() < 1e-12) v.set(0, 0, 1);
+      v.normalize();
+      // 町の灯りのにじみ：日が沈むと灯る
+      if (G.towns) {
+        const nt = Math.min(1, Math.max(0, (0.02 - (G.sunY || 0)) / 0.12));
+        G.towns.mat.uniforms.uOp.value = nt * (1 - wxNow.gray * 0.35);
+        G.towns.mat.uniforms.uScale.value = renderer.domElement.height / 2;
+        G.towns.pts.visible = nt > 0.01;
+      }
     }
     waterU.uCl.value = skyU.uCloud.value * (1 - wxNow.gray * 0.5);
     waterU.uLead.value = (c.month === 11 || c.month <= 1 ? 1 : c.month === 2 ? 0.5 : 0) * Math.min(1, wxNow.gray * 1.4);

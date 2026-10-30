@@ -123,9 +123,24 @@ function updateSkyLight(dt, t, c, W) {
     skyU.uVeil.value = Math.min(1, Math.max(0, 1 - Math.abs(wxNow.gray - 0.45) * 3.5) + Math.max(0, skyU.uCi.value - 0.45) * 1.2) * (wxNow.rain > 0.3 ? 0 : 1);
     skyU.uWin.value = c.month === 11 || c.month <= 1 ? 1 : c.month === 10 || c.month === 2 ? 0.5 : 0;
     {
-      // 街の方角（大津・草津のあたり）
-      const [ox, oy] = ll(135.9, 35.02);
-      skyU.uCity.value.set(ox * S - camera.position.x, 0, oy * S - camera.position.z).normalize();
+      // 雲に映る街明かりの方角：大きな町（22b-town-glow.js）を、家の数と近さで重みづけして合わせる
+      const v = skyU.uCity.value.set(0, 0, 0);
+      for (const t of (G.towns ? G.towns.list : []).slice(0, 8)) {
+        const dx = t.x * S - camera.position.x,
+          dz = t.y * S - camera.position.z,
+          d = Math.hypot(dx, dz) + 200;
+        v.x += (dx / d) * (t.n / d);
+        v.z += (dz / d) * (t.n / d);
+      }
+      if (v.lengthSq() < 1e-12) v.set(0, 0, 1);
+      v.normalize();
+      // 町の灯りのにじみ：日が沈むと灯る
+      if (G.towns) {
+        const nt = Math.min(1, Math.max(0, (0.02 - (G.sunY || 0)) / 0.12));
+        G.towns.mat.uniforms.uOp.value = nt * (1 - wxNow.gray * 0.35);
+        G.towns.mat.uniforms.uScale.value = renderer.domElement.height / 2;
+        G.towns.pts.visible = nt > 0.01;
+      }
     }
     waterU.uCl.value = skyU.uCloud.value * (1 - wxNow.gray * 0.5);
     waterU.uLead.value = (c.month === 11 || c.month <= 1 ? 1 : c.month === 2 ? 0.5 : 0) * Math.min(1, wxNow.gray * 1.4);
