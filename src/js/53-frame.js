@@ -67,6 +67,16 @@ function frame(now) {
   if (G.shore) G.shore.update(dt, t, c, day, wxNow);
   updateCamera(dt, t, hx, hz);
   if (G.nearPatch) G.nearPatch.update(camera.position.x / S, camera.position.z / S); // カメラのまわりの細かい地形（16-terrain.js）
+  // 木が縮んで消える距離（cardForest の far）より遠い森の区画は、はじめから描かない
+  {
+    const cp = camera.position,
+      v3 = G._v3 || (G._v3 = new THREE.Vector3());
+    for (const I of G.forest || []) {
+      v3.copy(I.boundingSphere.center).applyMatrix4(I.matrixWorld);
+      const r = I.userData.far + I.boundingSphere.radius;
+      I.visible = (v3.x - cp.x) ** 2 + (v3.z - cp.z) ** 2 < r * r;
+    }
+  }
   const pC = performance.now();
   renderFrame(c, W, wxNow, day, sunAngle);
   if (G.snapNow) finishPhoto(); // 撮影（32-photo.js）：描いた直後に画像にする
@@ -138,6 +148,39 @@ if (Q.has("debug")) {
     G.resetTrail();
     yaw = yawT = yw; pitch = pt; dist = distT = ds;
   };
+}
+// 湖全体に散らばる動かない景物を、区画ごとの子に分ける（00-head.js の chunkify。画面の外の区画を描かない）
+if (G.wakeMesh) G.wakeMesh.userData.noChunk = true; // 航跡は毎フレーム動く
+{
+  const list = [];
+  scene.traverse((o) => {
+    if (o.isInstancedMesh && !o.userData.chunkOf && !G.chunks.includes(o)) list.push(o);
+  });
+  for (const o of list) chunkify(o);
+}
+// 見た目の計算（シェーダー）の準備を、読み込み中の幕の後ろで済ませる。途中で初めて出てくる物（季節の景物・花火など）や、
+// 映り込み（水面で切る面がある）の分もまとめて準備し、湖に出た直後や季節・天気が変わったときに一瞬止まらないようにする
+{
+  const hidden = [];
+  scene.traverse((o) => {
+    if (!o.visible) {
+      hidden.push(o);
+      o.visible = true;
+    }
+  });
+  const rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType });
+  try {
+    renderer.setRenderTarget(rt);
+    renderer.compile(scene, camera);
+    renderer.clippingPlanes = [new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)];
+    renderer.compile(scene, camera);
+  } catch (e) {
+    console.warn(e);
+  }
+  renderer.clippingPlanes = [];
+  renderer.setRenderTarget(null);
+  rt.dispose();
+  for (const o of hidden) o.visible = false;
 }
 requestAnimationFrame(frame);
 requestAnimationFrame(() => (document.getElementById("veil").style.opacity = 0));

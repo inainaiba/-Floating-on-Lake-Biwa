@@ -5,6 +5,7 @@ const paddyI = new THREE.InstancedMesh(
   paddyM,
   paddies.length,
 );
+paddyI.userData.noChunk = true; // 季節ごとに1枚ずつ色を変える（区画に分けない）
 paddyM.map = cvTex(64, 32, (g, w, h) => {
   g.fillStyle = "#fff";
   g.fillRect(0, 0, w, h);

@@ -60,7 +60,7 @@ $("about").onclick = (e) => {
 $("title").onclick = () => {
   {
     const ok = starts.filter(([x, y]) => !inReeds(x, y) && inMain(x, y) && depth(x, y) > 1.2);
-    const s2 = ok[Math.floor(Math.random() * ok.length)];
+    const s2 = ok[Math.floor((DBG_START ? R0() : Math.random()) * ok.length)]; // 確認用（?debug）では毎回同じ所（撮り比べのため）
     if (s2) {
       B.x = s2[0];
       B.y = s2[1];
@@ -82,7 +82,7 @@ $("go").onclick = () => {
   audioInit();
   if (inReeds(B.x, B.y) || !inMain(B.x, B.y) || depth(B.x, B.y) < 1.2) {
     const ok = starts.filter(([x, y]) => !inReeds(x, y) && inMain(x, y) && depth(x, y) > 1.2);
-    const s2 = ok[Math.floor(Math.random() * ok.length)];
+    const s2 = ok[Math.floor((DBG_START ? R0() : Math.random()) * ok.length)]; // 確認用（?debug）では毎回同じ所（撮り比べのため）
     if (s2) {
       B.x = s2[0];
       B.y = s2[1];

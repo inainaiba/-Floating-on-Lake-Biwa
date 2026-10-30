@@ -42,7 +42,7 @@ const INNER = [
 const innerPolys = [],
   innerChan = [];
 INNER.forEach(([n, lo, la, rx, ry, r, end], i) => {
-  const p = blob(lo, la, rx, ry, r, 40 + i);
+  const p = blob(lo, la, rx, ry, r, (rndFor("inner:" + n)() * 1e9) | 0); // 内湖ごとの形（ほかの内湖を足し引きしても変わらない）
   innerPolys.push(p);
   innerChan.push(channel([lo, la], end, 70));
 });

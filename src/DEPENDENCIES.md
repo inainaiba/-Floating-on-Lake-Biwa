@@ -5,8 +5,9 @@
 部品は番号順に1つのモジュールとしてつながる。後ろの部品で作る名前は、前の部品の「読み込み時に動く処理」からは使えない（関数の中や毎フレームの処理からは使える）。
 
 ## 00-head.js
-- 作る：`G`、`GLSL_NOISE`、`LEAFTX`、`NEAR_TREE_MAT`、`PLACE_LOG`、`mergeStatic`、`mkLeaf`、`placeLog`
+- 作る：`CHUNK`、`G`、`GLSL_NOISE`、`LEAFTX`、`NEAR_TREE_MAT`、`PLACE_LOG`、`chunkOf`、`chunkify`、`mergeStatic`、`mkLeaf`、`placeLog`
 - 使う：
+  - 01-settings.js（後ろの部品・要注意）：`S`
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
   - 31-ui.js（後ろの部品・要注意）：`$`
 
@@ -36,7 +37,7 @@
   - 01-settings.js：`LAKE`
   - 03-coords.js：`ll`
   - 05-lake.js：`inPoly`、`islands`、`outer`
-  - 10-start.js（後ろの部品・関数なので可）：`rnd`
+  - 10-start.js（後ろの部品・関数なので可）：`rnd`、`rndFor`
 
 ## 07-depth.js
 - 作る：`CELL`、`DEPTH`、`GH`、`GW`、`SEG_CELL`、`depth`、`depthG`、`distShore`、`distShoreAll`、`segD2`、`segIdx`、`segs`、`shoreSnap`
@@ -108,16 +109,16 @@
   - 02-season.js：`SEASON`
   - 03-coords.js：`ll`
   - 05-lake.js：`inPoly`、`islands`、`outer`
-  - 06-inner-lakes.js：`inLake`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`
+  - 06-inner-lakes.js：`INNER`、`inLake`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`
   - 07-depth.js：`depth`、`distShore`
-  - 10-start.js：`rnd`
+  - 10-start.js：`rnd`、`rndFor`
   - 12-renderer.js：`QUALITY`、`scene`
   - 14-water.js：`water`
 
 ## 17-trees.js
 - 作る：`TREE_TEX`、`cardForest`、`cardTreeGeom`、`cardTreeMat`、`paintTree`、`treeTex`
 - 使う：
-  - 00-head.js：`G`、`placeLog`
+  - 00-head.js：`G`、`chunkOf`、`placeLog`
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inRiver`
   - 10-start.js：`rnd`
@@ -159,7 +160,7 @@
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inInner`、`inLake`、`inRiver`、`maxY`、`minY`
   - 07-depth.js：`depth`、`distShore`
-  - 10-start.js：`rnd`、`rndFor`
+  - 10-start.js：`rndFor`
   - 12-renderer.js：`QUALITY`
   - 16-terrain.js：`TH`、`TW`、`VEX`、`isleH`、`nearAt`、`tdx`、`tdy`、`terrH`、`tx0`、`ty0`
   - 18-buildings.js：`buildHouse`
@@ -304,7 +305,7 @@
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inLake`、`inMain`
   - 07-depth.js：`depth`
-  - 10-start.js：`starts`
+  - 10-start.js：`DBG_START`、`R0`、`starts`
   - 11-state.js：`B`、`STATE`、`camX`、`camZ`
   - 18-buildings.js：`BODY_COLORS`、`BUILDINGS`、`CUST`、`LIGHT_COLORS`、`buildHouse`、`house`、`inReeds`
   - 29-controls.js：`dist`、`distT`、`gl`
@@ -570,6 +571,7 @@
 - 作る：`renderFrame`
 - 使う：
   - 00-head.js：`G`
+  - 01-settings.js：`S`
   - 11-state.js：`camX`、`camZ`
   - 12-renderer.js：`QUALITY`、`camera`、`renderer`、`scene`
   - 13-sky-dome.js：`skyDome`、`sun`
@@ -579,7 +581,7 @@
 ## 53-frame.js
 - 作る：`frame`
 - 使う：
-  - 00-head.js：`G`、`PLACE_LOG`
+  - 00-head.js：`G`、`PLACE_LOG`、`chunkify`
   - 01-settings.js：`Q`、`S`
   - 03-coords.js：`ll`
   - 04-clock.js：`MO`、`PH`、`clock`
@@ -626,12 +628,17 @@
 - `G.S`：53-frame.js
 - `G.VIS`：11-state.js
 - `G.W`：49-frame-sky-light.js
+- `G._v3`：53-frame.js
 - `G.afterRain`：49-frame-sky-light.js
 - `G.ambience`：42-ambience.js
+- `G.blQ`：52-frame-render.js
+- `G.blRT`：52-frame-render.js
+- `G.blS`：52-frame-render.js
 - `G.boats`：45-boats.js
 - `G.buoys`：37-buoys.js
 - `G.camera`：53-frame.js
 - `G.cards`：17-trees.js
+- `G.chunks`：00-head.js
 - `G.city`：47-city.js
 - `G.dbg`：53-frame.js
 - `G.deb`：30d-debussy.js
@@ -677,6 +684,7 @@
 - `G.roofTex`：20-villages-layout.js
 - `G.rt`：52-frame-render.js
 - `G.scene`：53-frame.js
+- `G.shTick`：52-frame-render.js
 - `G.shigure`：49-frame-sky-light.js
 - `G.shore`：46-shore-life.js
 - `G.snapNow`：32-photo.js
@@ -687,4 +695,5 @@
 - `G.torii`：35-torii.js
 - `G.trT`：50-frame-float.js
 - `G.wake`：19-boats.js
+- `G.wakeMesh`：19-boats.js
 - `G.wxNow`：49-frame-sky-light.js

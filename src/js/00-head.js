@@ -138,6 +138,46 @@ function mergeStatic(root) {
   return out.length;
 }
 
+// 画面に入っている所だけ描くための区画（実寸6km四方）。湖全体に散らばる景物（家・森・ヨシ・石など）を区画ごとの
+// 子に分けると、three.js が画面の外の区画を描かなくなる。映り込みでは遠い区画も省く（52-frame-render.js）
+const CHUNK = 6000;
+const chunkOf = (x, y) => Math.floor(x / CHUNK) * 4096 + Math.floor(y / CHUNK);
+G.chunks = [];
+// 動かない InstancedMesh を区画ごとの子に分ける。元の物は親として残し（見え隠れ・位置・材質の切り替えはそのまま効く）、
+// 自分では何も描かない。実行中に1本ずつ位置や色を変える物（userData.noChunk）には使わない
+function chunkify(mesh) {
+  if (!mesh.isInstancedMesh || mesh.userData.noChunk || mesh.count < 200) return;
+  const M = new THREE.Matrix4(),
+    groups = new Map();
+  for (let i = 0; i < mesh.count; i++) {
+    mesh.getMatrixAt(i, M);
+    const k = chunkOf(M.elements[12] / S + mesh.position.x / S, M.elements[14] / S + mesh.position.z / S);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(i);
+  }
+  if (groups.size < 2) return;
+  const col = new THREE.Color();
+  for (const idx of groups.values()) {
+    const c = new THREE.InstancedMesh(mesh.geometry, mesh.material, idx.length);
+    idx.forEach((i, j) => {
+      mesh.getMatrixAt(i, M);
+      c.setMatrixAt(j, M);
+      if (mesh.instanceColor) {
+        mesh.getColorAt(i, col);
+        c.setColorAt(j, col);
+      }
+    });
+    c.castShadow = mesh.castShadow;
+    c.receiveShadow = mesh.receiveShadow;
+    c.renderOrder = mesh.renderOrder;
+    c.userData = { ...mesh.userData, chunkOf: mesh };
+    c.computeBoundingSphere();
+    mesh.add(c);
+    G.chunks.push(c);
+  }
+  mesh.count = 0;
+  mesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, -1e7, 0), 0); // 親は描かない（いつも画面の外とみなす）
+}
 // 置き場所の記録（点検用）：景物ごとに位置（実寸の x, y）と、守るべき決まりを残す。
 // 決まり：water＝湖の上、land＝陸か島の上、shore＝岸の近く（約250m以内）。tools/audit.py が数を調べる
 const PLACE_LOG = [];

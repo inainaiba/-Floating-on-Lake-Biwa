@@ -7,7 +7,7 @@
   ・集落の家・南湖の街並み・沖島の家：建物の四隅が湖（または島の外の水）や陸の川に出ていないか
   ・湖西線の高架：桁が地面にめり込んでいないか、本湖の上を渡っていないか
   ・置き場所の記録（placeLog）：木（森・集落・岸・島・竹林）・松並木・ススキ・桜・ヨシの束・港や湖の上の景物が、決まった側（湖の上・陸・岸の近く）にあるか
-  ・代表の場面ごとの処理時間の内訳（移動・空と光・景物・描画）と、描画の回数・三角形の数
+  ・代表の場面ごとの処理時間の内訳（移動・空と光・景物・描画）と、描画の回数・三角形の数（中画質。上限 BUDGET を超えたら失敗）
 この環境はソフトウェア描画なので、時間の絶対値は実機よりずっと遅い。場面どうし・部分どうしの比較に使う。
 """
 import sys, json, pathlib
@@ -23,6 +23,10 @@ SCENES = [
     ('夜・灯り', {'month': 5, 'phase': 0.9, 'wx': 0, 'b': 8, 't': 1000000}, [136.03, 35.22, 0, 0, 0.7, 0.12, 60]),
     ('雨', {'month': 5, 'phase': 0.4, 'wx': 4, 'b': 0, 't': 1000000}, [136.03, 35.22, 0, 0, 0.7, 0.3, 60]),
 ]
+
+# 重さの上限（中画質で、代表の場面1つあたり）。知らないうちに重くなる変更を止めるため。
+# 2026年10月の軽量化（区画分け）のあとで、三角形 約110万〜140万・描画回数 約130〜300。そこから約3割の余裕
+BUDGET = {'triangles': 1_800_000, 'calls': 360}
 
 OVERLAP = r"""()=>{
  const G=__floating,D=G.dbg,S=G.S,out={};
@@ -57,6 +61,7 @@ def main():
     port = srv.server_address[1]
     errs = []
     bad_total = 0
+    heavy = []
     with sync_playwright() as p:
         b = p.chromium.launch(args=['--use-gl=swiftshader'])
         pg = b.new_page(viewport={'width': 640, 'height': 400})
@@ -65,7 +70,7 @@ def main():
         three = check.R / 'node_modules/three/build/three.module.js'
         if three.exists():
             pg.route('**/three.module.js', lambda r: r.fulfill(path=str(three)))
-        pg.goto(f'http://127.0.0.1:{port}/docs/index.html?debug')
+        pg.goto(f'http://127.0.0.1:{port}/docs/index.html?debug&q=mid')  # 重さの上限は中画質で測る（スマートフォンの既定）
         pg.evaluate("()=>{try{localStorage.setItem('floating.hint2','1')}catch(e){}}")
         pg.wait_for_timeout(900)
         pg.evaluate("()=>document.getElementById('title').click()")
@@ -82,16 +87,21 @@ def main():
             pg.evaluate('()=>{__floating.prof={}}')
             pg.evaluate('()=>__frames(6)')
             pr = pg.evaluate('()=>__floating.prof')
+            over = pr['triangles'] > BUDGET['triangles'] or pr['calls'] > BUDGET['calls']
             print(f"  {name}：移動 {pr['move']:.1f}／空と光 {pr['skyLight']:.1f}／景物 {pr['elements']:.1f}／描画 {pr['render']:.0f}"
-                  f"　描画回数 {pr['calls']}　三角形 {pr['triangles']/1e6:.2f}M")
+                  f"　描画回数 {pr['calls']}　三角形 {pr['triangles']/1e6:.2f}M" + ('　★上限を超えています' if over else ''))
+            if over:
+                heavy.append(name)
         b.close()
     srv.shutdown()
+    if heavy:
+        print(f"■ 重さの上限（中画質・1場面あたり 三角形 {BUDGET['triangles']/1e6:.1f}M・描画回数 {BUDGET['calls']}）を超えた場面：{'、'.join(heavy)}")
     if errs:
         print('■ ページのエラー')
         for e in sorted(set(errs)):
             print('  ', e)
     # はみ出しや置き場所の誤り、ページの誤りがあれば失敗にする（自動確認で止めるため）
-    if bad_total or errs:
+    if bad_total or errs or heavy:
         sys.exit(1)
 
 

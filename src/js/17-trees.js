@@ -189,13 +189,19 @@ function cardForest(kind, list, hgt, wid, near, far, shadow) {
   list = list.filter(([x, y]) => !inRiver(x, y)); // 川の上には立てない
   placeLog("木・" + ({ broad: "広葉樹", pine: "松", cedar: "杉", bamboo: "竹" }[kind] || kind), "land", list);
   for (let v = 0; v < 3; v++) {
-    const sel = list.filter((_, i) => i % 3 === v);
-    if (!sel.length) continue;
-    const I = new THREE.InstancedMesh(
-        cardTreeGeom(hgt, wid, kind === "cedar" ? 2 : 3),
-        cardTreeMat(kind, v, near, far),
-        sel.length,
-      ),
+    const all = list.filter((_, i) => i % 3 === v);
+    if (!all.length) continue;
+    // 区画（00-head.js の CHUNK）ごとに分けて、画面の外の区画を描かないようにする。形と材質は区画どうしで共有
+    const geo = cardTreeGeom(hgt, wid, kind === "cedar" ? 2 : 3),
+      mat = cardTreeMat(kind, v, near, far),
+      byChunk = new Map();
+    for (const p of all) {
+      const k = chunkOf(p[0], p[1]);
+      if (!byChunk.has(k)) byChunk.set(k, []);
+      byChunk.get(k).push(p);
+    }
+    for (const sel of byChunk.values()) {
+    const I = new THREE.InstancedMesh(geo, mat, sel.length),
       M = new THREE.Matrix4(),
       c = new THREE.Color();
     sel.forEach(([x, y, gy, s, r], i) => {
@@ -211,7 +217,12 @@ function cardForest(kind, list, hgt, wid, near, far, shadow) {
     });
     I.castShadow = !!shadow;
     I.userData.kind = kind;
+    I.userData.noChunk = true; // すでに区画ごと
+    I.userData.far = far; // これより遠い区画は描かない（53-frame.js。木は far までに縮んで消えている）
+    I.computeBoundingSphere();
     scene.add(I);
+    G.chunks.push(I);
     (G.forest = G.forest || []).push(I);
+    }
   }
 }

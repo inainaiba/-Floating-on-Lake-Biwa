@@ -355,6 +355,7 @@ const shoreTrees = [];
 placeLog("内湖のまわりの木", "land", shoreTrees);
 const treeM = treeFade(new THREE.MeshLambertMaterial({ vertexColors: true }), 260, 420),
   treeI = new THREE.InstancedMesh(treeGeom("broad"), treeM, shoreTrees.length);
+treeI.userData.noChunk = true; // 季節ごとに1本ずつ色を変える（区画に分けない）
 {
   const M = new THREE.Matrix4();
   shoreTrees.forEach(([x, y, c], i) => {

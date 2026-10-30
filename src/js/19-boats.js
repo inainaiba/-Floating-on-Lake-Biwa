@@ -384,7 +384,7 @@ const boatMeshes = new Map();
 let W_SENSE = 1;
 // 航跡：白い泡の点を落として薄れさせる
 const WAKE_N = 3000,
-  wake = new THREE.InstancedMesh(
+  wake = G.wakeMesh = new THREE.InstancedMesh(
     new THREE.CircleGeometry(1, 12).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({
       color: 0xf2f6f6,

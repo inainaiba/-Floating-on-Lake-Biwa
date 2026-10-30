@@ -149,8 +149,8 @@ if (TOWNS && TOWNS.n) {
   }
 }
 {
-  const R = rnd(314);
   for (const [lo, la] of VILLAGES) {
+    const R = rndFor("village:" + lo + "," + la); // 集落ごとの乱数（ほかの集落を足し引き・移動しても、この集落の家・道・田は変わらない）
     const [vx, vy] = ll(lo, la);
     // 岸の一番近い点と、陸へ向かう向き
     let best = null,

@@ -215,7 +215,6 @@ G.life = (() => {
   })();
   // 湖岸の松並木：近江舞子・北小松・萩の浜・宮ヶ浜の白砂青松
   if (LOOK.show.pines) {
-    const R = rndFor("pines");
     const SITES = [
       [135.9616, 35.2332, 1400], // 近江舞子（位置は地理院の注記から）
       [135.9751, 35.255, 900], // 北小松
@@ -228,6 +227,7 @@ G.life = (() => {
         [x2, y2] = outer[i + 1],
         L = Math.hypot(x2 - x1, y2 - y1);
       if (L < 1 || !SITES.some(([sx, sy, r]) => Math.hypot(x1 - sx, y1 - sy) < r)) continue;
+      const R = rndFor("pines:" + i); // 岸の線分ごとの乱数（松並木の場所を足し引きしても、ほかの所は変わらない）
       let nx = -(y2 - y1) / L,
         ny = (x2 - x1) / L;
       if (inLake(x1 + nx * 30, y1 + ny * 30)) (nx = -nx), (ny = -ny);
