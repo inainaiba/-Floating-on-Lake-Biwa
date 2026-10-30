@@ -56,11 +56,27 @@ const ghI = new THREE.InstancedMesh(
 scene.add(ghI);
 const PADDY = SEASON.paddy;
 function paddySeason(m, sky) {
-  const c = new THREE.Color(PADDY[m]);
-  if (m === 3 || m === 4) c.lerp(sky, 0.5);
+  // 水を張った田（空の色が強い色）は空を映す。区画ごとの状態は位置から決まる乱数で（毎月同じ区画が先に田植え・稲刈り）
+  const states = PADDY[m].map(([hex, share]) => {
+      const c = new THREE.Color(hex);
+      if (c.b > c.g && c.b > c.r) c.lerp(sky, 0.5);
+      return [c, share];
+    }),
+    fc = new THREE.Color(SEASON.field[m]),
+    c = new THREE.Color();
   for (let i = 0; i < paddies.length; i++) {
-    const k = paddies[i].v;
-    paddyI.setColorAt(i, c.clone().multiplyScalar(0.85 + k * 0.3));
+    const p = paddies[i],
+      k = p.v,
+      h = (((Math.sin(p.x * 0.0123 + p.y * 0.0371) * 43758.5453) % 1) + 1) % 1;
+    if (p.field) c.copy(fc);
+    else {
+      let acc = 0;
+      for (const [sc, share] of states) {
+        c.copy(sc);
+        if (h < (acc += share)) break;
+      }
+    }
+    paddyI.setColorAt(i, c.multiplyScalar(0.85 + k * 0.3));
   }
   paddyI.instanceColor.needsUpdate = true;
 }

@@ -209,9 +209,10 @@
   - 02-season.js：`SEASON`
   - 12-renderer.js：`scene`
   - 20-villages-layout.js：`cvTex`、`landY`、`paddies`
+  - 31-ui.js（後ろの部品・要注意）：`hex`
 
 ## 24-shore-landmarks.js
-- 作る：`brk`、`shoreTrees`、`treeI`、`treeM`、`treeSeason`
+- 作る：`brk`、`railLine`、`shoreTrees`、`treeI`、`treeM`、`treeSeason`
 - 使う：
   - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`RAIL`、`S`
@@ -650,6 +651,7 @@
 - `G._v3`：53-frame.js
 - `G.afterRain`：49-frame-sky-light.js
 - `G.ambience`：42-ambience.js
+- `G.biwako`：24-shore-landmarks.js
 - `G.blQ`：52-frame-render.js
 - `G.blRT`：52-frame-render.js
 - `G.blS`：52-frame-render.js
@@ -707,6 +709,7 @@
 - `G.shigure`：49-frame-sky-light.js
 - `G.shore`：46-shore-life.js
 - `G.snapNow`：32-photo.js
+- `G.stationLamps`：24-shore-landmarks.js
 - `G.street`：21-villages-walls-roofs.js
 - `G.sunY`：49-frame-sky-light.js
 - `G.tFix`：53-frame.js

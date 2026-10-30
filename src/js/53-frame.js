@@ -65,7 +65,7 @@ function frame(now) {
   if (G.life) G.life.update(dt, t, c, day, wxNow);
   if (G.boats) G.boats.update(dt, t, c, day, wxNow);
   if (G.shore) G.shore.update(dt, t, c, day, wxNow);
-  if (G.trains) G.trains.update(c, day); // 湖西線の電車（24b-trains.js）
+  if (G.trains) G.trains.update(c, day); // 湖西線と琵琶湖線の電車（24b-trains.js）
   updateCamera(dt, t, hx, hz);
   if (G.nearPatch) G.nearPatch.update(camera.position.x / S, camera.position.z / S); // カメラのまわりの細かい地形（16-terrain.js）
   // 木が縮んで消える距離（cardForest の far）より遠い森の区画は、はじめから描かない

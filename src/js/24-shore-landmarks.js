@@ -17,11 +17,12 @@ const brk = new THREE.InstancedMesh(
 }
 scene.add(brk);
 
-// 湖西線の高架（西岸の集落の背後を走る）
-{
-  // 線路の道筋：地理院のベクトルタイルの湖西線（tools/rail.py → data/rail.json）
-  const L = (RAIL.kosei || []).map((p) => ll(...p));
-  // 線路を約120mごとの点にする。湖岸線の簡略化で湖の上に出た点は、西（陸の側）へ押して岸から少し内に置く
+// 鉄道：湖西線の高架（西岸の集落の背後を走る）と、対岸の琵琶湖線（地面の上の盛土）。トンネルの入口と駅も置く
+// 道筋・トンネル・駅は地理院のベクトルタイルから（tools/rail.py → data/rail.json）
+// opt.lift 地面からの桁の高さ／opt.minLift いちばん低い所／opt.piers 橋脚を立てるか／opt.west 湖の上に出た点を西へ押すか（東岸の線は近い陸へ）
+function railLine(line, tunnels, stations, opt) {
+  const L = (line || []).map((p) => ll(...p));
+  // 線路を約120mごとの点にする。湖岸線の簡略化で湖の上に出た点は、陸の側へ押して岸から少し内に置く
   // （点を捨てると、前後の点が湖を横切る長い桁でつながってしまう）
   const onLand = (x, y) => !inLake(x, y) && distShore(x, y) > 100;
   const toLand = (x, y) => {
@@ -36,14 +37,15 @@ scene.add(brk);
       }
     return toLand(x, y);
   };
+  const push = opt.west ? toLand : (x, y) => (onLand(x, y) || !inLake(x, y) ? [x, y] : nearLand(x, y));
   let pts = [];
   for (let i = 0, s = 0; i < L.length - 1; i++) {
     const [a, b] = [L[i], L[i + 1]],
       len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    for (; s < len; s += 120) pts.push(toLand(a[0] + ((b[0] - a[0]) * s) / len, a[1] + ((b[1] - a[1]) * s) / len));
+    for (; s < len; s += 120) pts.push(push(a[0] + ((b[0] - a[0]) * s) / len, a[1] + ((b[1] - a[1]) * s) / len));
     s -= len; // 次の区間へ、120mの刻みを持ち越す
   }
-  if (L.length) pts.push(toLand(...L[L.length - 1]));
+  if (L.length) pts.push(push(...L[L.length - 1]));
   // 押した点どうしの桁が入江を横切るときは、間に点を足して岸に沿わせる（川を渡る所は湖ではないのでそのまま）
   for (let pass = 0; pass < 12; pass++) {
     const out = [pts[0]];
@@ -57,8 +59,8 @@ scene.add(brk);
     }
     pts = out;
   }
-  // トンネル（地理院の鉄道の railState 100。tools/rail.py → data/rail.json の tunnels）：その線から50m以内の点
-  const TN = (RAIL.tunnels || []).map((l) => l.map((p) => ll(...p))),
+  // トンネル（地理院の鉄道の railState 100）：その線から50m以内の点
+  const TN = (tunnels || []).map((l) => l.map((p) => ll(...p))),
     tun = pts.map(([x, y]) =>
       TN.some((l) =>
         l.some((a, k) => {
@@ -71,47 +73,40 @@ scene.add(brk);
         }),
       ),
     );
-  // トンネルの区間の高さ：両側の入口の高さを直線でつなぐ（山の中を通るので、地面には合わせない）
-  const throughTunnels = (h) => {
-    for (let i = 0; i < h.length; i++) {
-      if (!tun[i]) continue;
-      let j = i;
-      while (j < h.length && tun[j]) j++;
-      const a = i > 0 ? h[i - 1] : h[j],
-        b = j < h.length ? h[j] : a;
-      for (let k = i; k < j; k++) h[k] = a + ((b - a) * (k - i + 1)) / (j - i + 1);
-      i = j;
-    }
-    return h;
-  };
-  // 高さ：地面の高さ＋約9。前後でならして、なめらかに上り下りする（トンネルの中の地面は見ない）
-  const gh = pts.map(([x, y]) => landY(x, y));
-  const top = throughTunnels(
-    gh.map((_, i) => {
-      let m = -1e9;
+  // 高さ：地面の高さ＋lift。前後でならして、なめらかに上り下りする。
+  // トンネルの前後3点は地面の近く（入口へ下りていく）、トンネルの中は地面の下（作品の地形は実際の山より低いので、高さを直線でつなぐと山から出てしまう）
+  const gh = pts.map(([x, y]) => landY(x, y)),
+    dT = pts.map((_, i) => {
+      for (let k = 0; k <= 3; k++) if (tun[i - k] || tun[i + k]) return k;
+      return 4;
+    }),
+    lift = dT.map((k) => (k >= 4 ? opt.lift : opt.minLift * 0.25 + ((opt.lift - opt.minLift * 0.25) * Math.max(0, k - 1)) / 3));
+  const top = gh.map((_, i) => {
+    let m = gh[i];
+    if (dT[i] >= 4)
       for (let k = -3; k <= 3; k++) {
         const j = Math.min(gh.length - 1, Math.max(0, i + k));
         if (!tun[j]) m = Math.max(m, gh[j]);
       }
-      return (m > -1e9 ? m : gh[i]) + 9;
-    }),
-  );
-  const ht = throughTunnels(
-    top.map((_, i) => {
-      let s = 0,
-        n = 0;
-      for (let k = -4; k <= 4; k++) {
-        const j = Math.min(top.length - 1, Math.max(0, i + k));
-        s += top[j];
-        n++;
-      }
-      return Math.max(s / n, gh[i] + 6);
-    }),
-  );
+    return m + lift[i];
+  });
+  const ht = top.map((_, i) => {
+    if (tun[i]) return gh[i] - 4;
+    if (dT[i] < 4) return gh[i] + lift[i];
+    let s = 0,
+      n = 0;
+    for (let k = -4; k <= 4; k++) {
+      const j = Math.min(top.length - 1, Math.max(0, i + k));
+      if (tun[j]) continue;
+      s += top[j];
+      n++;
+    }
+    return Math.max(s / n, gh[i] + opt.minLift);
+  });
   // 橋桁：隣り合う点どうしを、すき間なくつなぐ（向きと傾きを合わせる）
   const D = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(1, 0.9, 4),
-      new THREE.MeshLambertMaterial({ color: 0xa9aaa5 }),
+      new THREE.BoxGeometry(1, opt.deck, 4).translate(0, 0.45 - opt.deck / 2, 0),
+      new THREE.MeshLambertMaterial({ color: opt.color }),
       Math.max(1, pts.length - 1),
     ),
     Pm = new THREE.InstancedMesh(
@@ -127,17 +122,22 @@ scene.add(brk);
   let nd = 0,
     np = 0;
   for (let i = 0; i < pts.length - 1; i++) {
-    A.set(pts[i][0] * S, ht[i], pts[i][1] * S);
-    Bv.set(pts[i + 1][0] * S, ht[i + 1], pts[i + 1][1] * S);
+    if (tun[i] && tun[i + 1]) continue; // トンネルの中
+    // トンネルの入口へは、外の点から入口（2点の中ほど）まで、外の点の高さで
+    const o = tun[i + 1] ? i : i + 1,
+      edge = tun[i] !== tun[i + 1];
+    A.set(pts[i][0] * S, edge ? ht[o] : ht[i], pts[i][1] * S);
+    Bv.set(pts[i + 1][0] * S, edge ? ht[o] : ht[i + 1], pts[i + 1][1] * S);
+    if (edge) (o === i ? Bv : A).lerp(o === i ? A : Bv, 0.5);
     const len = A.distanceTo(Bv);
-    if (len < 0.01 || (tun[i] && tun[i + 1])) continue; // 湖を避けて寄せた点が重なった所と、トンネルの中（水の上を渡る所は、そのまま橋桁でつなぐ）
+    if (len < 0.01) continue; // 湖を避けて寄せた点が重なった所（水の上を渡る所は、そのまま橋桁でつなぐ）
     Q.setFromUnitVectors(X, Bv.clone().sub(A).normalize());
     M.compose(A.clone().add(Bv).multiplyScalar(0.5), Q, new THREE.Vector3(len + 0.3, 1, 1));
     D.setMatrixAt(nd++, M);
   }
-  // 橋脚：陸の上だけ、地面から桁の下まで
+  // 橋脚：陸の上だけ、地面から桁の下まで（高架のとき）
   pts.forEach(([x, y], i) => {
-    if (inLake(x, y) || tun[i] || i % 2) return;
+    if (!opt.piers || inLake(x, y) || tun[i] || i % 2) return;
     const yaw = i < pts.length - 1 ? Math.atan2(pts[i + 1][1] - y, pts[i + 1][0] - x) : 0;
     M.compose(new THREE.Vector3(x * S, gh[i] - 0.5, y * S), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -yaw, 0)), new THREE.Vector3(1, ht[i] - gh[i], 1));
     Pm.setMatrixAt(np++, M);
@@ -145,8 +145,88 @@ scene.add(brk);
   D.count = nd;
   Pm.count = np;
   scene.add(D, Pm);
-  G.kosei = { pts, ht, gh, tun }; // 電車・全体地図・確認（高架のつながりの検査）で使う
+  // トンネルの入口（坑口）：線路が地面に入る所（外の点とトンネルの点の中ほど）に、コンクリートの門と暗い穴
+  const portals = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    if (tun[i] === tun[i + 1]) continue;
+    const [o, t] = tun[i] ? [i + 1, i] : [i, i + 1]; // o 外の点、t トンネルの点
+    portals.push({
+      x: (pts[o][0] + pts[t][0]) / 2,
+      y: (pts[o][1] + pts[t][1]) / 2,
+      h: ht[o],
+      a: Math.atan2(pts[t][1] - pts[o][1], pts[t][0] - pts[o][0]),
+    });
+  }
+  if (portals.length) {
+    const face = new THREE.InstancedMesh(new THREE.BoxGeometry(1.6, 8.5, 9), new THREE.MeshLambertMaterial({ color: 0x9c9d98 }), portals.length),
+      hole = new THREE.InstancedMesh(new THREE.BoxGeometry(1.8, 5.6, 5.4), new THREE.MeshBasicMaterial({ color: 0x0b0c0d }), portals.length);
+    portals.forEach((q, i) => {
+      Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -q.a);
+      M.compose(new THREE.Vector3(q.x * S, q.h + 3.2, q.y * S), Q, new THREE.Vector3(1, 1, 1));
+      face.setMatrixAt(i, M);
+      M.compose(new THREE.Vector3(q.x * S, q.h + 2.4, q.y * S), Q, new THREE.Vector3(1, 1, 1));
+      hole.setMatrixAt(i, M);
+    });
+    scene.add(face, hole);
+  }
+  // 駅：線路のいちばん近い点の脇（湖と反対の側）に、ホームと小さな駅舎。夜はホームの灯りが並ぶ
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const st = [];
+  for (const [lo, la, name] of stations || []) {
+    const [sx, sy] = ll(lo, la);
+    let bi = 0,
+      bd = 1e18;
+    pts.forEach(([x, y], i) => {
+      const d = (x - sx) ** 2 + (y - sy) ** 2;
+      if (d < bd) (bd = d), (bi = i);
+    });
+    if (tun[bi]) continue;
+    const j = Math.min(pts.length - 1, bi + 1),
+      i0 = j === bi ? bi - 1 : bi,
+      a = Math.atan2(pts[j][1] - pts[i0][1], pts[j][0] - pts[i0][0]);
+    let side = 1;
+    const nx = -Math.sin(a),
+      ny = Math.cos(a);
+    if (inLake(pts[bi][0] + nx * 400, pts[bi][1] + ny * 400)) side = -1;
+    st.push({ name, i: bi, s: cum[bi], x: pts[bi][0], y: pts[bi][1], h: ht[bi], a, nx: nx * side, ny: ny * side });
+  }
+  const PL = 140; // ホームの長さ（作品の中の長さ。電車8両が位置の上で並ぶ長さ）
+  if (st.length) {
+    const plat = new THREE.InstancedMesh(new THREE.BoxGeometry(PL, 1, 3.2), new THREE.MeshLambertMaterial({ color: 0xb9b6ad }), st.length),
+      roof = new THREE.InstancedMesh(new THREE.BoxGeometry(PL * 0.45, 0.35, 3.6), new THREE.MeshLambertMaterial({ color: 0x5d6166 }), st.length),
+      hall = new THREE.InstancedMesh(new THREE.BoxGeometry(16, 6, 9).translate(0, 3, 0), new THREE.MeshLambertMaterial({ color: 0xd9d5cb }), st.length),
+      lampM = new THREE.MeshBasicMaterial({ color: 0x2a3036 }),
+      lamps = new THREE.InstancedMesh(new THREE.BoxGeometry(0.5, 0.25, 0.5), lampM, st.length * 9);
+    let nl = 0;
+    st.forEach((q, i) => {
+      Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -q.a);
+      const px = q.x * S + q.nx * 4.2,
+        pz = q.y * S + q.ny * 4.2;
+      M.compose(new THREE.Vector3(px, q.h - 0.1, pz), Q, new THREE.Vector3(1, 1, 1));
+      plat.setMatrixAt(i, M);
+      M.compose(new THREE.Vector3(px, q.h + 3.6, pz), Q, new THREE.Vector3(1, 1, 1));
+      roof.setMatrixAt(i, M);
+      const hx = q.x * S + q.nx * 15,
+        hz = q.y * S + q.ny * 15;
+      M.compose(new THREE.Vector3(hx, landY(hx / S, hz / S) - 0.3, hz), Q, new THREE.Vector3(1, 1, 1));
+      hall.setMatrixAt(i, M);
+      for (let k = 0; k < 9; k++) {
+        const t = (k / 8 - 0.5) * PL * 0.9;
+        M.compose(new THREE.Vector3(px + Math.cos(q.a) * t, q.h + 3.3, pz + Math.sin(q.a) * t), Q, new THREE.Vector3(1, 1, 1));
+        lamps.setMatrixAt(nl++, M);
+      }
+    });
+    scene.add(plat, roof, hall, lamps);
+    G.stationLamps = G.stationLamps || [];
+    G.stationLamps.push(lampM);
+  }
+  return { pts, ht, gh, tun, cum, st };
 }
+// 湖西線：高架。湖の上に出た点は西へ押す
+G.kosei = railLine(RAIL.kosei, RAIL.tunnels, RAIL.stations, { lift: 9, minLift: 6, deck: 0.9, piers: true, west: true, color: 0xa9aaa5 }); // 電車・全体地図・確認（高架のつながりの検査）で使う
+// 琵琶湖線：地面の上の低い盛土（桁を下へ厚くして地面に届かせる）
+G.biwako = railLine(RAIL.biwako, RAIL.biwakoTunnels, RAIL.biwakoStations, { lift: 1.6, minLift: 1.2, deck: 2.6, piers: false, west: false, color: 0x8f8a80 });
 // 岸の松並木と砂浜
 {
   const tr = [],
