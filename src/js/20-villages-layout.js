@@ -99,6 +99,7 @@ const TOWNS = __TOWNS__;
 // 家の位置の升（120m四方）：近くに家があるかを、全部の家を調べずに確かめる（森・田の置き場所で何十万回も使う）
 const houseGrid = new Map();
 function addHouse(hs) {
+  if (meishoClear(hs.x, hs.y)) return; // 名所の建物の上には建てない（03b-meisho-sites.js）
   houses.push(hs);
   const k = Math.floor(hs.x / 120) * 65536 + Math.floor(hs.y / 120);
   if (!houseGrid.has(k)) houseGrid.set(k, []);

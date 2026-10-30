@@ -25,6 +25,19 @@ body.far .ico svg{stroke:#1b1b1b}
 #snd{left:16px;top:calc(16px + env(safe-area-inset-top))}
 #save{right:16px;top:64px}
 body:not(.lake) #save,body.far #save{display:none}
+#rec{right:16px;top:112px}
+#rec .d{fill:rgba(255,255,255,.85);stroke:none}
+#rec.on .d{fill:#e2361c;animation:recp 1.2s ease-in-out infinite}
+@keyframes recp{50%{opacity:.35}}
+body:not(.lake) #rec,body.far #rec,body.norec #rec,body.rec #save{display:none}
+#recm{position:fixed;right:64px;top:112px;display:none;gap:8px;align-items:center}
+#recm.on{display:flex}
+#recm div{border:1px solid rgba(255,255,255,.6);border-radius:18px;padding:8px 13px;background:rgba(0,0,0,.28);color:#fff;font-size:12px;letter-spacing:.06em;cursor:pointer;white-space:nowrap;text-align:center;line-height:1.35}
+#recm div span{display:block;font-size:9.5px;opacity:.75;letter-spacing:.04em}
+#rect{position:fixed;right:66px;top:122px;color:#fff;font-size:12px;letter-spacing:.08em;text-shadow:0 1px 6px rgba(0,0,0,.5);display:none}
+body.rec #rect{display:block}
+#shot video{max-width:100%;max-height:100%;box-shadow:0 8px 40px rgba(0,0,0,.4);display:none}
+#shot.vid img{display:none}#shot.vid video{display:block}
 #shot{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.6);display:none;place-items:center;padding:24px;box-sizing:border-box}
 #shot.on{display:grid}
 #shot img{max-width:100%;max-height:100%;box-shadow:0 8px 40px rgba(0,0,0,.4)}
@@ -93,11 +106,14 @@ body.far #rest{display:none}
 </div>
 <div id="snd" class="ico" aria-label="sound"><svg viewBox="0 0 24 24"><path d="M4 10h4l5-4v12l-5-4H4z"/><path class="w" d="M16 9c1.5 1.5 1.5 4.5 0 6M18.5 6.5c3 3 3 8 0 11"/></svg></div>
 <div id="save" class="ico" aria-label="photo"><svg viewBox="0 0 24 24"><path d="M4 8h3.5l1.5-2h6l1.5 2H20v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg></div>
-<div id="shot"><img alt=""></div>
+<div id="rec" class="ico" aria-label="video"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle class="d" cx="12" cy="12" r="3.6"/></svg></div>
+<div id="recm"><div id="recV">動画<span>30秒まで・音も</span></div><div id="recT">早回し<span>一日を約20秒で</span></div></div>
+<div id="rect"></div>
+<div id="shot"><img alt=""><video muted loop playsinline></video></div>
 <div id="rest" aria-label="drift"><svg viewBox="0 0 24 24"><path d="M3 16c3-3 6 3 9 0s6 3 9 0"/><path d="M8 9h9M14 6l3 3-3 3"/></svg></div>
 <div id="hint">ドラッグで見回す・ピンチで寄る<br><span style="font-size:11px;opacity:.8">Drag to look, pinch to zoom</span></div>
 </div>
-<div id="ab">この作品について</div><div id="about"><div class="in"><h2>Floating</h2><p>琵琶湖に、建築を浮かべる。</p><p class="how">見回す：ドラッグ　寄る：ピンチ・ホイール<br>舵：左下の円・矢印キー（離すとまた漂う）<br>行き先：右上の地図でタップ<br>写真：右上のカメラ（いま見ている景色を保存）<br>映像：赤いブイに近づいてタップ</p><p class="replay" id="replayHint">案内をもう一度見る</p><p class="src">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a><br><a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a> ／ <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></p><p class="cl">閉じる</p></div></div>
+<div id="ab">この作品について</div><div id="about"><div class="in"><h2>Floating</h2><p>琵琶湖に、建築を浮かべる。</p><p class="how">見回す：ドラッグ　寄る：ピンチ・ホイール<br>舵：左下の円・矢印キー（離すとまた漂う）<br>行き先：右上の地図でタップ<br>写真：右上のカメラ（いま見ている景色を保存）<br>動画：カメラの下の丸（そのままの動画か、一日を早回しで）<br>映像：赤いブイに近づいてタップ</p><p class="replay" id="replayHint">案内をもう一度見る</p><p class="src">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a><br><a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a> ／ <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></p><p class="cl">閉じる</p></div></div>
 <div id="veil"><div id="ld">湖を描いています<span>Drawing the lake</span></div></div>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 <script type="module">
@@ -422,6 +438,72 @@ const LAT0 = 35.25,
   KY = 110540;
 const ll = (lon, lat) => [(lon - LON0) * KX, (LAT0 - lat) * KY]; // 実寸m, x東 y南
 
+// ==== 03b-meisho-sites.js ====
+/* ---------- 名所の配置：竹生島（宝厳寺・都久夫須麻神社）、多景島（見塔寺）、彦根城。建物は 40b-meisho.js で建てる。
+   位置と向きは地理院のベクトルタイルの注記と建物の形（ズーム15・16）から。
+   作品の地図は横に1/5へ縮めてあり、建物は実物大で描くので、そのままでは建物どうしが重なる。
+   そこで名所ごとに、建物の間隔を F 倍に広げ、建物の大きさを scale 倍にする（どちらも見た目の釣り合いのため）。
+   ・anchor：名所の中心にする建物の経度・緯度
+   ・parts：{ k 種類, at 経度・緯度, a 建物の長い辺の向き（度。作品の座標 x 東・y 南で測る。正面はその90°先）, w 幅, d 奥行き（作品の中の長さ） }
+   ここでは、建物のまわりの木と家をどける範囲（実寸の x, y と半径）も決める（17-trees.js の cardForest と 20-villages-layout.js の addHouse が見る） ---------- */
+const MEISHO = [
+  {
+    name: "竹生島",
+    anchor: [136.14421, 35.42069], // 都久夫須麻神社の本殿
+    F: 1.6,
+    isle: true,
+    parts: [
+      { k: "hondo", at: [136.14329, 35.42146], a: -32, w: 14, d: 13 }, // 宝厳寺の本堂（弁才天堂）
+      { k: "pagoda", at: [136.14305, 35.42104], a: 46, w: 5.6, d: 5.6 }, // 宝厳寺の三重塔
+      { k: "kannon", at: [136.14378, 35.42058], a: 12, w: 12, d: 9 }, // 宝厳寺の観音堂
+      { k: "honden", at: [136.14421, 35.42069], a: -16, w: 8, d: 8.5 }, // 都久夫須麻神社の本殿
+      { k: "haisho", at: [136.14431, 35.42045], a: -22, w: 7, d: 5.5 }, // 竜神拝所（下の湖に鳥居）
+    ],
+  },
+  {
+    name: "多景島",
+    anchor: [136.17797, 35.2964], // 見塔寺の本堂
+    F: 2.5,
+    isle: true,
+    parts: [
+      { k: "temple", at: [136.17797, 35.2964], a: 15, w: 5.5, d: 4 }, // 見塔寺の本堂
+      { k: "kuri", at: [136.1779, 35.29631], a: -13, w: 5.5, d: 3.6 }, // 庫裏
+      { k: "daimoku", at: [136.17781, 35.29643], a: 0, w: 2.2, d: 2.2 }, // 題目塔
+    ],
+  },
+  {
+    name: "彦根城",
+    anchor: [136.25189, 35.27649], // 天守
+    F: 2,
+    isle: false,
+    parts: [
+      { k: "tenshu", at: [136.25189, 35.27649], a: 40, w: 16, d: 12 }, // 天守（附櫓・多聞櫓を伴う）
+      { k: "taikomon", at: [136.25212, 35.27604], a: 10, w: 10, d: 7 }, // 太鼓門櫓
+      { k: "tenbin", at: [136.25255, 35.27555], a: -1, w: 34, d: 7 }, // 天秤櫓（両端に二重の櫓）
+      { k: "sanju", at: [136.25065, 35.27783], a: 61, w: 9, d: 7 }, // 西の丸三重櫓
+    ],
+  },
+];
+// 建物ごとの置き場所（実寸の x, y）を決める。名所の中心からの隔たりを F 倍に広げる
+for (const m of MEISHO) {
+  const [ax, ay] = ll(...m.anchor);
+  m.ax = ax;
+  m.ay = ay;
+  for (const p of m.parts) {
+    const [x, y] = ll(...p.at);
+    p.x = ax + (x - ax) * m.F;
+    p.y = ay + (y - ay) * m.F;
+    p.r = (Math.hypot(p.w, p.d) / 2 + 4) / S; // まわりをどける半径（実寸m。建物の対角の半分と、木の大きさの分）
+  }
+}
+// 名所の建物の上か（木や家を置かない）
+function meishoClear(x, y) {
+  for (const m of MEISHO)
+    if (Math.abs(x - m.ax) < 1500 && Math.abs(y - m.ay) < 1500)
+      for (const p of m.parts) if ((x - p.x) ** 2 + (y - p.y) ** 2 < p.r * p.r) return true;
+  return false;
+}
+
 // ==== 04-clock.js ====
 /* ---------- 共有時計：一日≈23分36秒、12日で一年 ---------- */
 const DAY = 1416,
@@ -432,7 +514,9 @@ function clock() {
   // 確認用に時刻を止められる（G.tFix：?debug のときだけ __scene から設定）
   const t = G.tFix != null ? G.tFix : (Date.now() - EPOCH) / 1000,
     d = Math.floor(t / DAY);
-  return { t, month: MO !== null ? +MO : ((d % 12) + 12) % 12, phase: PH !== null ? +PH : (t % DAY) / DAY };
+  // G.pw：早回しの撮影（32b-video.js）で進めた時刻（一日の割合）。月と、t で決まるもの（天気・電車の位置など）は変えない
+  const ph = PH !== null ? +PH : (t % DAY) / DAY;
+  return { t, month: MO !== null ? +MO : ((d % 12) + 12) % 12, phase: G.pw ? (ph + G.pw) % 1 : ph };
 }
 
 // 太陽と月の位置（天文の計算）：作品の月は「その月の中日」、時刻は作品の一日の中の時刻として、
@@ -2758,7 +2842,7 @@ function cardTreeMat(kind, v, near, far) {
 }
 // 種類ごとに3枚の絵を描き分け、木ごとにどれかを使う
 function cardForest(kind, list, hgt, wid, near, far, shadow) {
-  list = list.filter(([x, y]) => !inRiver(x, y)); // 川の上には立てない
+  list = list.filter(([x, y]) => !inRiver(x, y) && !meishoClear(x, y)); // 川の上と、名所の建物の上（03b-meisho-sites.js）には立てない
   placeLog("木・" + ({ broad: "広葉樹", pine: "松", cedar: "杉", bamboo: "竹" }[kind] || kind), "land", list);
   for (let v = 0; v < 3; v++) {
     const all = list.filter((_, i) => i % 3 === v);
@@ -4425,6 +4509,7 @@ const TOWNS = {"n":9791,"b":"luQ4CgUEFgAIIE/zDgoTANrhSR8MBuwAkPko1w4LzwAy5AoLDw3
 // 家の位置の升（120m四方）：近くに家があるかを、全部の家を調べずに確かめる（森・田の置き場所で何十万回も使う）
 const houseGrid = new Map();
 function addHouse(hs) {
+  if (meishoClear(hs.x, hs.y)) return; // 名所の建物の上には建てない（03b-meisho-sites.js）
   houses.push(hs);
   const k = Math.floor(hs.x / 120) * 65536 + Math.floor(hs.y / 120);
   if (!houseGrid.has(k)) houseGrid.set(k, []);
@@ -5752,8 +5837,8 @@ scene.add(ghI);
 const PADDY = SEASON.paddy;
 function paddySeason(m, sky) {
   // 水を張った田（空の色が強い色）は空を映す。区画ごとの状態は位置から決まる乱数で（毎月同じ区画が先に田植え・稲刈り）
-  const states = PADDY[m].map(([hex, share]) => {
-      const c = new THREE.Color(hex);
+  const states = PADDY[m].map(([col, share]) => {
+      const c = new THREE.Color(col);
       if (c.b > c.g && c.b > c.r) c.lerp(sky, 0.5);
       return [c, share];
     }),
@@ -7652,6 +7737,62 @@ function bird(x, z, kind, vol) {
   } // カモのような短い声
   o.connect(g).connect(pan(x, z)).connect(SND.master);
 }
+// 水鳥が一斉に飛び立つ羽音（43b-birds.js から）：細かく震える風切りの音が、遠ざかりながら消える
+function wingFlush(x, z, n, vol) {
+  const ac = SND.ctx,
+    t = ac.currentTime,
+    s = ac.createBufferSource(),
+    f = ac.createBiquadFilter(),
+    am = ac.createGain(),
+    lg = ac.createGain(),
+    lfo = ac.createOscillator(),
+    g = ac.createGain(),
+    dur = 1.2 + Math.min(n, 60) * 0.02;
+  s.buffer = SND.white;
+  f.type = "bandpass";
+  f.frequency.value = 900;
+  f.Q.value = 0.6;
+  lfo.frequency.value = 9 + Math.min(n, 40) * 0.12; // 羽ばたきの速さ
+  lg.gain.value = 0.5;
+  am.gain.value = 0.5;
+  lfo.connect(lg).connect(am.gain);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.08);
+  g.gain.exponentialRampToValueAtTime(0.0005, t + dur);
+  s.connect(f).connect(am).connect(g).connect(pan(x, z)).connect(SND.master);
+  s.start(t, Math.random() * 3);
+  s.stop(t + dur + 0.1);
+  lfo.start(t);
+  lfo.stop(t + dur + 0.1);
+}
+// ガンの鳴き声（43b-birds.js から）：鼻にかかった短い声が2つ3つ続く
+function gooseCall(x, z, vol) {
+  const ac = SND.ctx,
+    t0 = ac.currentTime,
+    out = pan(x, z);
+  out.connect(SND.master);
+  const n = 2 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < n; i++) {
+    const t = t0 + i * (0.18 + Math.random() * 0.08),
+      o = ac.createOscillator(),
+      f = ac.createBiquadFilter(),
+      g = ac.createGain(),
+      f0 = 520 + Math.random() * 120;
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.linearRampToValueAtTime(f0 * 1.25, t + 0.05);
+    o.frequency.linearRampToValueAtTime(f0 * 0.9, t + 0.16);
+    f.type = "bandpass";
+    f.frequency.value = 1300;
+    f.Q.value = 2;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0005, t + 0.17);
+    o.connect(f).connect(g).connect(out);
+    o.start(t);
+    o.stop(t + 0.2);
+  }
+}
 const prevMoving = new Map();
 function audioUpdate(dt, c, W, boats, nearReed) {
   if (!SND.ctx) return;
@@ -8269,6 +8410,134 @@ try {
       .catch(() => {});
 } catch (e) {}
 $("shot").onclick = () => $("shot").classList.remove("on");
+
+// ==== 32b-video.js ====
+/* ---------- 動画の撮影：右上のカメラの下の丸から。画面の部品は写さない
+   ・動画：いま見ている湖をそのまま、音も一緒に（30秒まで）
+   ・早回し：その日の時刻だけを速く進めて、一日の移り変わりを約20秒に縮める（月と天気はそのまま）。撮り終えたら今の時刻に戻る
+   撮影の間は、描画の重さで解像度を変えない（動画の大きさが途中で変わらないように）。写真のボタンは隠す ---------- */
+const REC = { on: false, mode: null, mr: null, chunks: [], t0: 0 },
+  REC_MAX = 30, // 動画の長さの上限（秒）
+  REC_TL = 20; // 早回しで一日にかける秒数
+const recOk = !!(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream);
+if (!recOk) document.body.classList.add("norec");
+// 録れる形式：mp4 を先に（iPhone でも開きやすい）、なければ webm
+function recMime() {
+  for (const t of ["video/mp4;codecs=avc1.42E01E", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"])
+    if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) return t;
+  return "";
+}
+function recStart(mode) {
+  $("recm").classList.remove("on");
+  if (!recOk || REC.on || isFar) return;
+  const stream = renderer.domElement.captureStream(30);
+  // 動画は音も録る（Web Audio の出口を分けて、映像と一緒に）
+  if (mode === "video" && SND.ctx) {
+    if (!SND.recDest) {
+      SND.recDest = SND.ctx.createMediaStreamDestination();
+      SND.master.connect(SND.recDest);
+    }
+    for (const tr of SND.recDest.stream.getAudioTracks()) stream.addTrack(tr);
+  }
+  const mime = recMime();
+  let mr;
+  try {
+    mr = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 10e6 } : { videoBitsPerSecond: 10e6 });
+  } catch (e) {
+    try {
+      mr = new MediaRecorder(stream);
+    } catch (e2) {
+      return;
+    }
+  }
+  REC.chunks = [];
+  mr.ondataavailable = (e) => {
+    if (e.data && e.data.size) REC.chunks.push(e.data);
+  };
+  mr.onstop = recSave;
+  mr.start(500);
+  Object.assign(REC, { on: true, mode, mr, t0: performance.now() });
+  G.recOn = true;
+  G.pw = 0;
+  document.body.classList.add("rec");
+  $("rec").classList.add("on");
+  recLabel(0);
+}
+function recStop() {
+  if (!REC.on) return;
+  REC.on = false;
+  G.recOn = false;
+  try {
+    REC.mr.stop();
+  } catch (e) {}
+  document.body.classList.remove("rec");
+  $("rec").classList.remove("on");
+  G.pw = 0; // 早回しで進めた時刻を戻す
+}
+function recLabel(el) {
+  const s = Math.floor(el);
+  $("rect").textContent = REC.mode === "video" ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` : `早回し ${Math.min(100, Math.round(G.pw * 100))}%`;
+}
+// 毎フレーム（53-frame.js）：経過を表示し、早回しでは時刻を進める。上限に来たら止める
+function recTick(dt) {
+  if (!REC.on) return;
+  if (isFar || document.hidden) return recStop();
+  const el = (performance.now() - REC.t0) / 1000;
+  if (REC.mode === "timelapse") {
+    G.pw = Math.min(1, G.pw + dt / REC_TL);
+    if (G.pw >= 1) return recStop();
+  } else if (el >= REC_MAX) return recStop();
+  recLabel(el);
+}
+function recSave() {
+  const type = (REC.mr && REC.mr.mimeType) || REC.chunks[0]?.type || "video/webm",
+    bl = new Blob(REC.chunks, { type });
+  REC.chunks = [];
+  if (!bl.size) return;
+  const u = URL.createObjectURL(bl),
+    sh = $("shot"),
+    v = sh.querySelector("video");
+  if (v.src.startsWith("blob:")) URL.revokeObjectURL(v.src);
+  v.src = u;
+  sh.classList.add("on", "vid");
+  v.play().catch(() => {});
+  const t = new Date(),
+    p = (n) => String(n).padStart(2, "0"),
+    name = `floating-${REC.mode === "timelapse" ? "timelapse" : "video"}-${t.getFullYear()}${p(t.getMonth() + 1)}${p(t.getDate())}-${p(t.getHours())}${p(t.getMinutes())}${p(t.getSeconds())}.${type.includes("mp4") ? "mp4" : "webm"}`;
+  const anchor = () => {
+    const a = document.createElement("a");
+    a.href = u;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+  // 作品のページ（Artifact）では書き出しの仕組みで保存し、ほかではそのままファイルとして保存する
+  if (DL) DL.save({ filename: name, data: bl }).catch(anchor);
+  else anchor();
+}
+$("rec").onclick = (e) => {
+  e.stopPropagation();
+  if (REC.on) recStop();
+  else $("recm").classList.toggle("on");
+};
+$("recV").onclick = (e) => {
+  e.stopPropagation();
+  recStart("video");
+};
+$("recT").onclick = (e) => {
+  e.stopPropagation();
+  recStart("timelapse");
+};
+addEventListener("pointerdown", (e) => {
+  if (!e.target.closest || !e.target.closest("#recm,#rec")) $("recm").classList.remove("on");
+});
+// 写真・動画の見本を閉じるときは、動画を止める
+$("shot").addEventListener("click", () => {
+  const v = $("shot").querySelector("video");
+  v.pause();
+  $("shot").classList.remove("vid");
+});
 
 // ==== 33-resize.js ====
 /* ---------- 画面サイズ ---------- */
@@ -9481,6 +9750,322 @@ G.rocks = (() => {
   return I;
 })();
 
+// ==== 40b-meisho.js ====
+/* ---------- 名所の建築：竹生島の宝厳寺（本堂・三重塔・観音堂）と都久夫須麻神社（本殿・舟廊下・竜神拝所と湖の鳥居）、
+   多景島の見塔寺（本堂・庫裏・題目塔）、彦根城（天守・太鼓門櫓・天秤櫓・西の丸三重櫓）。
+   置き場所は 03b-meisho-sites.js。形は細部を省いた抽象（基壇・壁・屋根の重なり）。夜の彦根城は白壁が灯りに浮かぶ ---------- */
+G.meisho = (() => {
+  const L = (c, o = {}) => new THREE.MeshLambertMaterial({ color: c, ...o }),
+    tile = L(0x4c5157, { map: G.roofTex || null, side: THREE.DoubleSide }), // 瓦
+    bark = L(0x5d4a3d, { side: THREE.DoubleSide }), // 檜皮葺
+    shu = L(0xb4432f), // 朱塗り
+    plaster = L(0xece8de), // 白壁
+    wood = L(0x3b3029), // 素木・黒い板
+    lacq = L(0x2a2421), // 漆
+    gold = L(0xb8913f),
+    lattice = L(0x1c1916),
+    stone = L(0xa8a294, { side: THREE.DoubleSide }), // 石垣・基壇
+    rock = L(0x77736b),
+    // 彦根城は夜に灯りで浮かぶので、別の材質にして明るさを変える
+    castleWall = L(0xece8de),
+    castleStone = L(0xa8a294, { side: THREE.DoubleSide }),
+    castleTile = L(0x4c5157, { map: G.roofTex || null, side: THREE.DoubleSide });
+  const UP = new THREE.Vector3(0, 1, 0);
+
+  // ---- 形の部品（作品の中の長さ。原点は建物の足元の中心、x が幅、z が奥行き、正面は +z）----
+  const mesh = (geo, m, x = 0, y = 0, z = 0, ry = 0) => {
+    const o = new THREE.Mesh(geo, m);
+    o.position.set(x, y, z);
+    o.rotation.y = ry;
+    return o;
+  };
+  const box = (w, h, d, m, x = 0, y = 0, z = 0, ry = 0) => mesh(new THREE.BoxGeometry(w, h, d).translate(0, h / 2, 0), m, x, y, z, ry);
+  // 三角の面を並べた形（向きを気にしないよう、屋根の材質は両面）
+  const tris = (v) => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(v, 3));
+    g.setAttribute("uv", new THREE.Float32BufferAttribute(new Float32Array((v.length / 3) * 2), 2));
+    g.computeVertexNormals();
+    return g;
+  };
+  // 寄棟の屋根：底は w×d の長方形（y=0）、棟は長い辺に沿って高さ h
+  function hipGeo(w, d, h) {
+    const sw = w >= d,
+      Lg = sw ? w : d,
+      Dd = sw ? d : w,
+      r = Math.max(0, Lg - Dd) / 2,
+      P = (a, b, y) => (sw ? [a, y, b] : [b, y, a]),
+      A = P(-Lg / 2, -Dd / 2, 0),
+      B = P(Lg / 2, -Dd / 2, 0),
+      C = P(Lg / 2, Dd / 2, 0),
+      D = P(-Lg / 2, Dd / 2, 0),
+      R1 = P(-r, 0, h),
+      R2 = P(r, 0, h);
+    return tris([...A, ...R1, ...B, ...B, ...R1, ...R2, ...D, ...C, ...R2, ...D, ...R2, ...R1, ...A, ...D, ...R1, ...B, ...R2, ...C]);
+  }
+  // 入母屋の屋根：下は寄棟、上に切妻を載せる。e は軒の出
+  function irimoya(g, w, d, h, e, m, y) {
+    g.add(mesh(hipGeo(w + 2 * e, d + 2 * e, h * 0.62), m, 0, y));
+    const gl = gable(Math.max(w * 0.45, w + 2 * e - d * 0.75), (d + 2 * e) * 0.5, h * 0.69, m);
+    gl.position.y = y + h * 0.31;
+    g.add(gl);
+  }
+  // 石垣・基壇：上が w×d、下が b だけ広い四角錐台
+  function frustum(w, d, h, b, m) {
+    const t = [w / 2, d / 2],
+      u = [w / 2 + b, d / 2 + b],
+      c = [
+        [-1, -1],
+        [1, -1],
+        [1, 1],
+        [-1, 1],
+      ],
+      v = [];
+    for (let i = 0; i < 4; i++) {
+      const [ax, az] = c[i],
+        [bx, bz] = c[(i + 1) % 4];
+      const p0 = [ax * u[0], 0, az * u[1]],
+        p1 = [bx * u[0], 0, bz * u[1]],
+        p2 = [bx * t[0], h, bz * t[1]],
+        p3 = [ax * t[0], h, az * t[1]];
+      v.push(...p0, ...p1, ...p2, ...p0, ...p2, ...p3);
+    }
+    v.push(-t[0], h, -t[1], t[0], h, t[1], t[0], h, -t[1], -t[0], h, -t[1], -t[0], h, t[1], t[0], h, t[1]);
+    return new THREE.Mesh(tris(v), m);
+  }
+  // 四角い宝形の屋根（塔の各重）：一辺 s、高さ h
+  const pyramid = (s, h, m, y) => mesh(new THREE.ConeGeometry(s / Math.SQRT2, h, 4, 1).rotateY(Math.PI / 4).translate(0, h / 2, 0), m, 0, y);
+
+  // ---- 建物の種類 ----
+  // 堂：基壇・縁・柱の並ぶ壁・正面の格子戸・入母屋の屋根
+  function hall(w, d, o) {
+    const g = new THREE.Group(),
+      h = o.h,
+      base = o.base ?? 0.8;
+    g.add(box(w + 2.4, base, d + 2.4, stone));
+    g.add(box(w + 1.6, 0.35, d + 1.6, wood, 0, base)); // 縁
+    g.add(box(w, h, d, o.wall, 0, base + 0.35));
+    g.add(box(w * 0.7, h * 0.72, 0.12, lattice, 0, base + 0.35, d / 2 + 0.06)); // 正面の格子戸
+    if (o.post)
+      for (const sx of [-1, 1])
+        for (const sz of [-1, 1]) g.add(box(0.45, h, 0.45, o.post, (sx * (w + 0.2)) / 2, base + 0.35, (sz * (d + 0.2)) / 2));
+    if (o.band) g.add(box(w + 0.1, 0.35, d + 0.1, o.band, 0, base + 0.35 + h - 0.6)); // 軒下の飾りの帯
+    irimoya(g, w, d, o.roofH, o.eave, o.roof, base + 0.35 + h);
+    return g;
+  }
+  // 三重塔：各重の軸部と、四方に張り出す屋根、てっぺんの相輪
+  function pagoda(s) {
+    const g = new THREE.Group();
+    g.add(box(s + 2, 0.9, s + 2, stone));
+    let y = 0.9;
+    for (let i = 0; i < 3; i++) {
+      const k = 1 - i * 0.12,
+        bw = s * k,
+        th = i ? 2.6 : 3.2;
+      g.add(box(bw, th, bw, shu, 0, y));
+      g.add(box(bw * 0.55, th * 0.7, 0.1, plaster, 0, y + 0.3, bw / 2 + 0.05));
+      y += th;
+      g.add(pyramid(bw + 3.6, 1.3, tile, y - 0.15));
+      y += 0.55;
+    }
+    g.add(pyramid(2.2, 1.6, tile, y));
+    g.add(mesh(new THREE.CylinderGeometry(0.1, 0.16, 6, 6).translate(0, 3, 0), gold, 0, y + 1.2));
+    for (let i = 0; i < 6; i++) g.add(mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.1, 8), gold, 0, y + 2.4 + i * 0.5));
+    return g;
+  }
+  // 舟廊下：柱の並ぶ屋根付きの渡り廊下（長さ len）
+  function corridor(len) {
+    const g = new THREE.Group();
+    g.add(box(len, 0.5, 3.2, wood, 0, 0.6));
+    for (let x = -len / 2 + 0.6; x <= len / 2; x += 2.4)
+      for (const z of [-1.4, 1.4]) g.add(box(0.3, 2.4, 0.3, wood, x, 1.1, z));
+    const r = gable(len + 0.8, 4.4, 1.5, bark);
+    r.position.y = 3.5;
+    g.add(r);
+    return g;
+  }
+  // 拝所：柱だけの開いた小さな堂
+  function pavilion(w, d) {
+    const g = new THREE.Group();
+    g.add(box(w + 1.4, 0.8, d + 1.4, stone));
+    g.add(box(w, 0.3, d, wood, 0, 0.8));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) g.add(box(0.4, 3, 0.4, shu, (sx * w) / 2 - sx * 0.3, 1.1, (sz * d) / 2 - sz * 0.3));
+    irimoya(g, w, d, 2.4, 1, tile, 4.1);
+    return g;
+  }
+  // 鳥居（湖の中）：笠木の反った明神鳥居を簡単に
+  function torii(H, Wd) {
+    const g = new THREE.Group();
+    for (const s of [-1, 1]) {
+      g.add(mesh(new THREE.CylinderGeometry(0.28, 0.34, H + 1.5, 10).translate(0, (H + 1.5) / 2 - 1.5, 0), shu, (s * Wd) / 2));
+      g.add(mesh(new THREE.CylinderGeometry(0.42, 0.46, 0.8, 10), lacq, (s * Wd) / 2, -0.2));
+    }
+    g.add(box(Wd + 1.6, 0.42, 0.35, shu, 0, H - 1.8));
+    g.add(box(Wd + 2.6, 0.38, 0.62, shu, 0, H - 0.2));
+    g.add(box(Wd + 3.2, 0.4, 0.7, lacq, 0, H + 0.18));
+    return g;
+  }
+  // 題目塔：細長い石の塔と台座
+  function tower() {
+    const g = new THREE.Group();
+    g.add(box(4.2, 0.8, 4.2, stone));
+    g.add(box(2.8, 1.2, 2.8, rock, 0, 0.8));
+    g.add(mesh(new THREE.CylinderGeometry(0.75, 1.0, 8.5, 4, 1).rotateY(Math.PI / 4).translate(0, 4.25, 0), rock, 0, 2));
+    g.add(pyramid(1.6, 1.1, rock, 10.5));
+    return g;
+  }
+  // 天守・櫓：石垣の上に、白壁と黒い腰板の各重。屋根は各重の寄棟に千鳥破風、最上重は入母屋と鯱
+  function keep(w, d, tiers, base, o = {}) {
+    const g = new THREE.Group(),
+      wallM = o.wall || castleWall,
+      roofM = o.roof || castleTile;
+    g.add(frustum(w + 1, d + 1, base, base * 0.28, o.stone || castleStone));
+    let y = base,
+      tw = w,
+      td = d;
+    tiers.forEach((th, i) => {
+      g.add(box(tw, th, td, wallM, 0, y));
+      g.add(box(tw + 0.06, Math.min(1.1, th * 0.28), td + 0.06, wood, 0, y)); // 腰板
+      for (const sz of [-1, 1]) g.add(box(tw * 0.5, 0.7, 0.08, lattice, 0, y + th * 0.5, (sz * td) / 2 + sz * 0.05)); // 窓の列
+      y += th;
+      const last = i === tiers.length - 1,
+        e = last ? 1.3 : 1.6;
+      if (last) {
+        irimoya(g, tw, td, 3.2, e, roofM, y);
+        for (const sx of [-1, 1]) g.add(box(0.5, 1, 0.4, lacq, (sx * Math.max(tw * 0.45, tw + 2 * e - td * 0.75)) / 2, y + 3.1)); // 鯱
+      } else {
+        g.add(mesh(hipGeo(tw + 2 * e, td + 2 * e, 1.7), roofM, 0, y));
+        // 千鳥破風：正面と背面の屋根の上に三角の破風
+        for (const sz of [-1, 1]) {
+          const p = gable(1.8, tw * 0.34, 1.5, roofM);
+          p.rotation.y = Math.PI / 2;
+          p.position.set(0, y + 0.3, (sz * (td / 2 + e * 0.4)));
+          g.add(p);
+        }
+        tw *= 0.74;
+        td *= 0.74;
+        y += 1.1;
+      }
+    });
+    return g;
+  }
+  // 天秤櫓：長い一重の櫓と、両端の二重の櫓
+  function tenbin(w, d) {
+    const g = new THREE.Group();
+    g.add(frustum(w + 1, d + 1, 4, 1.2, castleStone));
+    g.add(box(w, 3.4, d, castleWall, 0, 4));
+    g.add(box(w + 0.06, 1, d + 0.06, wood, 0, 4));
+    g.add(mesh(hipGeo(w + 2.6, d + 2.6, 2), castleTile, 0, 7.4));
+    for (const sx of [-1, 1]) {
+      const k = keep(8, 7, [3.4, 2.8], 0.01);
+      k.position.set((sx * (w - 8)) / 2, 4, 0);
+      g.add(k);
+    }
+    return g;
+  }
+
+  function build(p) {
+    switch (p.k) {
+      case "hondo":
+        return hall(p.w, p.d, { h: 5.2, wall: plaster, post: shu, band: shu, roof: tile, roofH: 5.6, eave: 2.2 });
+      case "pagoda":
+        return pagoda(p.w);
+      case "kannon":
+        return hall(p.w, p.d, { h: 4.4, wall: wood, roof: bark, roofH: 4.4, eave: 1.8 });
+      case "honden":
+        return hall(p.w, p.d, { h: 4, wall: lacq, post: lacq, band: gold, roof: bark, roofH: 4.2, eave: 1.6, base: 1.2 });
+      case "haisho":
+        return pavilion(p.w, p.d);
+      case "temple":
+        return hall(p.w, p.d, { h: 3.2, wall: wood, post: wood, roof: tile, roofH: 3.4, eave: 1.3, base: 0.6 });
+      case "kuri":
+        return hall(p.w, p.d, { h: 3, wall: plaster, roof: tile, roofH: 3, eave: 1, base: 0.5 });
+      case "daimoku":
+        return tower();
+      case "tenshu": {
+        const g = keep(p.w, p.d, [4.6, 4.2, 3.8], 6.5);
+        const wing = keep(10, 5.5, [3.4], 4.4); // 附櫓と多聞櫓（天守の脇に低く続く）
+        wing.position.set(p.w / 2 + 4.5, 0, p.d * 0.15);
+        g.add(wing);
+        return g;
+      }
+      case "taikomon":
+        return keep(p.w, p.d, [3.4, 3], 4.5);
+      case "tenbin":
+        return tenbin(p.w, p.d);
+      case "sanju":
+        return keep(p.w, p.d, [3.4, 3, 2.6], 5);
+    }
+    return new THREE.Group();
+  }
+
+  const root = new THREE.Group();
+  scene.add(root);
+  const gnd = (m, x, y) => (m.isle ? isleH(x, y) ?? 0 : landY(x, y));
+  for (const m of MEISHO) {
+    const site = new THREE.Group();
+    root.add(site);
+    for (const p of m.parts) {
+      const a = (p.a * Math.PI) / 180,
+        ux = Math.cos(a),
+        uy = Math.sin(a),
+        hw = p.w / 2 / S,
+        hd = p.d / 2 / S;
+      // 足元の高さ：中心といちばん高い隅の中ほどに据え（山側は斜面に少し埋まる）、いちばん低い隅まで石垣を下ろす（斜面に建つため）
+      const hs = [[0, 0], [-1, -1], [1, -1], [1, 1], [-1, 1]].map(([i, j]) => gnd(m, p.x + ux * hw * i - uy * hd * j, p.y + uy * hw * i + ux * hd * j)),
+        top = (hs[0] + Math.max(...hs)) / 2,
+        low = Math.min(...hs);
+      const g = build(p);
+      if (top - low > 0.3) {
+        const H = top - low + 1,
+          f = frustum(p.w + 2.4, p.d + 2.4, H, Math.min(3, H * 0.18), m.isle ? stone : castleStone);
+        f.position.y = -H;
+        g.add(f);
+      }
+      g.position.set(p.x * S, top, p.y * S);
+      g.quaternion.setFromAxisAngle(UP, -a);
+      site.add(g);
+      placeLog(m.name + "の建物", "land", [[p.x, p.y]]);
+    }
+    // 竹生島：竜神拝所の下の湖に鳥居（かわらけ投げの鳥居）。拝所からいちばん近い岸へ出て、少し沖に立てる
+    if (m.name === "竹生島") {
+      const p = m.parts.find((q) => q.k === "haisho");
+      let best = null;
+      for (let t = 0; t < Math.PI * 2; t += 0.05)
+        for (let r = 5; r < 600; r += 5)
+          if (isleH(p.x + Math.cos(t) * r, p.y + Math.sin(t) * r) === null) {
+            if (!best || r < best[1]) best = [t, r];
+            break;
+          }
+      if (best) {
+        const [t, r] = best,
+          x = p.x + Math.cos(t) * (r + 9 / S),
+          y = p.y + Math.sin(t) * (r + 9 / S),
+          g = torii(6.5, 4.6);
+        g.position.set(x * S, 0, y * S);
+        g.quaternion.setFromAxisAngle(UP, -(t - Math.PI / 2));
+        site.add(g);
+        placeLog("竹生島の鳥居", "water", [[x, y]]);
+      }
+    }
+    site.traverse((o) => {
+      if (o.isMesh) o.castShadow = o.receiveShadow = true;
+    });
+    mergeStatic(site); // 材質ごとに束ねて描画の回数を減らす
+  }
+  const NIGHT = new THREE.Color(0xffe6c4);
+  return {
+    root,
+    // 夜の彦根城：白壁と石垣が灯りに浮かぶ
+    update(day) {
+      const k = Math.min(1, Math.max(0, (0.2 - day) / 0.12));
+      castleWall.emissive.copy(NIGHT).multiplyScalar(0.55 * k);
+      castleStone.emissive.copy(NIGHT).multiplyScalar(0.12 * k);
+      castleTile.emissive.copy(NIGHT).multiplyScalar(0.06 * k);
+    },
+  };
+})();
+
 // ==== 41-islands.js ====
 G.isl = (() => {
   const R = rnd(3131),
@@ -9978,6 +10563,581 @@ G.moments = (() => {
     }
   }
   return { update, lone };
+})();
+
+// ==== 43b-birds.js ====
+/* ---------- 水鳥と空の鳥：冬のカモの群れとユリカモメ、湖北のコハクチョウとガン（秋の夕方は堅田に雁が降りる）、竹生島のカワウ、
+   ヨシ際のカイツブリと岸のサギ、夏の田のシラサギ、空を舞うトビ。
+   ・どこにどの群れがいるか、ねぐらへの行き帰りの時刻は、共有時計の日ごとに決まる（見る人みな同じ）
+   ・建築が近づくと群れは一斉に飛び立ち、少し先の水面へ移る（カイツブリは潜る。ユリカモメは建築のあとを追って舞う）。これは各自の画面だけ
+   ・形は5種類（泳ぐカモ形・ハクチョウ・カワウ・立つサギ・飛ぶ鳥）。飛ぶ鳥の羽ばたきは頂点の計算で動かす
+   ・見えやすいよう実物の約2.5倍の大きさ。群れは自分のまわり（約1.6km）にだけ置く ---------- */
+G.birds = (() => {
+  const VIS = 2.5,
+    U = { uT: { value: 0 } },
+    Mx = (x, y, z, sx = 1, sy = 1, sz = 1, rz = 0) => new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, rz)), new THREE.Vector3(sx, sy, sz));
+
+  // ---- 形：部品を1つの形にまとめる（wing は羽、羽ばたきで上下する）。長さは実寸m、+x が前 ----
+  const ball = (x, y, z, sx, sy, sz, rz = 0) => [new THREE.SphereGeometry(1, 7, 5), Mx(x, y, z, sx, sy, sz, rz)];
+  const seg = (ax, ay, bx, by, r, z = 0) => [new THREE.CylinderGeometry(r * 0.8, r, Math.hypot(bx - ax, by - ay), 5), Mx((ax + bx) / 2, (ay + by) / 2, z, 1, 1, 1, Math.atan2(-(bx - ax), by - ay))];
+  const beak = (x, y, r, len) => [new THREE.ConeGeometry(r, len, 4), Mx(x + len / 2, y, 0, 1, 1, 1, -Math.PI / 2)];
+  function wings(span) {
+    const v = [];
+    for (const s of [-1, 1]) {
+      const z0 = s * 0.05,
+        z1 = s * span * 0.45,
+        z2 = s * span;
+      const a = [0.1, 0, z0],
+        b = [-0.14, 0, z0],
+        c = [0.08, 0, z1],
+        d = [-0.13, 0, z1],
+        e = [-0.01, 0, z2],
+        f = [-0.1, 0, z2];
+      v.push(...a, ...c, ...b, ...b, ...c, ...d, ...c, ...e, ...d, ...d, ...e, ...f);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(v, 3));
+    return [g, new THREE.Matrix4(), true];
+  }
+  function merge(parts) {
+    let n = 0;
+    const gs = parts.map(([g, m, w]) => {
+      const q = (g.index ? g.toNonIndexed() : g.clone()).applyMatrix4(m);
+      q.computeVertexNormals();
+      n += q.attributes.position.count;
+      return [q, w];
+    });
+    const P = new Float32Array(n * 3),
+      N = new Float32Array(n * 3),
+      Wg = new Float32Array(n);
+    let i = 0;
+    for (const [q, w] of gs) {
+      const p = q.attributes.position,
+        nm = q.attributes.normal;
+      for (let k = 0; k < p.count; k++, i++) {
+        P.set([p.getX(k), p.getY(k), p.getZ(k)], i * 3);
+        N.set([nm.getX(k), nm.getY(k), nm.getZ(k)], i * 3);
+        Wg[i] = w ? 1 : 0;
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(P, 3));
+    geo.setAttribute("normal", new THREE.BufferAttribute(N, 3));
+    geo.setAttribute("wing", new THREE.BufferAttribute(Wg, 1));
+    geo.computeBoundingSphere();
+    return geo;
+  }
+  const GEO = {
+    duck: merge([ball(0, 0.05, 0, 0.28, 0.12, 0.15), seg(0.17, 0.08, 0.22, 0.19, 0.045), ball(0.23, 0.21, 0, 0.07, 0.065, 0.06), beak(0.28, 0.2, 0.025, 0.08), ball(-0.27, 0.09, 0, 0.07, 0.03, 0.07)]),
+    swan: merge([ball(0, 0.1, 0, 0.5, 0.2, 0.27), seg(0.32, 0.15, 0.38, 0.62, 0.055), ball(0.43, 0.64, 0, 0.1, 0.07, 0.065), beak(0.5, 0.62, 0.03, 0.12), ball(-0.48, 0.16, 0, 0.12, 0.06, 0.12)]),
+    corm: merge([ball(0, 0.02, 0, 0.36, 0.09, 0.13), seg(0.28, 0.06, 0.34, 0.3, 0.05), ball(0.37, 0.32, 0, 0.08, 0.06, 0.055), beak(0.43, 0.31, 0.02, 0.1), ball(-0.36, 0.06, 0, 0.12, 0.025, 0.06)]),
+    heron: merge([
+      seg(0, 0, 0.02, 0.56, 0.022, 0.05),
+      seg(0, 0, -0.03, 0.56, 0.022, -0.05),
+      ball(0, 0.66, 0, 0.24, 0.12, 0.12, 0.35),
+      seg(0.14, 0.72, 0.1, 0.93, 0.03),
+      seg(0.1, 0.93, 0.18, 1.06, 0.028),
+      ball(0.2, 1.08, 0, 0.06, 0.045, 0.045),
+      beak(0.24, 1.07, 0.018, 0.16),
+      ball(-0.2, 0.62, 0, 0.1, 0.03, 0.06),
+    ]),
+    fly: merge([ball(0, 0, 0, 0.3, 0.09, 0.1), seg(0.22, 0.01, 0.38, 0.03, 0.04), ball(0.41, 0.035, 0, 0.06, 0.05, 0.05), beak(0.45, 0.03, 0.018, 0.08), ball(-0.33, 0, 0, 0.1, 0.02, 0.09), wings(0.75)]),
+  };
+  // 飛ぶ鳥の材質：羽（wing）の頂点を、付け根からの隔たりに比べて上下させる。aAnim＝（位相・速さ・振れ幅）
+  const flyMat = new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+  flyMat.onBeforeCompile = (sh) => {
+    sh.uniforms.uT = U.uT;
+    sh.vertexShader =
+      "uniform float uT;\nattribute float wing;\nattribute vec3 aAnim;\n" +
+      sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\ntransformed.y += wing * abs(position.z) * aAnim.z * sin(uT * aAnim.y + aAnim.x);");
+  };
+  const CAP = { duck: 460, swan: 90, corm: 160, heron: 70, fly: 460 },
+    MESH = {};
+  for (const k in CAP) {
+    const I = new THREE.InstancedMesh(GEO[k], k === "fly" ? flyMat : new THREE.MeshLambertMaterial({ color: 0xffffff }), CAP[k]);
+    I.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(CAP[k] * 3), 3);
+    if (k === "fly") GEO.fly.setAttribute("aAnim", (I.aAnim = new THREE.InstancedBufferAttribute(new Float32Array(CAP.fly * 3), 3)));
+    I.count = 0;
+    I.frustumCulled = false;
+    I.userData.noChunk = true; // 毎フレーム動かす
+    scene.add(I);
+    MESH[k] = I;
+  }
+
+  // ---- 鳥の種類：泳ぐ形・色・大きさ・飛ぶときの形（長さ・羽の長さ）・羽ばたき・速さ・飛ぶ高さ・逃げ出す距離（作品の中の長さ）----
+  const SP = {
+    duck: { swim: "duck", cols: [0x5b4b3b, 0x6d5c47, 0x45403a, 0x7c6b55, 0x8a7a62, 0x1f1e1d], sz: 1, len: 0.9, span: 0.95, freq: 15, amp: 1, v: 10, alt: 9, flush: 38 },
+    gull: { swim: "duck", cols: [0xf2f2ee, 0xe4e6e8], sz: 0.75, len: 0.85, span: 1.35, freq: 8, amp: 0.8, v: 8, alt: 9, flush: 0 },
+    swan: { swim: "swan", cols: [0xf7f6f1, 0xefeee8], sz: 1, len: 1.6, span: 1.45, freq: 5.5, amp: 0.7, v: 12, alt: 14, flush: 55 },
+    goose: { swim: "duck", cols: [0x6d5f4d, 0x5f5444, 0x7a6b58], sz: 1.45, len: 1.3, span: 1.3, freq: 7, amp: 0.8, v: 13, alt: 34, flush: 50 },
+    corm: { swim: "corm", cols: [0x1c1c1e, 0x26252a], sz: 1, len: 1.2, span: 1.05, freq: 11, amp: 0.85, v: 12, alt: 7, flush: 34 },
+    heron: { stand: true, cols: [0x8f969c, 0x868d93], sz: 1, len: 1.1, span: 1.35, freq: 4, amp: 1, v: 7, alt: 9, flush: 30 },
+    egret: { stand: true, cols: [0xf3f3ee], sz: 0.9, len: 1.05, span: 1.3, freq: 4.2, amp: 1, v: 7, alt: 8, flush: 26 },
+    grebe: { swim: "duck", cols: [0x4b3a2b, 0x55432f], sz: 0.5, flush: 22 },
+    kite: { cols: [0x5c4835, 0x4e3d2e], sz: 1.3, len: 1, span: 1.55, freq: 2.2, amp: 0.12, v: 6 },
+  };
+  const col = new THREE.Color();
+  const colOf = (sp, i) => SP[sp].cols[i % SP[sp].cols.length];
+
+  // ---- 場所の決まり ----
+  const onWater = (x, y) => inLake(x, y) && isleH(x, y) === null;
+  const shallow = (x, y, dmax, smin, smax) => onWater(x, y) && depth(x, y) < dmax && distShore(x, y) > smin && distShore(x, y) < smax;
+  // (lon, lat) のいちばん近い所から、岸から off m 以上沖の湖の点（実寸）
+  function lakeNear(lon, lat, off) {
+    const [x0, y0] = ll(lon, lat);
+    for (let r = 0; r < 4000; r += 40)
+      for (let k = 0; k < 24; k++) {
+        const a = (k / 24) * Math.PI * 2,
+          x = x0 + Math.cos(a) * r,
+          y = y0 + Math.sin(a) * r;
+        if (onWater(x, y) && distShore(x, y) >= off) return [x, y];
+      }
+    return [x0, y0];
+  }
+  const SITE = {
+    swan: lakeNear(136.205, 35.445, 120), // 湖北（コハクチョウ。湖北町の岸の沖）
+    roost: lakeNear(136.2, 35.485, 250), // 湖北のガンのねぐら（山本山の西の沖）
+    katata: lakeNear(135.9216, 35.1099, 250), // 堅田（浮御堂の沖）：秋の夕方に雁が降りる
+  };
+  const FIELDS = [ll(136.27, 35.47), ll(136.255, 35.5), ll(136.285, 35.44)]; // 湖北の田（ガンが昼に餌をとる）
+  const chikubu = MEISHO[0];
+  const CHIKUBU = [chikubu.ax, chikubu.ay];
+  const chikubuIsle = ISLES.find((I) => Math.hypot((I.box[0] + I.box[2]) / 2 - CHIKUBU[0], (I.box[1] + I.box[3]) / 2 - CHIKUBU[1]) < 600);
+
+  // ---- 群れ ----
+  // kind：raft 水に浮かぶ群れ／stand 立つサギ／grebe 潜るカイツブリ／circle 輪を描いて舞う／perch 竹生島の木にとまるカワウ
+  // 位置は作品の中の長さ（x, z）。メンバーの ox, oz は群れの中心からのずれ
+  let flocks = [];
+  const house = () => [B.x * S, B.y * S];
+  function raft(sp, x, y, n, R, key) {
+    const m = [],
+      r = 2 * Math.sqrt(n); // 群れの広がり（作品の中の長さ）
+    for (let i = 0; i < n; i++) {
+      const a = R() * Math.PI * 2,
+        d = Math.sqrt(R()) * r;
+      m.push({ ox: Math.cos(a) * d, oz: Math.sin(a) * d, hd: R() * 6.28, c: colOf(sp, Math.floor(R() * 7)), ph: R() * 6.28, sp });
+    }
+    return { kind: "raft", sp, x: x * S, z: y * S, r, m, key, st: "rest" };
+  }
+  // 逃げる先：建築から離れる向きに、手ごろな水面を探す（見つからなければ遠くへ飛び去る）
+  function fleeTo(f, R) {
+    const [hx, hz] = house(),
+      away = Math.atan2(f.z - hz, f.x - hx);
+    for (let k = 0; k < 16; k++) {
+      const a = away + (R() - 0.5) * 2.2,
+        d = 110 + R() * 160,
+        x = f.x + Math.cos(a) * d,
+        z = f.z + Math.sin(a) * d;
+      if (f.sp === "heron" || f.sp === "egret" ? shallow(x / S, z / S, 1.5, 0, 90) : shallow(x / S, z / S, 8, 50, 1500)) return [x, z, true];
+    }
+    return [f.x + Math.cos(away) * 500, f.z + Math.sin(away) * 500, false];
+  }
+  function takeOff(f, t, R) {
+    const [tx, tz, land] = fleeTo(f, R),
+      [hx, hz] = house(),
+      sp = SP[f.sp],
+      d = Math.hypot(tx - f.x, tz - f.z);
+    f.st = "fly";
+    f.fl = { ax: f.x, az: f.z, bx: tx, bz: tz, cx: (f.x + tx) / 2 + (R() - 0.5) * d * 0.4, cz: (f.z + tz) / 2 + (R() - 0.5) * d * 0.4, t0: t, dur: d / sp.v, land };
+    for (const b of f.m) b.dl = Math.min(1.4, Math.hypot(f.x + b.ox - hx, f.z + b.oz - hz) * 0.012) * (0.6 + R() * 0.6);
+    if (SND.ctx && SND.on) wingFlush(f.x, f.z, f.m.length, 0.05 + Math.min(0.08, f.m.length * 0.002));
+  }
+
+  // ---- 自分のまわりの群れ：600m四方の升ごとに、その日の群れを決める（升と日で決まる乱数）----
+  const CELL = 600,
+    NEAR = 1600,
+    FAR = 2300,
+    made = new Map(); // 升 → 群れを作った日
+  function fillCells(c, dn, cx, cy) {
+    const m = c.month,
+      wb = SEASON.waterbirds[m],
+      winter = [10, 11, 0, 1, 2].includes(m),
+      summer = m >= 4 && m <= 8;
+    for (const [k, d] of made) if (d !== dn) made.delete(k);
+    const i0 = Math.floor((cx - NEAR) / CELL),
+      i1 = Math.floor((cx + NEAR) / CELL),
+      j0 = Math.floor((cy - NEAR) / CELL),
+      j1 = Math.floor((cy + NEAR) / CELL);
+    for (let i = i0; i <= i1; i++)
+      for (let j = j0; j <= j1; j++) {
+        const key = i + "," + j;
+        if (made.get(key) === dn) continue;
+        if ((i + 0.5) * CELL - cx > NEAR || cx - (i + 0.5) * CELL > NEAR || (j + 0.5) * CELL - cy > NEAR || cy - (j + 0.5) * CELL > NEAR) continue;
+        made.set(key, dn);
+        const R = rndFor("birds:" + key + ":" + dn);
+        R();
+        const pick = (ok) => {
+          for (let k = 0; k < 10; k++) {
+            const x = (i + R()) * CELL,
+              y = (j + R()) * CELL;
+            if (ok(x, y)) return [x, y];
+          }
+          return null;
+        };
+        // カモの群れ（冬に多い）。オオバンの黒が混じる
+        if (R() < 0.32 * wb) {
+          const p = pick((x, y) => shallow(x, y, 6, 60, 900));
+          if (p) flocks.push(raft("duck", p[0], p[1], Math.round(8 + R() * 40 * wb), R, key));
+        }
+        // ユリカモメ（冬）：水面の上を輪を描いて舞う。建築が近いとついてくる
+        if (winter && R() < 0.14) {
+          const p = pick((x, y) => onWater(x, y) && distShore(x, y) < 1500);
+          if (p) {
+            const n = Math.round(10 + R() * 22),
+              m = [];
+            for (let k = 0; k < n; k++) m.push({ a: R() * 6.28, r: 8 + R() * 26, w: (0.25 + R() * 0.3) * (R() < 0.5 ? 1 : -1), h: 5 + R() * 10, c: colOf("gull", k), ph: R() * 6.28, sp: "gull", sit: R() < 0.3 });
+            flocks.push({ kind: "circle", sp: "gull", x: p[0] * S, z: p[1] * S, m, key, follow: true });
+          }
+        }
+        // カイツブリ：ヨシ際の水面で、ときどき潜る
+        if (R() < 0.45) {
+          const p = pick((x, y) => shallow(x, y, 3, 15, 260));
+          if (p) {
+            const n = 2 + Math.floor(R() * 4),
+              m = [];
+            for (let k = 0; k < n; k++) m.push({ ox: (R() - 0.5) * 16, oz: (R() - 0.5) * 16, hd: R() * 6.28, c: colOf("grebe", k), ph: R() * 6.28, dive: 4 + R() * 12, under: 0, sp: "grebe" });
+            flocks.push({ kind: "grebe", sp: "grebe", x: p[0] * S, z: p[1] * S, m, key });
+          }
+        }
+        // サギ：岸の浅瀬に1羽ずつ
+        if (R() < 0.4) {
+          const p = pick((x, y) => shallow(x, y, 0.8, 0, 60));
+          if (p) flocks.push({ kind: "stand", sp: R() < 0.6 ? "heron" : "egret", x: p[0] * S, z: p[1] * S, m: [{ ox: 0, oz: 0, hd: R() * 6.28, c: 0, ph: R() * 6.28 }], key, st: "rest" });
+        }
+        // シラサギ（夏）：田の中に数羽
+        if (summer && R() < 0.35) {
+          const cand = paddies.filter((q) => !q.field && q.x >= i * CELL && q.x < (i + 1) * CELL && q.y >= j * CELL && q.y < (j + 1) * CELL);
+          if (cand.length) {
+            const q = cand[Math.floor(R() * cand.length)],
+              n = 2 + Math.floor(R() * 5),
+              m = [];
+            for (let k = 0; k < n; k++) m.push({ ox: (R() - 0.5) * 14, oz: (R() - 0.5) * 14, hd: R() * 6.28, c: 0, ph: R() * 6.28 });
+            flocks.push({ kind: "stand", sp: "egret", x: q.x * S, z: q.y * S, m, key, st: "rest", land: true });
+          }
+        }
+        // トビ：岸の上の高い空をゆっくり輪を描く
+        if (R() < 0.12) {
+          const p = pick((x, y) => distShore(x, y) < 1200);
+          if (p) flocks.push({ kind: "circle", sp: "kite", x: p[0] * S, z: p[1] * S, m: [{ a: R() * 6.28, r: 30 + R() * 40, w: 0.12 + R() * 0.08, h: 55 + R() * 40, c: colOf("kite", 0), ph: R() * 6.28, sp: "kite" }], key });
+        }
+      }
+  }
+
+  // ---- 決まった場所の群れ（湖北のコハクチョウ・ガンのねぐら・堅田の雁・竹生島のカワウ）----
+  function fixedFlocks(c, dn) {
+    const m = c.month,
+      out = [],
+      R = rndFor("birds-fixed:" + dn);
+    R();
+    if ([10, 11, 0, 1].includes(m)) out.push(raft("swan", SITE.swan[0], SITE.swan[1], 26 + Math.floor(R() * 20), R, "swan"));
+    if ([9, 10, 11, 0, 1].includes(m)) {
+      const g = raft("goose", SITE.roost[0], SITE.roost[1], 40 + Math.floor(R() * 30), R, "roost");
+      g.night = true; // 昼は田へ出ている（夜明けに発ち、夕方に戻る）
+      out.push(g);
+    }
+    if ([9, 10].includes(m)) {
+      const g = raft("goose", SITE.katata[0], SITE.katata[1], 18 + Math.floor(R() * 10), R, "katata");
+      g.night = true;
+      out.push(g);
+    }
+    // 竹生島のカワウ：島の木の上にとまる群れと、島のまわりの水に浮かぶ群れ
+    if (chikubuIsle) {
+      const pm = [],
+        [a, b, cc, d] = chikubuIsle.box;
+      for (let k = 0; k < 400 && pm.length < 70; k++) {
+        const x = a + R() * (cc - a),
+          y = b + R() * (d - b),
+          h = isleH(x, y);
+        if (h === null || meishoClear(x, y)) continue;
+        pm.push({ ox: x * S, oz: y * S, y: h + 6.5 + R() * 2, hd: R() * 6.28, c: colOf("corm", k), ph: R() * 6.28 });
+      }
+      out.push({ kind: "perch", sp: "corm", x: CHIKUBU[0] * S, z: CHIKUBU[1] * S, m: pm, key: "chikubu" });
+      const [wx, wy] = lakeNear(136.1395, 35.4165, 120);
+      out.push(raft("corm", wx, wy, 20 + Math.floor(R() * 14), R, "chikubu-water"));
+    }
+    return out;
+  }
+
+  // ---- ねぐらと餌場の行き来（共有時計で決まる時刻に、決まった道を飛ぶ）----
+  // { sp, n, form 'v'|'line', a [x,y] 発つ所, b [x,y] 着く所, p0 発つ時刻（一日の割合）, dur 秒, alt, up 水から飛び立つか, down 水に降りるか }
+  function schedule(c, dn) {
+    const out = [],
+      m = c.month,
+      R = rndFor("birds-sched:" + dn);
+    R();
+    if ([9, 10, 11, 0, 1].includes(m)) {
+      for (let k = 0; k < 4; k++) {
+        const f = FIELDS[k % FIELDS.length],
+          n = 9 + Math.floor(R() * 16),
+          d = Math.hypot(f[0] - SITE.roost[0], f[1] - SITE.roost[1]) * S,
+          dur = d / SP.goose.v;
+        out.push({ sp: "goose", n, form: "v", a: SITE.roost, b: f, p0: 0.245 + k * 0.012 + R() * 0.01, dur, alt: 30 + R() * 25, up: true });
+        out.push({ sp: "goose", n, form: "v", a: f, b: SITE.roost, p0: 0.73 + k * 0.012 + R() * 0.01, dur, alt: 30 + R() * 25, down: true });
+      }
+    }
+    // 堅田落雁：秋の夕方、北の空から列をなして堅田の沖へ降りる
+    if ([9, 10].includes(m)) {
+      const a = [SITE.katata[0] + 2500 + R() * 1500, SITE.katata[1] - 6000 - R() * 2000],
+        d = Math.hypot(a[0] - SITE.katata[0], a[1] - SITE.katata[1]) * S;
+      out.push({ sp: "goose", n: 14 + Math.floor(R() * 8), form: "v", a, b: SITE.katata, p0: 0.715 + R() * 0.02, dur: d / SP.goose.v, alt: 45, down: true });
+      out.push({ sp: "goose", n: 14 + Math.floor(R() * 8), form: "v", a: SITE.katata, b: [SITE.katata[0] + 3000, SITE.katata[1] - 7000], p0: 0.255 + R() * 0.02, dur: (Math.hypot(3000, 7000) * S) / SP.goose.v, alt: 45, up: true });
+    }
+    // 竹生島のカワウ：朝に列をなして餌場へ散り、夕方に戻る
+    for (let k = 0; k < 9; k++) {
+      const ang = R() * Math.PI * 2,
+        far = 5000 + R() * 9000;
+      let b = [CHIKUBU[0] + Math.cos(ang) * far, CHIKUBU[1] + Math.sin(ang) * far];
+      if (!onWater(...b)) b = lakeNear(LON0 + b[0] / KX, LAT0 - b[1] / KY, 200);
+      const d = Math.hypot(b[0] - CHIKUBU[0], b[1] - CHIKUBU[1]) * S,
+        dur = d / SP.corm.v,
+        n = 6 + Math.floor(R() * 14);
+      out.push({ sp: "corm", n, form: "line", a: CHIKUBU, b, p0: 0.25 + R() * 0.07, dur, alt: 6 + R() * 6, up: true, down: true });
+      out.push({ sp: "corm", n, form: "line", a: b, b: CHIKUBU, p0: 0.68 + R() * 0.08, dur, alt: 6 + R() * 6, up: true });
+    }
+    // 島から飛び立つ・島へ戻る列は、島の木の高さから（島の地面にもぐらないように）
+    for (const g of out) {
+      const ha = isleH(...g.a),
+        hb = isleH(...g.b);
+      g.ha = ha === null ? 0 : ha + 7;
+      g.hb = hb === null ? 0 : hb + 7;
+    }
+    return out;
+  }
+
+  // ---- 1フレームの書き出し ----
+  const M = new THREE.Matrix4(),
+    Q = new THREE.Quaternion(),
+    E = new THREE.Euler(),
+    V = new THREE.Vector3(),
+    Sc = new THREE.Vector3(),
+    cnt = { duck: 0, swan: 0, corm: 0, heron: 0, fly: 0 };
+  function put(kind, x, y, z, hd, pitch, roll, sx, sy, sz, c, anim) {
+    const I = MESH[kind],
+      i = cnt[kind];
+    if (i >= CAP[kind]) return;
+    cnt[kind]++;
+    E.set(roll, -hd, pitch, "YZX");
+    M.compose(V.set(x, y, z), Q.setFromEuler(E), Sc.set(sx, sy, sz));
+    I.setMatrixAt(i, M);
+    I.setColorAt(i, col.setHex(c));
+    if (anim) I.aAnim.setXYZ(i, anim[0], anim[1], anim[2]);
+  }
+  const swimKind = (sp) => SP[sp].swim || "duck";
+  function putSwim(sp, x, z, hd, c, ph, t, wy) {
+    const s = VIS * SP[sp].sz,
+      y = wy + waveH(x, z, t) + Math.sin(t * 1.3 + ph) * 0.03;
+    put(swimKind(sp), x, y, z, hd, Math.sin(t * 1.1 + ph) * 0.05, Math.sin(t * 0.9 + ph) * 0.06, s, s, s, c);
+  }
+  function putFly(sp, x, y, z, hd, pitch, c, ph, flap) {
+    const P = SP[sp],
+      s = VIS * P.sz;
+    put("fly", x, y, z, hd, pitch, 0, s * P.len, s, s * P.span, c, [ph, P.freq * (flap > 1 ? 1.25 : 1), P.amp * flap]);
+  }
+  // 2次のベジェ曲線（群れの中心の飛ぶ道）
+  const bez = (f, u) => [(1 - u) * (1 - u) * f.ax + 2 * (1 - u) * u * f.cx + u * u * f.bx, (1 - u) * (1 - u) * f.az + 2 * (1 - u) * u * f.cz + u * u * f.bz];
+
+  let dnNow = -1,
+    fixed = [],
+    sched = [],
+    tCells = 0,
+    nextHonk = 0;
+  function update(dt, t, c, day, W, wx) {
+    U.uT.value = t;
+    for (const k in cnt) cnt[k] = 0;
+    if (isFar) {
+      for (const k in MESH) MESH[k].count = 0;
+      return;
+    }
+    const dn = Math.floor(c.t / DAY),
+      cx = camera.position.x / S,
+      cy = camera.position.z / S,
+      [hx, hz] = house(),
+      wy = water.position.y,
+      light = day > 0.25,
+      calm = !wx || wx.rain < 0.6;
+    if (dn !== dnNow) {
+      dnNow = dn;
+      flocks = [];
+      made.clear();
+      fixed = fixedFlocks(c, dn);
+      sched = schedule(c, dn);
+    }
+    tCells -= dt;
+    if (tCells <= 0) {
+      tCells = 1;
+      fillCells(c, dn, cx, cy);
+      // 遠ざかった群れは消す（升ごとの記録も消して、戻ってきたらまた現れるように）
+      flocks = flocks.filter((f) => {
+        const keep = Math.hypot(f.x / S - cx, f.z / S - cy) < FAR;
+        if (!keep) made.delete(f.key);
+        return keep;
+      });
+    }
+    const windHd = Math.atan2(-W.y, -W.x); // 水に浮かぶ鳥は風上を向く
+    const night = c.phase < 0.25 || c.phase > 0.76;
+    const R = Math.random;
+    for (const f of [...flocks, ...fixed]) {
+      if (Math.abs(f.x / S - cx) > FAR || Math.abs(f.z / S - cy) > FAR) continue;
+      if (f.night && !night && f.st !== "fly") continue; // ガンは昼は田へ出ている
+      const P = SP[f.sp];
+      if (f.kind === "raft" || f.kind === "stand") {
+        if (f.st === "rest") {
+          if (P.flush && Math.hypot(f.x - hx, f.z - hz) < P.flush + (f.r || 0)) takeOff(f, t, R);
+        }
+        if (f.st === "rest") {
+          for (const b of f.m) {
+            if (f.kind === "raft") {
+              b.ox += Math.sin(t * 0.21 + b.ph) * dt * 0.15;
+              b.oz += Math.cos(t * 0.17 + b.ph) * dt * 0.15;
+              b.hd += (((windHd + Math.sin(b.ph) * 0.6 - b.hd + 9.42) % 6.28) - 3.14) * dt * 0.3;
+              putSwim(f.sp, f.x + b.ox, f.z + b.oz, b.hd, b.c, b.ph, t, wy);
+            } else {
+              const x = f.x + b.ox,
+                z = f.z + b.oz,
+                y = f.land ? landY(x / S, z / S) : wy + 0.02;
+              b.hd += Math.sin(t * 0.05 + b.ph) * dt * 0.05;
+              put("heron", x, y, z, b.hd, 0, 0, VIS * P.sz, VIS * P.sz, VIS * P.sz, P.cols[0]);
+            }
+          }
+        } else {
+          const fl = f.fl;
+          let done = true;
+          for (const b of f.m) {
+            const u = Math.max(0, Math.min(1, (t - fl.t0 - (b.dl || 0)) / fl.dur));
+            if (u < 1) done = false;
+            if (u <= 0) {
+              // まだ飛び立っていない：水の上（立つ鳥は足元）にいる
+              if (f.kind === "raft") putSwim(f.sp, f.x + b.ox, f.z + b.oz, b.hd, b.c, b.ph, t, wy);
+              else put("heron", f.x + b.ox, f.land ? landY((f.x + b.ox) / S, (f.z + b.oz) / S) : wy, f.z + b.oz, b.hd, 0, 0, VIS * P.sz, VIS * P.sz, VIS * P.sz, P.cols[0]);
+              continue;
+            }
+            const [x0, z0] = bez(fl, u),
+              [x1, z1] = bez(fl, Math.min(1, u + 0.01)),
+              hd = Math.atan2(z1 - z0, x1 - x0),
+              up = Math.min(1, u / 0.2),
+              dn2 = fl.land ? Math.min(1, (1 - u) / 0.25) : 1,
+              h = P.alt * (up * up * (3 - 2 * up)) * (dn2 * dn2 * (3 - 2 * dn2)),
+              spread = 1 + Math.sin(Math.PI * u) * 0.8,
+              x = x0 + b.ox * spread,
+              z = z0 + b.oz * spread;
+            if (u >= 1 && fl.land) {
+              if (f.kind === "raft") putSwim(f.sp, x, z, hd, b.c, b.ph, t, wy);
+              continue;
+            }
+            putFly(f.sp, x, wy + 0.3 + h, z, hd, up < 1 ? 0.35 : dn2 < 1 ? -0.15 : 0, f.kind === "raft" ? b.c : P.cols[0], b.ph, up < 1 ? 1.3 : dn2 < 0.6 ? 0.3 : 1);
+          }
+          if (done) {
+            if (!fl.land) {
+              f.gone = true;
+              continue;
+            }
+            f.x = fl.bx;
+            f.z = fl.bz;
+            f.st = "rest";
+            f.land = false; // 降りた先は水辺
+          }
+        }
+      } else if (f.kind === "grebe") {
+        const near = Math.hypot(f.x - hx, f.z - hz) < P.flush;
+        for (const b of f.m) {
+          if (b.under > 0) {
+            b.under -= dt;
+            if (b.under <= 0) {
+              b.ox += (R() - 0.5) * 12;
+              b.oz += (R() - 0.5) * 12;
+              b.ox = Math.max(-14, Math.min(14, b.ox));
+              b.oz = Math.max(-14, Math.min(14, b.oz));
+            }
+            continue;
+          }
+          b.dive -= dt;
+          if (b.dive <= 0 || near) {
+            b.under = 4 + R() * 7;
+            b.dive = 6 + R() * 14;
+            continue;
+          }
+          putSwim("grebe", f.x + b.ox, f.z + b.oz, b.hd, b.c, b.ph, t, wy);
+        }
+      } else if (f.kind === "circle") {
+        if (!light || !calm) continue;
+        // ユリカモメは、建築が近いとそのまわりへ寄ってくる
+        if (f.follow) {
+          const d = Math.hypot(hx - f.x, hz - f.z);
+          if (d < 260 && d > 6) {
+            f.x += ((hx - f.x) / d) * Math.min(d, 4 * dt);
+            f.z += ((hz - f.z) / d) * Math.min(d, 4 * dt);
+          }
+        }
+        for (const b of f.m) {
+          if (b.sit && f.follow && Math.hypot(hx - f.x, hz - f.z) > 120) {
+            putSwim("gull", f.x + Math.cos(b.a) * b.r, f.z + Math.sin(b.a) * b.r, b.a, b.c, b.ph, t, wy);
+            continue;
+          }
+          b.a += b.w * dt * (f.sp === "kite" ? 0.6 : 1);
+          const x = f.x + Math.cos(b.a) * b.r,
+            z = f.z + Math.sin(b.a) * b.r,
+            hd = b.a + (b.w > 0 ? Math.PI / 2 : -Math.PI / 2),
+            flap = f.sp === "kite" ? 1 : Math.sin(t * 0.7 + b.ph) > 0.4 ? 1 : 0.18;
+          putFly(f.sp, x, (f.sp === "kite" ? groundH(x / S, z / S) : wy) + b.h + Math.sin(t * 0.5 + b.ph) * 1.5, z, hd, 0, b.c, b.ph, flap);
+        }
+      } else if (f.kind === "perch") {
+        for (const b of f.m) {
+          b.hd += Math.sin(t * 0.07 + b.ph) * dt * 0.08;
+          put("corm", b.ox, b.y, b.oz, b.hd, -0.3, 0, VIS, VIS, VIS, b.c);
+        }
+      }
+    }
+    flocks = flocks.filter((f) => !f.gone);
+    // 決まった時刻の行き来（列やV字の編隊）
+    if (light || c.phase < 0.3 || c.phase > 0.7)
+      for (const g of sched) {
+        const u = ((c.phase - g.p0) * DAY) / g.dur;
+        if (u < 0 || u > 1) continue;
+        const ax = g.a[0] * S,
+          az = g.a[1] * S,
+          bx = g.b[0] * S,
+          bz = g.b[1] * S,
+          lx = ax + (bx - ax) * u,
+          lz = az + (bz - az) * u;
+        if (Math.hypot(lx / S - cx, lz / S - cy) > FAR + 2000) continue;
+        const hd = Math.atan2(bz - az, bx - ax),
+          upF = g.up ? Math.min(1, u / 0.12) : 1,
+          dnF = g.down ? Math.min(1, (1 - u) / 0.15) : 1,
+          sm = (v) => (v <= 0 ? 0 : v >= 1 ? 1 : v * v * (3 - 2 * v)),
+          h = Math.max(g.alt * Math.min(sm(upF), sm(dnF)), g.ha * (1 - sm(u / 0.2)), g.hb * sm((u - 0.8) / 0.2)),
+          ch = Math.cos(hd),
+          sh = Math.sin(hd),
+          sp = SP[g.sp],
+          gap = VIS * sp.sz * 1.4;
+        for (let i = 0; i < g.n; i++) {
+          let along, side;
+          if (g.form === "v") {
+            const k = Math.ceil(i / 2);
+            along = -k * gap;
+            side = (i % 2 ? 1 : -1) * k * gap * 0.8;
+          } else {
+            along = -i * gap * 1.2;
+            side = Math.sin(i * 1.7 + t * 0.4) * gap * 0.4;
+          }
+          const x = lx + ch * along - sh * side,
+            z = lz + sh * along + ch * side;
+          putFly(g.sp, x, wy + 0.3 + h + Math.sin(i * 2.1 + t) * 0.3, z, hd, upF < 1 ? 0.3 : dnF < 1 ? -0.2 : 0, colOf(g.sp, i), i * 1.3, dnF < 0.5 ? 0.35 : 1);
+        }
+        // ガンの声：近くを渡る編隊から
+        if (g.sp === "goose" && SND.ctx && SND.on && t > nextHonk && Math.hypot(lx - camera.position.x, lz - camera.position.z) < 350) {
+          nextHonk = t + 1.5 + R() * 3;
+          gooseCall(lx, lz, 0.025 + R() * 0.02);
+        }
+      }
+    for (const k in MESH) {
+      const I = MESH[k];
+      I.count = cnt[k];
+      I.instanceMatrix.needsUpdate = true;
+      if (I.instanceColor) I.instanceColor.needsUpdate = true;
+      if (I.aAnim) I.aAnim.needsUpdate = true;
+    }
+  }
+  return { update, SITE, MESH, get flocks() { return flocks; }, get fixed() { return fixed; } }; // MESH・flocks は確認用
 })();
 
 // ==== 44-life.js ====
@@ -11609,7 +12769,7 @@ function frame(now) {
   last = now;
   fpsN++;
   fpsT += dt;
-  if (fpsT > 3 && !G.prof) {
+  if (fpsT > 3 && !G.prof && !G.recOn) {
     // 描画が重いときは解像度を下げる（確認用 ?debug のときは、撮影の条件をそろえるため変えない）
     const f = fpsN / fpsT;
     const old = resScale;
@@ -11625,6 +12785,7 @@ function frame(now) {
     renderer.info.autoReset = false; // 確認用：1フレーム分（映り込み・本描画・仕上げ）を合計して数える
     renderer.info.reset();
   } // 確認用：処理時間の内訳（?debug のときだけ G.prof がある）
+  recTick(dt); // 動画の撮影（32b-video.js）：早回しの時刻を進め、上限で止める
   const c = clock(),
     W = wind(c),
     t = now / 1000;
@@ -11666,6 +12827,8 @@ function frame(now) {
   if (G.boats) G.boats.update(dt, t, c, day, wxNow);
   if (G.shore) G.shore.update(dt, t, c, day, wxNow);
   if (G.trains) G.trains.update(c, day); // 湖西線と琵琶湖線の電車（24b-trains.js）
+  if (G.meisho) G.meisho.update(day); // 名所の建築（40b-meisho.js）：夜の彦根城
+  if (G.birds) G.birds.update(dt, t, c, day, W, wxNow); // 水鳥と空の鳥（43b-birds.js）
   updateCamera(dt, t, hx, hz);
   if (G.nearPatch) G.nearPatch.update(camera.position.x / S, camera.position.z / S); // カメラのまわりの細かい地形（16-terrain.js）
   // 木が縮んで消える距離（cardForest の far）より遠い森の区画は、はじめから描かない

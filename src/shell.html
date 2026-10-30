@@ -25,6 +25,19 @@ body.far .ico svg{stroke:#1b1b1b}
 #snd{left:16px;top:calc(16px + env(safe-area-inset-top))}
 #save{right:16px;top:64px}
 body:not(.lake) #save,body.far #save{display:none}
+#rec{right:16px;top:112px}
+#rec .d{fill:rgba(255,255,255,.85);stroke:none}
+#rec.on .d{fill:#e2361c;animation:recp 1.2s ease-in-out infinite}
+@keyframes recp{50%{opacity:.35}}
+body:not(.lake) #rec,body.far #rec,body.norec #rec,body.rec #save{display:none}
+#recm{position:fixed;right:64px;top:112px;display:none;gap:8px;align-items:center}
+#recm.on{display:flex}
+#recm div{border:1px solid rgba(255,255,255,.6);border-radius:18px;padding:8px 13px;background:rgba(0,0,0,.28);color:#fff;font-size:12px;letter-spacing:.06em;cursor:pointer;white-space:nowrap;text-align:center;line-height:1.35}
+#recm div span{display:block;font-size:9.5px;opacity:.75;letter-spacing:.04em}
+#rect{position:fixed;right:66px;top:122px;color:#fff;font-size:12px;letter-spacing:.08em;text-shadow:0 1px 6px rgba(0,0,0,.5);display:none}
+body.rec #rect{display:block}
+#shot video{max-width:100%;max-height:100%;box-shadow:0 8px 40px rgba(0,0,0,.4);display:none}
+#shot.vid img{display:none}#shot.vid video{display:block}
 #shot{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.6);display:none;place-items:center;padding:24px;box-sizing:border-box}
 #shot.on{display:grid}
 #shot img{max-width:100%;max-height:100%;box-shadow:0 8px 40px rgba(0,0,0,.4)}
@@ -93,11 +106,14 @@ body.far #rest{display:none}
 </div>
 <div id="snd" class="ico" aria-label="sound"><svg viewBox="0 0 24 24"><path d="M4 10h4l5-4v12l-5-4H4z"/><path class="w" d="M16 9c1.5 1.5 1.5 4.5 0 6M18.5 6.5c3 3 3 8 0 11"/></svg></div>
 <div id="save" class="ico" aria-label="photo"><svg viewBox="0 0 24 24"><path d="M4 8h3.5l1.5-2h6l1.5 2H20v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg></div>
-<div id="shot"><img alt=""></div>
+<div id="rec" class="ico" aria-label="video"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle class="d" cx="12" cy="12" r="3.6"/></svg></div>
+<div id="recm"><div id="recV">動画<span>30秒まで・音も</span></div><div id="recT">早回し<span>一日を約20秒で</span></div></div>
+<div id="rect"></div>
+<div id="shot"><img alt=""><video muted loop playsinline></video></div>
 <div id="rest" aria-label="drift"><svg viewBox="0 0 24 24"><path d="M3 16c3-3 6 3 9 0s6 3 9 0"/><path d="M8 9h9M14 6l3 3-3 3"/></svg></div>
 <div id="hint">ドラッグで見回す・ピンチで寄る<br><span style="font-size:11px;opacity:.8">Drag to look, pinch to zoom</span></div>
 </div>
-<div id="ab">この作品について</div><div id="about"><div class="in"><h2>Floating</h2><p>琵琶湖に、建築を浮かべる。</p><p class="how">見回す：ドラッグ　寄る：ピンチ・ホイール<br>舵：左下の円・矢印キー（離すとまた漂う）<br>行き先：右上の地図でタップ<br>写真：右上のカメラ（いま見ている景色を保存）<br>映像：赤いブイに近づいてタップ</p><p class="replay" id="replayHint">案内をもう一度見る</p><p class="src">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a><br><a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a> ／ <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></p><p class="cl">閉じる</p></div></div>
+<div id="ab">この作品について</div><div id="about"><div class="in"><h2>Floating</h2><p>琵琶湖に、建築を浮かべる。</p><p class="how">見回す：ドラッグ　寄る：ピンチ・ホイール<br>舵：左下の円・矢印キー（離すとまた漂う）<br>行き先：右上の地図でタップ<br>写真：右上のカメラ（いま見ている景色を保存）<br>動画：カメラの下の丸（そのままの動画か、一日を早回しで）<br>映像：赤いブイに近づいてタップ</p><p class="replay" id="replayHint">案内をもう一度見る</p><p class="src">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a><br><a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a> ／ <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></p><p class="cl">閉じる</p></div></div>
 <div id="veil"><div id="ld">湖を描いています<span>Drawing the lake</span></div></div>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 <script type="module">
