@@ -347,7 +347,7 @@ if (luPts.length) {
         const p = luNearest(x, y, 75, [0, 1]);
         if (!p || !isLand(x, y) || inInner(x, y) || inRiver(x, y) || distShore(x, y) < 60 || terrainAt(x, y) > 40 || houseNear(x, y, 45)) continue;
         const v = R();
-        paddies.push({ x, y, rot, v: p[0] === 1 ? 0.15 * v : v });
+        paddies.push({ x, y, rot, v: p[0] === 1 ? 0.15 * v : v, field: p[0] === 1 });
       }
   }
 }
