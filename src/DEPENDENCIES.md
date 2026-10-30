@@ -37,7 +37,7 @@
   - 01-settings.js：`LAKE`
   - 03-coords.js：`ll`
   - 05-lake.js：`inPoly`、`islands`、`outer`
-  - 10-start.js（後ろの部品・関数なので可）：`rnd`
+  - 10-start.js（後ろの部品・関数なので可）：`rnd`、`rndFor`
 
 ## 07-depth.js
 - 作る：`CELL`、`DEPTH`、`GH`、`GW`、`SEG_CELL`、`depth`、`depthG`、`distShore`、`distShoreAll`、`segD2`、`segIdx`、`segs`、`shoreSnap`
@@ -109,9 +109,9 @@
   - 02-season.js：`SEASON`
   - 03-coords.js：`ll`
   - 05-lake.js：`inPoly`、`islands`、`outer`
-  - 06-inner-lakes.js：`inLake`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`
+  - 06-inner-lakes.js：`INNER`、`inLake`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`
   - 07-depth.js：`depth`、`distShore`
-  - 10-start.js：`rnd`
+  - 10-start.js：`rnd`、`rndFor`
   - 12-renderer.js：`QUALITY`、`scene`
   - 14-water.js：`water`
 
@@ -160,7 +160,7 @@
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inInner`、`inLake`、`inRiver`、`maxY`、`minY`
   - 07-depth.js：`depth`、`distShore`
-  - 10-start.js：`rnd`、`rndFor`
+  - 10-start.js：`rndFor`
   - 12-renderer.js：`QUALITY`
   - 16-terrain.js：`TH`、`TW`、`VEX`、`isleH`、`nearAt`、`tdx`、`tdy`、`terrH`、`tx0`、`ty0`
   - 18-buildings.js：`buildHouse`
@@ -305,7 +305,7 @@
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inLake`、`inMain`
   - 07-depth.js：`depth`
-  - 10-start.js：`starts`
+  - 10-start.js：`DBG_START`、`R0`、`starts`
   - 11-state.js：`B`、`STATE`、`camX`、`camZ`
   - 18-buildings.js：`BODY_COLORS`、`BUILDINGS`、`CUST`、`LIGHT_COLORS`、`buildHouse`、`house`、`inReeds`
   - 29-controls.js：`dist`、`distT`、`gl`

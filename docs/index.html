@@ -509,7 +509,7 @@ const INNER = [
 const innerPolys = [],
   innerChan = [];
 INNER.forEach(([n, lo, la, rx, ry, r, end], i) => {
-  const p = blob(lo, la, rx, ry, r, 40 + i);
+  const p = blob(lo, la, rx, ry, r, (rndFor("inner:" + n)() * 1e9) | 0); // 内湖ごとの形（ほかの内湖を足し引きしても変わらない）
   innerPolys.push(p);
   innerChan.push(channel([lo, la], end, 70));
 });
@@ -2315,9 +2315,9 @@ const REED_SITES = [
 ].map(([lo, la, r]) => [...ll(lo, la), r]);
 const reedPts = [];
 {
-  const R = rnd(3);
   const o = outer;
-  for (const [cx, cy, r] of REED_SITES)
+  for (const [cx, cy, r] of REED_SITES) {
+    const R = rndFor("reeds:" + Math.round(cx) + "," + Math.round(cy)); // 区域ごとの乱数（区域を足し引きしても、ほかの区域は変わらない）
     for (let i = 0; i < o.length - 1; i++) {
       const a = o[i],
         b = o[i + 1];
@@ -2338,6 +2338,7 @@ const reedPts = [];
         }
       }
     }
+  }
 }
 // ヨシ：茎・葉・穂を描いた板を十字に組み、密な群落にする。背丈は3〜4m、風になびく
 function reedTex(kind) {
@@ -2525,8 +2526,8 @@ for (const p of [...innerPolys, ...innerChan]) {
 }
 const innerReedPts = [];
 {
-  const R = rnd(77);
   innerPolys.forEach((p, pi) => {
+    const R = rndFor("innerReeds:" + INNER[pi][0]); // 内湖ごとの乱数
     for (let i = 0; i < p.length - 1; i++) {
       const a = p[i],
         b = p[i + 1],
@@ -4463,8 +4464,8 @@ if (TOWNS && TOWNS.n) {
   }
 }
 {
-  const R = rnd(314);
   for (const [lo, la] of VILLAGES) {
+    const R = rndFor("village:" + lo + "," + la); // 集落ごとの乱数（ほかの集落を足し引き・移動しても、この集落の家・道・田は変わらない）
     const [vx, vy] = ll(lo, la);
     // 岸の一番近い点と、陸へ向かう向き
     let best = null,
@@ -7522,7 +7523,7 @@ $("about").onclick = (e) => {
 $("title").onclick = () => {
   {
     const ok = starts.filter(([x, y]) => !inReeds(x, y) && inMain(x, y) && depth(x, y) > 1.2);
-    const s2 = ok[Math.floor(Math.random() * ok.length)];
+    const s2 = ok[Math.floor((DBG_START ? R0() : Math.random()) * ok.length)]; // 確認用（?debug）では毎回同じ所（撮り比べのため）
     if (s2) {
       B.x = s2[0];
       B.y = s2[1];
@@ -7544,7 +7545,7 @@ $("go").onclick = () => {
   audioInit();
   if (inReeds(B.x, B.y) || !inMain(B.x, B.y) || depth(B.x, B.y) < 1.2) {
     const ok = starts.filter(([x, y]) => !inReeds(x, y) && inMain(x, y) && depth(x, y) > 1.2);
-    const s2 = ok[Math.floor(Math.random() * ok.length)];
+    const s2 = ok[Math.floor((DBG_START ? R0() : Math.random()) * ok.length)]; // 確認用（?debug）では毎回同じ所（撮り比べのため）
     if (s2) {
       B.x = s2[0];
       B.y = s2[1];
@@ -9640,7 +9641,6 @@ G.life = (() => {
   })();
   // 湖岸の松並木：近江舞子・北小松・萩の浜・宮ヶ浜の白砂青松
   if (LOOK.show.pines) {
-    const R = rndFor("pines");
     const SITES = [
       [135.9616, 35.2332, 1400], // 近江舞子（位置は地理院の注記から）
       [135.9751, 35.255, 900], // 北小松
@@ -9653,6 +9653,7 @@ G.life = (() => {
         [x2, y2] = outer[i + 1],
         L = Math.hypot(x2 - x1, y2 - y1);
       if (L < 1 || !SITES.some(([sx, sy, r]) => Math.hypot(x1 - sx, y1 - sy) < r)) continue;
+      const R = rndFor("pines:" + i); // 岸の線分ごとの乱数（松並木の場所を足し引きしても、ほかの所は変わらない）
       let nx = -(y2 - y1) / L,
         ny = (x2 - x1) / L;
       if (inLake(x1 + nx * 30, y1 + ny * 30)) (nx = -nx), (ny = -ny);

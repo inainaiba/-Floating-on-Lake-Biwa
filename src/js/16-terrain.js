@@ -617,9 +617,9 @@ const REED_SITES = [
 ].map(([lo, la, r]) => [...ll(lo, la), r]);
 const reedPts = [];
 {
-  const R = rnd(3);
   const o = outer;
-  for (const [cx, cy, r] of REED_SITES)
+  for (const [cx, cy, r] of REED_SITES) {
+    const R = rndFor("reeds:" + Math.round(cx) + "," + Math.round(cy)); // 区域ごとの乱数（区域を足し引きしても、ほかの区域は変わらない）
     for (let i = 0; i < o.length - 1; i++) {
       const a = o[i],
         b = o[i + 1];
@@ -640,6 +640,7 @@ const reedPts = [];
         }
       }
     }
+  }
 }
 // ヨシ：茎・葉・穂を描いた板を十字に組み、密な群落にする。背丈は3〜4m、風になびく
 function reedTex(kind) {
@@ -827,8 +828,8 @@ for (const p of [...innerPolys, ...innerChan]) {
 }
 const innerReedPts = [];
 {
-  const R = rnd(77);
   innerPolys.forEach((p, pi) => {
+    const R = rndFor("innerReeds:" + INNER[pi][0]); // 内湖ごとの乱数
     for (let i = 0; i < p.length - 1; i++) {
       const a = p[i],
         b = p[i + 1],
