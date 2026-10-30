@@ -27,7 +27,7 @@
   - 01-settings.js：`Q`
 
 ## 05-lake.js
-- 作る：`TAKEI`、`inPoly`、`islands`、`outer`
+- 作る：`inPoly`、`islands`、`outer`
 - 使う：
   - 01-settings.js：`LAKE`
 
