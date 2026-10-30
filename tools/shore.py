@@ -51,7 +51,7 @@ def fetch(cache, x, y):
             except Exception:
                 continue
             if not q.is_empty:
-                out.append(q.intersection(clip))
+                out.append(q.simplify(3).intersection(clip))  # 先に3mで粗くしてから集める（つなぐ計算を軽く）
     return out
 
 
@@ -65,7 +65,10 @@ def main():
     jobs = [(x, y) for x in range(int(x0), int(x1) + 1) for y in range(int(y0), int(y1) + 1)]
     with cf.ThreadPoolExecutor(8) as ex:
         polys = [p for t in ex.map(lambda q: fetch(cache, *q), jobs) for p in t]
-    water = unary_union([p.buffer(1) for p in polys]).buffer(-1)
+    # 古い湖岸線の近く（外へ1.5km）の水域だけをつなぐ（遠くの池まで含めると、つなぐ計算がとても重い）
+    near = old.buffer(1500)
+    polys = [p for p in polys if p.intersects(near)]
+    water = unary_union(polys)
     # 細い水路を切ってから、古い湖岸線といちばん重なる水面を琵琶湖とする
     opened = water.buffer(-CUT).buffer(CUT)
     parts = list(getattr(opened, 'geoms', [opened]))
