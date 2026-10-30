@@ -628,6 +628,7 @@
 - `G.S`：53-frame.js
 - `G.VIS`：11-state.js
 - `G.W`：49-frame-sky-light.js
+- `G._v3`：53-frame.js
 - `G.afterRain`：49-frame-sky-light.js
 - `G.ambience`：42-ambience.js
 - `G.blQ`：52-frame-render.js
@@ -683,6 +684,7 @@
 - `G.roofTex`：20-villages-layout.js
 - `G.rt`：52-frame-render.js
 - `G.scene`：53-frame.js
+- `G.shTick`：52-frame-render.js
 - `G.shigure`：49-frame-sky-light.js
 - `G.shore`：46-shore-life.js
 - `G.snapNow`：32-photo.js

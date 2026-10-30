@@ -218,6 +218,7 @@ function cardForest(kind, list, hgt, wid, near, far, shadow) {
     I.castShadow = !!shadow;
     I.userData.kind = kind;
     I.userData.noChunk = true; // すでに区画ごと
+    I.userData.far = far; // これより遠い区画は描かない（53-frame.js。木は far までに縮んで消えている）
     I.computeBoundingSphere();
     scene.add(I);
     G.chunks.push(I);

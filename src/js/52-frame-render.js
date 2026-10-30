@@ -182,6 +182,10 @@ gl_FragColor=vec4(bl,1.);}`,
     waterU.uRes.value.set(w, h);
     waterU.uCalm.value = Math.max(0, 1 - W.s / 6) * (wxNow.rain > 0.3 ? 0.3 : 1);
   }
+  // 影：家や木は動かず、太陽はゆっくり動くので、2フレームに1回で足りる。映り込みの描画では描き直さない
+  //（以前は映り込みと本描画の2回、毎フレーム描いていた）
+  G.shTick = (G.shTick || 0) + 1;
+  if (G.shTick % 2 === 1) renderer.shadowMap.needsUpdate = true;
   renderer.setRenderTarget(G.rt);
   renderer.render(scene, camera);
   renderer.setRenderTarget(null);
