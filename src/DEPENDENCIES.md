@@ -152,7 +152,7 @@
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
 ## 20-villages-layout.js
-- 作る：`ROOF_COLS`、`TOWNS`、`VILLAGES`、`addHouse`、`breaks`、`cvTex`、`groundH`、`houseGrid`、`houseNear`、`houseOk`、`houses`、`isLand`、`landY`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`streets`、`terrainAt`、`wallG`、`wallM`、`wallTex`
+- 作る：`LANDUSE`、`ROOF_COLS`、`TOWNS`、`VILLAGES`、`addHouse`、`breaks`、`cvTex`、`groundH`、`houseGrid`、`houseNear`、`houseOk`、`houses`、`isLand`、`landY`、`luIdx`、`luNearest`、`luPts`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`streets`、`terrainAt`、`wallG`、`wallM`、`wallTex`
 - 使う：
   - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
@@ -257,7 +257,7 @@
   - 12-renderer.js：`MOBILE`、`QUALITY`
   - 16-terrain.js：`VEX`
   - 17-trees.js：`cardForest`
-  - 20-villages-layout.js：`houseNear`、`terrainAt`
+  - 20-villages-layout.js：`houseNear`、`luNearest`、`luPts`、`terrainAt`
 
 ## 26b-rivers.js
 - 作る：（なし）

@@ -2,7 +2,7 @@
 
   src/shell.html  … HTML・CSS・画面の部品（__SCRIPT__ の位置に描画のコードが入る）
   src/js/NN-*.js  … 描画のコード。ファイル名の番号順につなげる（1つのモジュールとして動く）
-  data/lake.json, data/dem.json, data/depth.json, data/isles.json, data/rivers.json, data/towns.json, data/near.json, data/rail.json, data/buoys.xlsx … 湖・地形・深さ・線路・ブイのデータ
+  data/lake.json, data/dem.json, data/depth.json, data/isles.json, data/rivers.json, data/towns.json, data/near.json, data/landuse.json, data/rail.json, data/buoys.xlsx … 湖・地形・深さ・線路・ブイのデータ
 """
 import pathlib, json, re
 from openpyxl import load_workbook
@@ -76,12 +76,13 @@ def build():
                 .replace('__RIVERS__', (r / 'data/rivers.json').read_text())
                 .replace('__TOWNS__', (r / 'data/towns.json').read_text())
                 .replace('__NEAR__', (r / 'data/near.json').read_text())
+                .replace('__LANDUSE__', (r / 'data/landuse.json').read_text())
                 .replace('__BUOYS__', json.dumps(B, ensure_ascii=False)))
     # 文法の確認：node があれば、組み立てたコードを読み込めるか確かめる（壊れたまま公開しないため）
     import subprocess, shutil, tempfile
     if shutil.which('node'):
         with tempfile.NamedTemporaryFile('w', suffix='.mjs', delete=False) as f:
-            f.write(script.replace('__LAKE__', '{}').replace('__DEM__', '{}').replace('__RAIL__', '{}').replace('__DEPTH__', '{}').replace('__ISLES__', '[]').replace('__RIVERS__', '[]').replace('__TOWNS__', '{}').replace('__NEAR__', '{}').replace('__BUOYS__', '[]'))
+            f.write(script.replace('__LAKE__', '{}').replace('__DEM__', '{}').replace('__RAIL__', '{}').replace('__DEPTH__', '{}').replace('__ISLES__', '[]').replace('__RIVERS__', '[]').replace('__TOWNS__', '{}').replace('__NEAR__', '{}').replace('__LANDUSE__', '{}').replace('__BUOYS__', '[]'))
         res = subprocess.run(['node', '--check', f.name], capture_output=True, text=True)
         if res.returncode:
             print(res.stderr.split('SyntaxError')[0][-400:] + 'SyntaxError' + res.stderr.split('SyntaxError')[-1][:200])

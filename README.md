@@ -2,7 +2,7 @@
 
 琵琶湖（1/5縮尺）に水上建築を放ち、漂わせて眺めるWeb作品。three.js 0.160、1つのHTMLファイルで動く1人用の作品で、サーバーは使わない。
 
-- `data/lake.json` … 湖岸線・島・港・橋・川（国土数値情報／OpenStreetMapから作成）
+- `data/lake.json` … 湖岸線・島（国土地理院のベクトルタイルの水域から `python3 tools/shore.py` で作成）と、港・橋・川（OpenStreetMapから作成）
 - `data/buoys.xlsx` … ブイ一覧（集落名・集落形態・北緯・東経・YouTubeリンク）。編集後に `python3 build.py`
 - `data/dem.json` … 周囲の地形（国土地理院の標高タイルから作成。作り直しは `python3 tools/dem.py`）
 - `data/rail.json` … 湖西線の道筋（国土地理院のベクトルタイルから作成。作り直しは `python3 tools/rail.py`）
@@ -10,9 +10,10 @@
 - `data/near.json` … 岸近くの細かい地形（標高タイルから、岸から約2kmの帯を30m間隔で。作り直しは `python3 tools/near.py`）。カメラのまわりだけ細かい網目で描く
 - `data/rivers.json` … 陸の川と池（国土地理院のベクトルタイルの水域から作成。作り直しは `python3 tools/rivers.py`）
 - `data/towns.json` … 湖岸の家並みと道（国土地理院のベクトルタイルの建物・道路から作成。作り直しは `python3 tools/towns.py`）
+- `data/landuse.json` … 田・畑・森の地図記号（国土地理院のベクトルタイルから作成。作り直しは `python3 tools/landuse.py`）。田の区画の場所と、森の木の種類に使う
 - `data/depth.json` … 湖の深さ（国土地理院のベクトルタイルの等深線から作成。作り直しは `python3 tools/depth.py`）
 - `docs/index.html` … 組み立て後の公開用ファイル
-- `tools/` … データ準備（prep.py・dem.py・isles.py・near.py・rivers.py・towns.py・rail.py・depth.py と、まとめて動かす data.py）と、Playwrightによる確認用の撮影スクリプト
+- `tools/` … データ準備（prep.py・dem.py・isles.py・near.py・rivers.py・towns.py・landuse.py・shore.py・rail.py・depth.py と、まとめて動かす data.py）と、Playwrightによる確認用の撮影スクリプト
 
 ## ファイルの構成
 

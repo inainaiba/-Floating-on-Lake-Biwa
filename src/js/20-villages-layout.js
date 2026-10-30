@@ -63,6 +63,37 @@ const houses = [],
   roads = [],
   breaks = [],
   streets = []; // 実際の道（地理院のベクトルタイル）：{ w: 幅の段, p: [[x, y], …] }。描くのは 22-village-lights-roads.js
+// 田・畑・森の地図記号（tools/landuse.py → data/landuse.json）：種類 0 田・1 畑・2 広葉樹林・3 針葉樹林・4 竹林。500m四方の升で引く
+const LANDUSE = __LANDUSE__;
+const luPts = [],
+  luIdx = new Map();
+if (LANDUSE && LANDUSE.n) {
+  const B = Uint8Array.from(atob(LANDUSE.d), (ch) => ch.charCodeAt(0)),
+    dv = new DataView(B.buffer);
+  for (let i = 0; i < LANDUSE.n; i++) {
+    const p = [B[i * 5], dv.getInt16(i * 5 + 1, true) * 10, dv.getInt16(i * 5 + 3, true) * 10];
+    luPts.push(p);
+    const k = Math.floor(p[1] / 500) * 65536 + Math.floor(p[2] / 500);
+    if (!luIdx.has(k)) luIdx.set(k, []);
+    luIdx.get(k).push(p);
+  }
+}
+// (x, y) からいちばん近い記号（kinds の種類だけ）。r より遠ければ null
+function luNearest(x, y, r, kinds) {
+  const n = Math.ceil(r / 500),
+    cu = Math.floor(x / 500),
+    cv = Math.floor(y / 500);
+  let best = null,
+    bd = r * r;
+  for (let u = cu - n; u <= cu + n; u++)
+    for (let v = cv - n; v <= cv + n; v++)
+      for (const p of luIdx.get(u * 65536 + v) || []) {
+        if (!kinds.includes(p[0])) continue;
+        const d = (p[1] - x) ** 2 + (p[2] - y) ** 2;
+        if (d < bd) (bd = d), (best = p);
+      }
+  return best;
+}
 // 実際の家並み（tools/towns.py → data/towns.json）：岸に近い順に並んでいる。1軒8バイト（x/2, y/2, 幅, 奥行き, 向き×40, 種類）
 const TOWNS = __TOWNS__;
 // 家の位置の升（120m四方）：近くに家があるかを、全部の家を調べずに確かめる（森・田の置き場所で何十万回も使う）
@@ -263,6 +294,7 @@ if (TOWNS && TOWNS.n) {
           const x = a[0] + nx * (560 + r * 170) + tx * c * 190,
             y = a[1] + ny * (560 + r * 170) + ty * c * 190;
           if (
+            !luPts.length && // 地図記号の田があるときは、そちらから置く（下）
             isLand(x, y) &&
             !inInner(x, y) &&
             !inRiver(x, y) &&
@@ -290,6 +322,21 @@ if (TOWNS && TOWNS.n) {
     }
     breaks.push({ x: p[0] + Math.cos(a) * 120, y: p[1] + Math.sin(a) * 120, rot: a + Math.PI / 2 });
     placeLog("防波堤", "water", [[breaks.at(-1).x, breaks.at(-1).y]]);
+  }
+}
+// 実際の田：地図記号の田（と畑）のまわりに区画を置く。区画の向きは近くの記号どうしで揃える（条里の田のように）
+if (luPts.length) {
+  const R = rndFor("paddies");
+  for (const [k, px, py] of luPts) {
+    if (k > 1) continue;
+    const rot = Math.round(Math.sin(Math.floor(px / 2000) * 12.9 + Math.floor(py / 2000) * 78.2) * 3) * 0.15; // 2km四方ごとに向きをそろえる
+    for (let j = 0; j < 2; j++) {
+      const x = px + (R() - 0.5) * 160,
+        y = py + (R() - 0.5) * 160,
+        v = R();
+      if (!isLand(x, y) || inInner(x, y) || inRiver(x, y) || distShore(x, y) < 60 || terrainAt(x, y) > 40 || houseNear(x, y, 70)) continue;
+      paddies.push({ x, y, rot: rot + (R() < 0.5 ? 0 : Math.PI / 2), v: k === 1 ? 0.15 * v : v });
+    }
   }
 }
 const ROOF_COLS = [0x3c4046, 0x474b51, 0x707479, 0x969ba0, 0x51606e, 0x7a4038, 0x4f7ea8, 0x5a9590];
