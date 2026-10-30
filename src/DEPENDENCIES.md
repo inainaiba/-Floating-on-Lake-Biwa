@@ -198,8 +198,9 @@
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
+  - 10-start.js：`rndFor`
   - 12-renderer.js：`scene`
-  - 20-villages-layout.js：`houses`、`landY`
+  - 20-villages-layout.js：`TOWNS`、`houses`、`landY`
 
 ## 23-paddies.js
 - 作る：`PADDY`、`ghI`、`paddyI`、`paddyM`、`paddySeason`
