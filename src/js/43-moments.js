@@ -37,6 +37,7 @@ G.moments = (() => {
     return new THREE.ShapeGeometry(sh, 4).rotateX(-Math.PI / 2);
   })();
   const pts = new THREE.InstancedMesh(leafG, new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide }), NP);
+  pts.userData.noChunk = true; // 毎フレーム動かす（区画に分けない）
   const lM = new THREE.Matrix4(),
     lQ = new THREE.Quaternion(),
     lE = new THREE.Euler(),

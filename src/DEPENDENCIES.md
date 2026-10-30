@@ -5,8 +5,9 @@
 部品は番号順に1つのモジュールとしてつながる。後ろの部品で作る名前は、前の部品の「読み込み時に動く処理」からは使えない（関数の中や毎フレームの処理からは使える）。
 
 ## 00-head.js
-- 作る：`G`、`GLSL_NOISE`、`LEAFTX`、`NEAR_TREE_MAT`、`PLACE_LOG`、`mergeStatic`、`mkLeaf`、`placeLog`
+- 作る：`CHUNK`、`G`、`GLSL_NOISE`、`LEAFTX`、`NEAR_TREE_MAT`、`PLACE_LOG`、`chunkOf`、`chunkify`、`mergeStatic`、`mkLeaf`、`placeLog`
 - 使う：
+  - 01-settings.js（後ろの部品・要注意）：`S`
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
   - 31-ui.js（後ろの部品・要注意）：`$`
 
@@ -117,7 +118,7 @@
 ## 17-trees.js
 - 作る：`TREE_TEX`、`cardForest`、`cardTreeGeom`、`cardTreeMat`、`paintTree`、`treeTex`
 - 使う：
-  - 00-head.js：`G`、`placeLog`
+  - 00-head.js：`G`、`chunkOf`、`placeLog`
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inRiver`
   - 10-start.js：`rnd`
@@ -570,6 +571,7 @@
 - 作る：`renderFrame`
 - 使う：
   - 00-head.js：`G`
+  - 01-settings.js：`S`
   - 11-state.js：`camX`、`camZ`
   - 12-renderer.js：`QUALITY`、`camera`、`renderer`、`scene`
   - 13-sky-dome.js：`skyDome`、`sun`
@@ -579,7 +581,7 @@
 ## 53-frame.js
 - 作る：`frame`
 - 使う：
-  - 00-head.js：`G`、`PLACE_LOG`
+  - 00-head.js：`G`、`PLACE_LOG`、`chunkify`
   - 01-settings.js：`Q`、`S`
   - 03-coords.js：`ll`
   - 04-clock.js：`MO`、`PH`、`clock`
@@ -628,10 +630,14 @@
 - `G.W`：49-frame-sky-light.js
 - `G.afterRain`：49-frame-sky-light.js
 - `G.ambience`：42-ambience.js
+- `G.blQ`：52-frame-render.js
+- `G.blRT`：52-frame-render.js
+- `G.blS`：52-frame-render.js
 - `G.boats`：45-boats.js
 - `G.buoys`：37-buoys.js
 - `G.camera`：53-frame.js
 - `G.cards`：17-trees.js
+- `G.chunks`：00-head.js
 - `G.city`：47-city.js
 - `G.dbg`：53-frame.js
 - `G.deb`：30d-debussy.js
@@ -687,4 +693,5 @@
 - `G.torii`：35-torii.js
 - `G.trT`：50-frame-float.js
 - `G.wake`：19-boats.js
+- `G.wakeMesh`：19-boats.js
 - `G.wxNow`：49-frame-sky-light.js

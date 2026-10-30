@@ -322,7 +322,10 @@ function updateSkyLight(dt, t, c, W) {
               cc.set(P[(i * 13 + I.id) % (c.month === 9 ? 7 : 6)]).multiplyScalar(
                 1.05 + ((i * 13) % 7) * 0.03,
               );
-            else cc.setScalar(1.05 + ((i * 13) % 7) * 0.04);
+            else {
+              const hv = ((i * 29) % 11) / 10 - 0.5; // 木ごとの色のむら（17-trees.js の cardForest と同じ）
+              cc.setRGB(1 + hv * 0.1, 1, 1 - hv * 0.12).multiplyScalar(1.05 + ((i * 13) % 7) * 0.04);
+            }
             I.setColorAt(i, cc);
           }
           I.instanceColor.needsUpdate = true;

@@ -139,5 +139,14 @@ if (Q.has("debug")) {
     yaw = yawT = yw; pitch = pt; dist = distT = ds;
   };
 }
+// 湖全体に散らばる動かない景物を、区画ごとの子に分ける（00-head.js の chunkify。画面の外の区画を描かない）
+if (G.wakeMesh) G.wakeMesh.userData.noChunk = true; // 航跡は毎フレーム動く
+{
+  const list = [];
+  scene.traverse((o) => {
+    if (o.isInstancedMesh && !o.userData.chunkOf && !G.chunks.includes(o)) list.push(o);
+  });
+  for (const o of list) chunkify(o);
+}
 requestAnimationFrame(frame);
 requestAnimationFrame(() => (document.getElementById("veil").style.opacity = 0));

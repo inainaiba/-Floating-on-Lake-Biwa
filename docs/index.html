@@ -242,6 +242,46 @@ function mergeStatic(root) {
   return out.length;
 }
 
+// 画面に入っている所だけ描くための区画（実寸6km四方）。湖全体に散らばる景物（家・森・ヨシ・石など）を区画ごとの
+// 子に分けると、three.js が画面の外の区画を描かなくなる。映り込みでは遠い区画も省く（52-frame-render.js）
+const CHUNK = 6000;
+const chunkOf = (x, y) => Math.floor(x / CHUNK) * 4096 + Math.floor(y / CHUNK);
+G.chunks = [];
+// 動かない InstancedMesh を区画ごとの子に分ける。元の物は親として残し（見え隠れ・位置・材質の切り替えはそのまま効く）、
+// 自分では何も描かない。実行中に1本ずつ位置や色を変える物（userData.noChunk）には使わない
+function chunkify(mesh) {
+  if (!mesh.isInstancedMesh || mesh.userData.noChunk || mesh.count < 200) return;
+  const M = new THREE.Matrix4(),
+    groups = new Map();
+  for (let i = 0; i < mesh.count; i++) {
+    mesh.getMatrixAt(i, M);
+    const k = chunkOf(M.elements[12] / S + mesh.position.x / S, M.elements[14] / S + mesh.position.z / S);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(i);
+  }
+  if (groups.size < 2) return;
+  const col = new THREE.Color();
+  for (const idx of groups.values()) {
+    const c = new THREE.InstancedMesh(mesh.geometry, mesh.material, idx.length);
+    idx.forEach((i, j) => {
+      mesh.getMatrixAt(i, M);
+      c.setMatrixAt(j, M);
+      if (mesh.instanceColor) {
+        mesh.getColorAt(i, col);
+        c.setColorAt(j, col);
+      }
+    });
+    c.castShadow = mesh.castShadow;
+    c.receiveShadow = mesh.receiveShadow;
+    c.renderOrder = mesh.renderOrder;
+    c.userData = { ...mesh.userData, chunkOf: mesh };
+    c.computeBoundingSphere();
+    mesh.add(c);
+    G.chunks.push(c);
+  }
+  mesh.count = 0;
+  mesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, -1e7, 0), 0); // 親は描かない（いつも画面の外とみなす）
+}
 // 置き場所の記録（点検用）：景物ごとに位置（実寸の x, y）と、守るべき決まりを残す。
 // 決まり：water＝湖の上、land＝陸か島の上、shore＝岸の近く（約250m以内）。tools/audit.py が数を調べる
 const PLACE_LOG = [];
@@ -965,12 +1005,12 @@ const HQ = QUAL === "high",
   LQ = QUAL === "low";
 const MOBILE = matchMedia("(pointer:coarse)").matches;
 /* 画質の表：高（high）・中（mid）・低（low）で何を省くか。重いときはここを調整する
-   towns 実際の家並みから建てる家の数の上限（岸に近い順）／nearPatch カメラのまわりの細かい地形の網目のマス数（0 で使わない）／reedPer ヨシ1か所あたりの株の数／hedgeDetail 生け垣の形の細かさ（0 で荒く）／rocks 岸の石を残す割合
+   towns 実際の家並みから建てる家の数の上限（岸に近い順）／nearPatch カメラのまわりの細かい地形の網目のマス数（0 で使わない）／reflFar 映り込みに描く景物の区画の距離（実寸m）／reedPer ヨシ1か所あたりの株の数／hedgeDetail 生け垣の形の細かさ（0 で荒く）／rocks 岸の石を残す割合
    ?q=high / mid / low で強制できる。中と低はスマホ（MOBILE）だと水面の網目をさらに粗くする */
 const QUALITY_TABLE = {
-  high: { resStart: 1, resMax: 1, pixelMax: 2.5, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], towns: 9000, nearPatch: 128, reedPer: 6, hedgeDetail: 1, rocks: 1, reflection: 1, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1, msaa: 4, cloudSteps: 32 },
-  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], towns: 4500, nearPatch: 96, reedPer: 6, hedgeDetail: 1, rocks: 1, reflection: 0.7, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1, msaa: 2, cloudSteps: 16 },
-  low: { resStart: 0.6, resMax: 0.9, pixelMax: 2, shadowMap: 512, shadowRange: 40, waterGrid: 300, terrain: [280, 350], towns: 3000, nearPatch: 0, reedPer: 3, hedgeDetail: 0, rocks: 0.5, reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 3500, fireworkBurst: 0.55, msaa: 0, cloudSteps: 0 },
+  high: { resStart: 1, resMax: 1, pixelMax: 2.5, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], towns: 9000, nearPatch: 128, reflFar: 8000, reedPer: 6, hedgeDetail: 1, rocks: 1, reflection: 1, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1, msaa: 4, cloudSteps: 32 },
+  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], towns: 4500, nearPatch: 96, reflFar: 5500, reedPer: 6, hedgeDetail: 1, rocks: 1, reflection: 0.7, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1, msaa: 2, cloudSteps: 16 },
+  low: { resStart: 0.6, resMax: 0.9, pixelMax: 2, shadowMap: 512, shadowRange: 40, waterGrid: 300, terrain: [280, 350], towns: 3000, nearPatch: 0, reflFar: 3500, reedPer: 3, hedgeDetail: 0, rocks: 0.5, reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 3500, fireworkBurst: 0.55, msaa: 0, cloudSteps: 0 },
 };
 const QUALITY = { ...(QUALITY_TABLE[QUAL] || QUALITY_TABLE.mid) };
 // 画質に合わせて数を間引く（QUALITY.rocks が 0.5 なら2つに1つ残す）。配列をその場で縮めて返す
@@ -2708,13 +2748,19 @@ function cardForest(kind, list, hgt, wid, near, far, shadow) {
   list = list.filter(([x, y]) => !inRiver(x, y)); // 川の上には立てない
   placeLog("木・" + ({ broad: "広葉樹", pine: "松", cedar: "杉", bamboo: "竹" }[kind] || kind), "land", list);
   for (let v = 0; v < 3; v++) {
-    const sel = list.filter((_, i) => i % 3 === v);
-    if (!sel.length) continue;
-    const I = new THREE.InstancedMesh(
-        cardTreeGeom(hgt, wid, kind === "cedar" ? 2 : 3),
-        cardTreeMat(kind, v, near, far),
-        sel.length,
-      ),
+    const all = list.filter((_, i) => i % 3 === v);
+    if (!all.length) continue;
+    // 区画（00-head.js の CHUNK）ごとに分けて、画面の外の区画を描かないようにする。形と材質は区画どうしで共有
+    const geo = cardTreeGeom(hgt, wid, kind === "cedar" ? 2 : 3),
+      mat = cardTreeMat(kind, v, near, far),
+      byChunk = new Map();
+    for (const p of all) {
+      const k = chunkOf(p[0], p[1]);
+      if (!byChunk.has(k)) byChunk.set(k, []);
+      byChunk.get(k).push(p);
+    }
+    for (const sel of byChunk.values()) {
+    const I = new THREE.InstancedMesh(geo, mat, sel.length),
       M = new THREE.Matrix4(),
       c = new THREE.Color();
     sel.forEach(([x, y, gy, s, r], i) => {
@@ -2730,8 +2776,12 @@ function cardForest(kind, list, hgt, wid, near, far, shadow) {
     });
     I.castShadow = !!shadow;
     I.userData.kind = kind;
+    I.userData.noChunk = true; // すでに区画ごと
+    I.computeBoundingSphere();
     scene.add(I);
+    G.chunks.push(I);
     (G.forest = G.forest || []).push(I);
+    }
   }
 }
 
@@ -3984,7 +4034,7 @@ const boatMeshes = new Map();
 let W_SENSE = 1;
 // 航跡：白い泡の点を落として薄れさせる
 const WAKE_N = 3000,
-  wake = new THREE.InstancedMesh(
+  wake = G.wakeMesh = new THREE.InstancedMesh(
     new THREE.CircleGeometry(1, 12).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({
       color: 0xf2f6f6,
@@ -5460,6 +5510,7 @@ const paddyI = new THREE.InstancedMesh(
   paddyM,
   paddies.length,
 );
+paddyI.userData.noChunk = true; // 季節ごとに1枚ずつ色を変える（区画に分けない）
 paddyM.map = cvTex(64, 32, (g, w, h) => {
   g.fillStyle = "#fff";
   g.fillRect(0, 0, w, h);
@@ -5877,6 +5928,7 @@ const shoreTrees = [];
 placeLog("内湖のまわりの木", "land", shoreTrees);
 const treeM = treeFade(new THREE.MeshLambertMaterial({ vertexColors: true }), 260, 420),
   treeI = new THREE.InstancedMesh(treeGeom("broad"), treeM, shoreTrees.length);
+treeI.userData.noChunk = true; // 季節ごとに1本ずつ色を変える（区画に分けない）
 {
   const M = new THREE.Matrix4();
   shoreTrees.forEach(([x, y, c], i) => {
@@ -9250,6 +9302,7 @@ G.moments = (() => {
     return new THREE.ShapeGeometry(sh, 4).rotateX(-Math.PI / 2);
   })();
   const pts = new THREE.InstancedMesh(leafG, new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide }), NP);
+  pts.userData.noChunk = true; // 毎フレーム動かす（区画に分けない）
   const lM = new THREE.Matrix4(),
     lQ = new THREE.Quaternion(),
     lE = new THREE.Euler(),
@@ -10572,7 +10625,10 @@ function updateSkyLight(dt, t, c, W) {
               cc.set(P[(i * 13 + I.id) % (c.month === 9 ? 7 : 6)]).multiplyScalar(
                 1.05 + ((i * 13) % 7) * 0.03,
               );
-            else cc.setScalar(1.05 + ((i * 13) % 7) * 0.04);
+            else {
+              const hv = ((i * 29) % 11) / 10 - 0.5; // 木ごとの色のむら（17-trees.js の cardForest と同じ）
+              cc.setRGB(1 + hv * 0.1, 1, 1 - hv * 0.12).multiplyScalar(1.05 + ((i * 13) % 7) * 0.04);
+            }
             I.setColorAt(i, cc);
           }
           I.instanceColor.needsUpdate = true;
@@ -10753,6 +10809,7 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
       new THREE.ShaderMaterial({
         uniforms: {
           tD: { value: null },
+          tBl: { value: null },
           uAsp: { value: 1.6 },
           uSunS: { value: new THREE.Vector3(0, 0, 0) },
           uBlue: { value: 0 },
@@ -10765,7 +10822,7 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
         depthTest: false,
         depthWrite: false,
         vertexShader: `varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy,0.,1.);}`,
-        fragmentShader: `uniform sampler2D tD;uniform float uAsp;uniform vec3 uSunS;uniform float uBlue;
+        fragmentShader: `uniform sampler2D tD;uniform sampler2D tBl;uniform float uAsp;uniform vec3 uSunS;uniform float uBlue;
 
 uniform float uWarm,uDay,uMorn,uTm,uMoonL;
 varying vec2 vU;
@@ -10773,13 +10830,8 @@ varying vec2 vU;
 }
    void main(){vec3 c0=texture2D(tD,vU).rgb;
 vec3 c=aces(c0*1.15);
-vec3 bl=vec3(0.);
-for(int i=0;
-i<16;
-i++){float a=float(i)*2.399,r=.003+.0032*float(i);
-vec3 s=aces(texture2D(tD,vU+vec2(cos(a),sin(a))*r*vec2(1.,1.6)).rgb*1.15);
-bl+=max(s-.55,0.)*(1.-float(i)/20.);
-}c+=bl*vec3(.15,.14,.13);
+vec3 bl=texture2D(tBl,vU).rgb; // 明るい所のにじみ（半分の解像度で先に計算したもの）
+c+=bl*vec3(.15,.14,.13);
 // 太陽を向いたときのレンズの光のにじみ（ごく控えめに）
 if(uSunS.z>.01){vec2 d=(vU-uSunS.xy)*vec2(uAsp,1.);float r=length(d);c+=vec3(1.,.93,.82)*(exp(-r*r*18.)*.05+exp(-r*5.)*.018)*uSunS.z;vec2 gp=vec2(1.)-uSunS.xy;float g2=length((vU-mix(uSunS.xy,gp,.7))*vec2(uAsp,1.));c+=vec3(.7,.85,1.)*smoothstep(.06,.04,g2)*smoothstep(.02,.04,g2)*.008*uSunS.z;}
 c=pow(c,vec3(1./2.2));
@@ -10820,6 +10872,26 @@ c+=gr*(.022-.01*l);
     );
     G.gs = new THREE.Scene();
     G.gs.add(G.gq);
+    // 明るい所のにじみを、縦横半分の解像度で計算する（にじみはもともとぼやけているので、画面の全部の点で16か所ずつ調べなくてよい）
+    G.blRT = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+    G.blQ = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 2),
+      new THREE.ShaderMaterial({
+        uniforms: { tD: { value: null } },
+        depthTest: false,
+        depthWrite: false,
+        vertexShader: `varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy,0.,1.);}`,
+        fragmentShader: `uniform sampler2D tD;varying vec2 vU;
+vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}
+void main(){vec3 bl=vec3(0.);
+for(int i=0;i<16;i++){float a=float(i)*2.399,r=.003+.0032*float(i);
+vec3 s=aces(texture2D(tD,vU+vec2(cos(a),sin(a))*r*vec2(1.,1.6)).rgb*1.15);
+bl+=max(s-.55,0.)*(1.-float(i)/20.);}
+gl_FragColor=vec4(bl,1.);}`,
+      }),
+    );
+    G.blS = new THREE.Scene();
+    G.blS.add(G.blQ);
     G.gc = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   }
   {
@@ -10873,6 +10945,19 @@ c+=gr*(.022-.01*l);
     }
     const nrVis = G.noRefl.map((o) => o.visible);
     for (const o of G.noRefl) o.visible = false;
+    // 映り込みには遠い区画の景物（家・森・ヨシなど）を描かない。水面では波でにじんで見分けられないため（山並みと空は描く）
+    const far2 = (QUALITY.reflFar * S) ** 2,
+      cp = camera.position,
+      v3 = new THREE.Vector3(),
+      farHid = [];
+    for (const c of G.chunks) {
+      if (!c.visible) continue;
+      v3.copy(c.boundingSphere.center).applyMatrix4(c.matrixWorld);
+      if ((v3.x - cp.x) ** 2 + (v3.z - cp.z) ** 2 > far2) {
+        c.visible = false;
+        farHid.push(c);
+      }
+    }
     const cc = renderer.getClearColor(new THREE.Color()),
       ca = renderer.getClearAlpha();
     renderer.setClearColor(0, 0);
@@ -10887,6 +10972,7 @@ c+=gr*(.022-.01*l);
     skyDome.visible = vis[1];
     (G.innerMeshes || []).forEach((m, i) => (m.visible = inner[i]));
     G.noRefl.forEach((o, i) => (o.visible = nrVis[i]));
+    for (const c of farHid) c.visible = true;
     waterU.uRefl.value = G.rf.texture;
     waterU.uWy.value = wy;
     waterU.uRes.value.set(w, h);
@@ -10896,6 +10982,19 @@ c+=gr*(.022-.01*l);
   renderer.render(scene, camera);
   renderer.setRenderTarget(null);
   G.gq.material.uniforms.tD.value = G.rt.texture;
+  {
+    const w = Math.max(1, renderer.domElement.width >> 1),
+      h = Math.max(1, renderer.domElement.height >> 1);
+    if (G.blRT.width !== w || G.blRT.height !== h) G.blRT.setSize(w, h);
+    G.blQ.material.uniforms.tD.value = G.rt.texture;
+    const tm = renderer.toneMapping;
+    renderer.toneMapping = THREE.NoToneMapping;
+    renderer.setRenderTarget(G.blRT);
+    renderer.render(G.blS, G.gc);
+    renderer.setRenderTarget(null);
+    renderer.toneMapping = tm;
+    G.gq.material.uniforms.tBl.value = G.blRT.texture;
+  }
   {
     const u = G.gq.material.uniforms;
     u.uAsp.value = camera.aspect;
@@ -11060,6 +11159,15 @@ if (Q.has("debug")) {
     G.resetTrail();
     yaw = yawT = yw; pitch = pt; dist = distT = ds;
   };
+}
+// 湖全体に散らばる動かない景物を、区画ごとの子に分ける（00-head.js の chunkify。画面の外の区画を描かない）
+if (G.wakeMesh) G.wakeMesh.userData.noChunk = true; // 航跡は毎フレーム動く
+{
+  const list = [];
+  scene.traverse((o) => {
+    if (o.isInstancedMesh && !o.userData.chunkOf && !G.chunks.includes(o)) list.push(o);
+  });
+  for (const o of list) chunkify(o);
 }
 requestAnimationFrame(frame);
 requestAnimationFrame(() => (document.getElementById("veil").style.opacity = 0));

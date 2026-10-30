@@ -13,6 +13,7 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
       new THREE.ShaderMaterial({
         uniforms: {
           tD: { value: null },
+          tBl: { value: null },
           uAsp: { value: 1.6 },
           uSunS: { value: new THREE.Vector3(0, 0, 0) },
           uBlue: { value: 0 },
@@ -25,7 +26,7 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
         depthTest: false,
         depthWrite: false,
         vertexShader: `varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy,0.,1.);}`,
-        fragmentShader: `uniform sampler2D tD;uniform float uAsp;uniform vec3 uSunS;uniform float uBlue;
+        fragmentShader: `uniform sampler2D tD;uniform sampler2D tBl;uniform float uAsp;uniform vec3 uSunS;uniform float uBlue;
 
 uniform float uWarm,uDay,uMorn,uTm,uMoonL;
 varying vec2 vU;
@@ -33,13 +34,8 @@ varying vec2 vU;
 }
    void main(){vec3 c0=texture2D(tD,vU).rgb;
 vec3 c=aces(c0*1.15);
-vec3 bl=vec3(0.);
-for(int i=0;
-i<16;
-i++){float a=float(i)*2.399,r=.003+.0032*float(i);
-vec3 s=aces(texture2D(tD,vU+vec2(cos(a),sin(a))*r*vec2(1.,1.6)).rgb*1.15);
-bl+=max(s-.55,0.)*(1.-float(i)/20.);
-}c+=bl*vec3(.15,.14,.13);
+vec3 bl=texture2D(tBl,vU).rgb; // 明るい所のにじみ（半分の解像度で先に計算したもの）
+c+=bl*vec3(.15,.14,.13);
 // 太陽を向いたときのレンズの光のにじみ（ごく控えめに）
 if(uSunS.z>.01){vec2 d=(vU-uSunS.xy)*vec2(uAsp,1.);float r=length(d);c+=vec3(1.,.93,.82)*(exp(-r*r*18.)*.05+exp(-r*5.)*.018)*uSunS.z;vec2 gp=vec2(1.)-uSunS.xy;float g2=length((vU-mix(uSunS.xy,gp,.7))*vec2(uAsp,1.));c+=vec3(.7,.85,1.)*smoothstep(.06,.04,g2)*smoothstep(.02,.04,g2)*.008*uSunS.z;}
 c=pow(c,vec3(1./2.2));
@@ -80,6 +76,26 @@ c+=gr*(.022-.01*l);
     );
     G.gs = new THREE.Scene();
     G.gs.add(G.gq);
+    // 明るい所のにじみを、縦横半分の解像度で計算する（にじみはもともとぼやけているので、画面の全部の点で16か所ずつ調べなくてよい）
+    G.blRT = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+    G.blQ = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 2),
+      new THREE.ShaderMaterial({
+        uniforms: { tD: { value: null } },
+        depthTest: false,
+        depthWrite: false,
+        vertexShader: `varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy,0.,1.);}`,
+        fragmentShader: `uniform sampler2D tD;varying vec2 vU;
+vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}
+void main(){vec3 bl=vec3(0.);
+for(int i=0;i<16;i++){float a=float(i)*2.399,r=.003+.0032*float(i);
+vec3 s=aces(texture2D(tD,vU+vec2(cos(a),sin(a))*r*vec2(1.,1.6)).rgb*1.15);
+bl+=max(s-.55,0.)*(1.-float(i)/20.);}
+gl_FragColor=vec4(bl,1.);}`,
+      }),
+    );
+    G.blS = new THREE.Scene();
+    G.blS.add(G.blQ);
     G.gc = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   }
   {
@@ -133,6 +149,19 @@ c+=gr*(.022-.01*l);
     }
     const nrVis = G.noRefl.map((o) => o.visible);
     for (const o of G.noRefl) o.visible = false;
+    // 映り込みには遠い区画の景物（家・森・ヨシなど）を描かない。水面では波でにじんで見分けられないため（山並みと空は描く）
+    const far2 = (QUALITY.reflFar * S) ** 2,
+      cp = camera.position,
+      v3 = new THREE.Vector3(),
+      farHid = [];
+    for (const c of G.chunks) {
+      if (!c.visible) continue;
+      v3.copy(c.boundingSphere.center).applyMatrix4(c.matrixWorld);
+      if ((v3.x - cp.x) ** 2 + (v3.z - cp.z) ** 2 > far2) {
+        c.visible = false;
+        farHid.push(c);
+      }
+    }
     const cc = renderer.getClearColor(new THREE.Color()),
       ca = renderer.getClearAlpha();
     renderer.setClearColor(0, 0);
@@ -147,6 +176,7 @@ c+=gr*(.022-.01*l);
     skyDome.visible = vis[1];
     (G.innerMeshes || []).forEach((m, i) => (m.visible = inner[i]));
     G.noRefl.forEach((o, i) => (o.visible = nrVis[i]));
+    for (const c of farHid) c.visible = true;
     waterU.uRefl.value = G.rf.texture;
     waterU.uWy.value = wy;
     waterU.uRes.value.set(w, h);
@@ -156,6 +186,19 @@ c+=gr*(.022-.01*l);
   renderer.render(scene, camera);
   renderer.setRenderTarget(null);
   G.gq.material.uniforms.tD.value = G.rt.texture;
+  {
+    const w = Math.max(1, renderer.domElement.width >> 1),
+      h = Math.max(1, renderer.domElement.height >> 1);
+    if (G.blRT.width !== w || G.blRT.height !== h) G.blRT.setSize(w, h);
+    G.blQ.material.uniforms.tD.value = G.rt.texture;
+    const tm = renderer.toneMapping;
+    renderer.toneMapping = THREE.NoToneMapping;
+    renderer.setRenderTarget(G.blRT);
+    renderer.render(G.blS, G.gc);
+    renderer.setRenderTarget(null);
+    renderer.toneMapping = tm;
+    G.gq.material.uniforms.tBl.value = G.blRT.texture;
+  }
   {
     const u = G.gq.material.uniforms;
     u.uAsp.value = camera.aspect;
