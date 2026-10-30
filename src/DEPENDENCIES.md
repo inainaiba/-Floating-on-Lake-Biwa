@@ -31,7 +31,7 @@
   - 01-settings.js：`LAKE`
 
 ## 06-inner-lakes.js
-- 作る：`INNER`、`RECLAIMED`、`blob`、`bridgeY`、`channel`、`inInner`、`inLake`、`inMain`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`
+- 作る：`INNER`、`LAKE_MASK`、`RECLAIMED`、`RIVERS`、`RIV_CELL`、`blob`、`bridgeY`、`channel`、`inInner`、`inLake`、`inMain`、`inMainPoly`、`inRiver`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`、`rivIdx`
 - 使う：
   - 01-settings.js：`LAKE`
   - 03-coords.js：`ll`
@@ -39,10 +39,10 @@
   - 10-start.js（後ろの部品・関数なので可）：`rnd`
 
 ## 07-depth.js
-- 作る：`CELL`、`DEPTH`、`GH`、`GW`、`depth`、`depthG`、`distShore`、`segs`、`shoreSnap`
+- 作る：`CELL`、`DEPTH`、`GH`、`GW`、`SEG_CELL`、`depth`、`depthG`、`distShore`、`distShoreAll`、`segD2`、`segIdx`、`segs`、`shoreSnap`
 - 使う：
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`inInner`、`inLake`、`inMain`、`maxX`、`maxY`、`minX`、`minY`
+  - 06-inner-lakes.js：`LAKE_MASK`、`inInner`、`inLake`、`inMain`、`inMainPoly`、`maxX`、`maxY`、`minX`、`minY`
 
 ## 08-weather.js
 - 作る：`LEVEL`、`WX`、`WXQ`、`WX_NAMES`、`WX_P`、`weather`、`wxPick`
@@ -101,7 +101,7 @@
   - 12-renderer.js：`scene`
 
 ## 16-terrain.js
-- 作る：`DEM`、`DEM_D`、`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_H`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`SNOW`、`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_NIGHT`、`TERR_FS_ROCK`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleH`、`isleShape`、`landContours`、`landH`、`okiZone`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`tdx`、`tdy`、`terr`、`terrGeo`、`terrGeo_`、`terrH`、`terrMat`、`tx0`、`ty0`、`vnoise`
+- 作る：`DEM`、`DEM_D`、`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_DEM`、`ISLE_H`、`NEAR`、`NEAR_U`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`SNOW`、`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_NIGHT`、`TERR_FS_ROCK`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleGrid`、`isleH`、`isleShape`、`landContours`、`landH`、`nearAt`、`nearBlk`、`nearRes`、`okiZone`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`tdx`、`tdy`、`terr`、`terrB`、`terrColor`、`terrGeo`、`terrGeo_`、`terrGrid`、`terrH`、`terrMat`、`terrShape`、`terrShapeB`、`tx0`、`ty0`、`vnoise`
 - 使う：
   - 00-head.js：`G`、`GLSL_NOISE`
   - 01-settings.js：`S`
@@ -119,6 +119,7 @@
 - 使う：
   - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
+  - 06-inner-lakes.js：`inRiver`
   - 10-start.js：`rnd`
   - 12-renderer.js：`scene`
   - 16-terrain.js：`reedU`
@@ -133,7 +134,7 @@
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
 ## 19-boats.js
-- 作る：`FISH`、`P`、`PN`、`PORT`、`PORT_LL`、`PORT_SITES`、`REED_YEAR`、`ROUTES`、`ROUTE_OFF`、`WAKE_N`、`WP`、`W_SENSE`、`astar`、`avoid`、`boatMeshes`、`boatState`、`clearLine`、`fishPorts`、`flash`、`makeBoat`、`nearestIn`、`nextFlash`、`pPos`、`portLamps`、`precipGeo`、`rainMesh`、`routePos`、`sPos`、`smB`、`smP`、`smoke`、`smokeGeo`、`snowGeo`、`snowMesh`、`updateBoats`、`updatePrecip`、`wake`、`wakeBob`、`wakeI`、`wakeP`
+- 作る：`FISH`、`MinHeap`、`P`、`PN`、`PORT`、`PORT_LL`、`PORT_SITES`、`REED_YEAR`、`ROUTES`、`ROUTE_OFF`、`WAKE_N`、`WP`、`W_SENSE`、`astar`、`avoid`、`boatMeshes`、`boatState`、`clearLine`、`fishPorts`、`flash`、`makeBoat`、`nearestIn`、`nextFlash`、`pPos`、`portLamps`、`precipGeo`、`rainMesh`、`routePos`、`sPos`、`smB`、`smP`、`smoke`、`smokeGeo`、`snowGeo`、`snowMesh`、`updateBoats`、`updatePrecip`、`wake`、`wakeBob`、`wakeI`、`wakeP`
 - 使う：
   - 00-head.js：`placeLog`
   - 01-settings.js：`LAKE`、`S`
@@ -150,16 +151,17 @@
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
 ## 20-villages-layout.js
-- 作る：`ROOF_COLS`、`VILLAGES`、`breaks`、`cvTex`、`groundH`、`houses`、`isLand`、`landY`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`terrainAt`、`wallG`、`wallM`、`wallTex`
+- 作る：`ROOF_COLS`、`TOWNS`、`VILLAGES`、`addHouse`、`breaks`、`cvTex`、`groundH`、`houseGrid`、`houseNear`、`houseOk`、`houses`、`isLand`、`landY`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`streets`、`terrainAt`、`wallG`、`wallM`、`wallTex`
 - 使う：
   - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`inInner`、`inLake`、`maxY`、`minY`
+  - 06-inner-lakes.js：`inInner`、`inLake`、`inRiver`、`maxY`、`minY`
   - 07-depth.js：`depth`、`distShore`
-  - 10-start.js：`rnd`
-  - 16-terrain.js：`TH`、`TW`、`VEX`、`isleH`、`tdx`、`tdy`、`terrH`、`tx0`、`ty0`
+  - 10-start.js：`rnd`、`rndFor`
+  - 12-renderer.js：`QUALITY`
+  - 16-terrain.js：`TH`、`TW`、`VEX`、`isleH`、`nearAt`、`tdx`、`tdy`、`terrH`、`tx0`、`ty0`
   - 18-buildings.js：`buildHouse`
   - 19-boats.js：`PORT`
 
@@ -184,11 +186,11 @@
 - 作る：`winGeo`、`windows`、`wp`
 - 使う：
   - 01-settings.js：`S`
-  - 06-inner-lakes.js：`inLake`
+  - 06-inner-lakes.js：`inLake`、`inRiver`
   - 07-depth.js：`distShore`
   - 12-renderer.js：`scene`
   - 16-terrain.js：`VEX`
-  - 20-villages-layout.js：`houses`、`landY`、`roads`
+  - 20-villages-layout.js：`houses`、`landY`、`roads`、`streets`
 
 ## 23-paddies.js
 - 作る：`PADDY`、`ghI`、`paddyI`、`paddyM`、`paddySeason`
@@ -205,7 +207,7 @@
   - 01-settings.js：`RAIL`、`S`
   - 03-coords.js：`ll`
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`inInner`、`inLake`、`innerPolys`
+  - 06-inner-lakes.js：`inInner`、`inLake`、`inRiver`、`innerPolys`
   - 07-depth.js：`depth`、`distShore`、`shoreSnap`
   - 10-start.js：`rnd`
   - 12-renderer.js：`QUALITY`、`scene`
@@ -239,7 +241,18 @@
   - 12-renderer.js：`MOBILE`、`QUALITY`
   - 16-terrain.js：`VEX`
   - 17-trees.js：`cardForest`
-  - 20-villages-layout.js：`houses`、`terrainAt`
+  - 20-villages-layout.js：`houseNear`、`terrainAt`
+
+## 26b-rivers.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`
+  - 01-settings.js：`S`
+  - 06-inner-lakes.js：`RIVERS`
+  - 12-renderer.js：`scene`
+  - 14-water.js：`water`
+  - 18-buildings.js：`ring`
+  - 20-villages-layout.js：`landY`
 
 ## 27-sky-day.js
 - 作る：`SKY`、`skyAt`
@@ -441,7 +454,7 @@
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`inInner`、`inLake`
+  - 06-inner-lakes.js：`inInner`、`inLake`、`inRiver`
   - 07-depth.js：`depth`
   - 10-start.js：`rnd`、`rndFor`
   - 12-renderer.js：`MOBILE`、`QUALITY`、`camera`、`scene`
@@ -570,7 +583,7 @@
   - 01-settings.js：`Q`、`S`
   - 03-coords.js：`ll`
   - 04-clock.js：`MO`、`PH`、`clock`
-  - 06-inner-lakes.js：`inLake`、`inMain`
+  - 06-inner-lakes.js：`inLake`、`inMain`、`inRiver`
   - 07-depth.js：`distShore`
   - 08-weather.js：`WXQ`
   - 09-wind.js：`wind`
@@ -647,6 +660,7 @@
 - `G.moments`：43-moments.js
 - `G.moonLit`：49-frame-sky-light.js
 - `G.morning`：49-frame-sky-light.js
+- `G.nearPatch`：16-terrain.js
 - `G.netTx2`：18-buildings.js
 - `G.noRefl`：52-frame-render.js
 - `G.okishima`：41-islands.js
@@ -658,6 +672,7 @@
 - `G.resetSky`：49-frame-sky-light.js
 - `G.resetTrail`：50-frame-float.js
 - `G.rf`：52-frame-render.js
+- `G.riverCount`：26b-rivers.js
 - `G.rocks`：40-shore-rocks.js
 - `G.roofTex`：20-villages-layout.js
 - `G.rt`：52-frame-render.js

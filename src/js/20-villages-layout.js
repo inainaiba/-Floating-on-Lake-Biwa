@@ -40,6 +40,8 @@ function groundH(x, y) {
   return inLake(x, y) ? 0 : landY(x, y);
 }
 function terrainAt(x, y) {
+  const nh = nearAt(x, y); // 岸近くは細かい地形（16-terrain.js）
+  if (nh !== null) return Math.max(0, nh);
   const i = (x - tx0) / tdx,
     j = (y - ty0) / tdy,
     i0 = Math.floor(i),
@@ -59,7 +61,93 @@ const isLand = (x, y) => !inLake(x, y);
 const houses = [],
   paddies = [],
   roads = [],
-  breaks = [];
+  breaks = [],
+  streets = []; // 実際の道（地理院のベクトルタイル）：{ w: 幅の段, p: [[x, y], …] }。描くのは 22-village-lights-roads.js
+// 実際の家並み（tools/towns.py → data/towns.json）：岸に近い順に並んでいる。1軒8バイト（x/2, y/2, 幅, 奥行き, 向き×40, 種類）
+const TOWNS = __TOWNS__;
+// 家の位置の升（120m四方）：近くに家があるかを、全部の家を調べずに確かめる（森・田の置き場所で何十万回も使う）
+const houseGrid = new Map();
+function addHouse(hs) {
+  houses.push(hs);
+  const k = Math.floor(hs.x / 120) * 65536 + Math.floor(hs.y / 120);
+  if (!houseGrid.has(k)) houseGrid.set(k, []);
+  houseGrid.get(k).push(hs);
+}
+// (x, y) から r 以内に家があるか。box が真なら縦横それぞれ r 以内（四角）で調べる
+function houseNear(x, y, r, box = false) {
+  const n = Math.ceil(r / 120),
+    cu = Math.floor(x / 120),
+    cv = Math.floor(y / 120);
+  for (let u = cu - n; u <= cu + n; u++)
+    for (let v = cv - n; v <= cv + n; v++) {
+      const l = houseGrid.get(u * 65536 + v);
+      if (l) for (const h of l) if (box ? Math.abs(h.x - x) < r && Math.abs(h.y - y) < r : Math.hypot(h.x - x, h.y - y) < r) return true;
+    }
+  return false;
+}
+// 家を建ててよいか：陸の上で、内湖・川・急な斜面でなく、四隅が湖に出ず、敷地に川が通らない
+function houseOk(hs) {
+  const { x, y } = hs;
+  if (!isLand(x, y) || inInner(x, y) || distShore(x, y) < 55) return false;
+  const th = terrainAt(x, y);
+  if (th > 60) return false;
+  for (let k = 0; k < 8; k++) {
+    const q = (k / 8) * 6.283;
+    if (terrainAt(x + Math.cos(q) * 350, y + Math.sin(q) * 350) > th + 70) return false;
+  }
+  const c = Math.cos(hs.rot),
+    sn = Math.sin(hs.rot),
+    hw = (hs.w / 2 + 1) / S,
+    hd = (hs.d / 2 + 1) / S;
+  if ([[-1, -1], [1, -1], [1, 1], [-1, 1]].some(([u, v]) => inLake(x + u * hw * c - v * hd * sn, y + u * hw * sn + v * hd * c))) return false;
+  // 陸の川は細いので、四隅の間を抜けることがある：敷地の中を7×7の点で調べる
+  for (let i = 0; i < 7; i++)
+    for (let j = 0; j < 7; j++) {
+      const u = i / 3 - 1,
+        v = j / 3 - 1;
+      if (inRiver(x + u * hw * c - v * hd * sn, y + u * hw * sn + v * hd * c)) return false;
+    }
+  hs.ground = th;
+  return true;
+}
+if (TOWNS && TOWNS.n) {
+  const R = rndFor("towns"),
+    B = Uint8Array.from(atob(TOWNS.b), (ch) => ch.charCodeAt(0)),
+    dv = new DataView(B.buffer),
+    cap = QUALITY.towns;
+  for (let i = 0; i < TOWNS.n && houses.length < cap; i++) {
+    const o = i * 8,
+      x = dv.getInt16(o, true) * 2,
+      y = dv.getInt16(o + 2, true) * 2,
+      sturdy = B[o + 7] === 1,
+      north = (y - minY) / (maxY - minY) < 0.45,
+      south = (y - minY) / (maxY - minY) > 0.75;
+    // 大きさは実際の建物の外接長方形から（作品の中では実物大）。とても大きな建物（工場など）は家並みに合う大きさまで
+    const hs = {
+      x,
+      y,
+      north,
+      south,
+      rot: dv.getInt8(o + 6) / 40 + (R() - 0.5) * 0.04, // 作品の座標（x 東・y 南）での向き
+      w: Math.min(19, Math.max(6.5, B[o + 4])),
+      d: Math.min(13, Math.max(5.5, B[o + 5])),
+      h: sturdy ? 6.5 + R() * 3 : 3.1 + (R() < (south ? 0.65 : north ? 0.25 : 0.4) ? 2.7 : 0) + R() * 0.5,
+      roof: R(),
+      ground: 0,
+    };
+    if (houseOk(hs)) addHouse(hs);
+  }
+  const rb = Uint8Array.from(atob(TOWNS.r), (ch) => ch.charCodeAt(0)),
+    rv = new DataView(rb.buffer);
+  for (let o = 0; o < rb.length; ) {
+    const w = rb[o],
+      n = rb[o + 1],
+      p = [];
+    o += 2;
+    for (let k = 0; k < n; k++, o += 4) p.push([rv.getInt16(o, true) * 5, rv.getInt16(o + 2, true) * 5]);
+    streets.push({ w, p });
+  }
+}
 {
   const R = rnd(314);
   for (const [lo, la] of VILLAGES) {
@@ -77,7 +165,7 @@ const houses = [],
         }
       }
     const [poly, i0] = best;
-    const n = 110 + Math.floor(R() * 90);
+    const n = TOWNS && TOWNS.n ? 0 : 110 + Math.floor(R() * 90); // 実際の家並みがあるときは、作り話の家を建てない
     for (let k = 0; k < n * 3 && houses.length < 7000; k++) {
       const i =
           (i0 + Math.floor((R() - 0.5) * Math.min(26, poly.length / 3)) + poly.length * 4) %
@@ -108,7 +196,7 @@ const houses = [],
         }
         if (steep) continue;
       }
-      if (houses.some((h) => Math.hypot(h.x - x, h.y - y) < 62)) continue; // 家どうしの間隔（実寸で約95m＝作品内で約9.5m）
+      if (houseNear(x, y, 62)) continue; // 家どうしの間隔（実寸で約95m＝作品内で約9.5m）
       if (R() < 0.07) continue;
       const north = (y - minY) / (maxY - minY) < 0.45,
         south = (y - minY) / (maxY - minY) > 0.75;
@@ -131,8 +219,17 @@ const houses = [],
           hw = (hs.w / 2 + 1) / S,
           hd = (hs.d / 2 + 1) / S;
         if ([[-1, -1], [1, -1], [1, 1], [-1, 1]].some(([u, v]) => inLake(x + u * hw * c - v * hd * sn, y + u * hw * sn + v * hd * c))) continue;
+        // 陸の川は細いので、四隅の間を抜けることがある：敷地の中を7×7の点で調べる
+        let wet = false;
+        for (let i = 0; i < 7 && !wet; i++)
+          for (let j = 0; j < 7 && !wet; j++) {
+            const u = i / 3 - 1,
+              v = j / 3 - 1;
+            wet = inRiver(x + u * hw * c - v * hd * sn, y + u * hw * sn + v * hd * c);
+          }
+        if (wet) continue;
       }
-      houses.push(hs);
+      addHouse(hs);
     }
     // 岸沿いの道
     for (let k = -8; k < 8; k++) {
@@ -168,8 +265,9 @@ const houses = [],
           if (
             isLand(x, y) &&
             !inInner(x, y) &&
+            !inRiver(x, y) &&
             terrainAt(x, y) < 25 &&
-            !houses.some((h) => Math.hypot(h.x - x, h.y - y) < 120)
+            !houseNear(x, y, 120)
           )
             paddies.push({ x, y, rot: Math.atan2(ty, tx), v: R() });
         }

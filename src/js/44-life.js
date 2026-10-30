@@ -148,7 +148,7 @@ G.life = (() => {
         }
       }
     }
-    const ok = pts.reverse().filter(([x, y]) => !inLake(x, y)).slice(0, MOBILE ? 8000 : 22000);
+    const ok = pts.reverse().filter(([x, y]) => !inLake(x, y) && !inRiver(x, y)).slice(0, MOBILE ? 8000 : 22000);
     placeLog("ススキ", "land", ok);
     const im = new THREE.InstancedMesh(gm, mat, Math.max(1, ok.length)),
       M2 = new THREE.Matrix4(),

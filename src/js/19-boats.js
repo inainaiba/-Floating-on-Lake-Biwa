@@ -97,10 +97,58 @@ const clearLine = (a, b) => {
   for (let u = 0; u <= 1; u += 0.01) {
     const x = a[0] + (b[0] - a[0]) * u,
       y = a[1] + (b[1] - a[1]) * u;
-    if (!inLake(x, y) || depth(x, y) < 1.5) return false;
+    if (depth(x, y) < 1.5) return false; // 陸は深さ0なので、湖の外かどうかもこれで分かる
   }
   return true;
 };
+// 小さい順に取り出す二分ヒープ（経路探しの候補。毎回並べ替えると、200m格子では数秒かかる）
+class MinHeap {
+  constructor() {
+    this.k = [];
+    this.v = [];
+  }
+  get size() {
+    return this.k.length;
+  }
+  push(key, val) {
+    const K = this.k,
+      V = this.v;
+    let i = K.length;
+    K.push(key);
+    V.push(val);
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (K[p] <= K[i]) break;
+      [K[p], K[i]] = [K[i], K[p]];
+      [V[p], V[i]] = [V[i], V[p]];
+      i = p;
+    }
+  }
+  pop() {
+    const K = this.k,
+      V = this.v,
+      top = [K[0], V[0]],
+      lk = K.pop(),
+      lv = V.pop();
+    if (K.length) {
+      K[0] = lk;
+      V[0] = lv;
+      let i = 0;
+      for (;;) {
+        const l = i * 2 + 1,
+          r = l + 1;
+        let m = i;
+        if (l < K.length && K[l] < K[m]) m = l;
+        if (r < K.length && K[r] < K[m]) m = r;
+        if (m === i) break;
+        [K[m], K[i]] = [K[i], K[m]];
+        [V[m], V[i]] = [V[i], V[m]];
+        i = m;
+      }
+    }
+    return top;
+  }
+}
 function astar(a, b) {
   const id = (i, j) => j * GW + i,
     ok = (i, j) => i >= 0 && j >= 0 && i < GW && j < GH && depthG[id(i, j)] > 2.5;
@@ -118,11 +166,14 @@ function astar(a, b) {
   [g0, g1] = fix(g0, g1);
   const G = new Float32Array(GW * GH).fill(1e9),
     from = new Int32Array(GW * GH).fill(-1),
-    open = [[0, s0, s1]];
+    open = new MinHeap();
+  open.push(0, id(s0, s1));
   G[id(s0, s1)] = 0;
-  while (open.length) {
-    open.sort((p, q) => p[0] - q[0]);
-    const [, i, j] = open.shift();
+  while (open.size) {
+    const [f, k0] = open.pop(),
+      i = k0 % GW,
+      j = (k0 / GW) | 0;
+    if (f - Math.hypot(i - g0, j - g1) > G[k0] + 1e-6) continue; // すでに短い道が見つかっている古い候補
     if (i === g0 && j === g1) break;
     for (const [di, dj] of [
       [1, 0],
@@ -141,7 +192,7 @@ function astar(a, b) {
       if (c < G[id(ni, nj)]) {
         G[id(ni, nj)] = c;
         from[id(ni, nj)] = id(i, j);
-        open.push([c + Math.hypot(ni - g0, nj - g1), ni, nj]);
+        open.push(c + Math.hypot(ni - g0, nj - g1), id(ni, nj));
       }
     }
   }

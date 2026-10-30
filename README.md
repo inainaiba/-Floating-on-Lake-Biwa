@@ -6,9 +6,13 @@
 - `data/buoys.xlsx` … ブイ一覧（集落名・集落形態・北緯・東経・YouTubeリンク）。編集後に `python3 build.py`
 - `data/dem.json` … 周囲の地形（国土地理院の標高タイルから作成。作り直しは `python3 tools/dem.py`）
 - `data/rail.json` … 湖西線の道筋（国土地理院のベクトルタイルから作成。作り直しは `python3 tools/rail.py`）
+- `data/isles.json` … 島の高さ（国土地理院の標高タイルから作成。作り直しは `python3 tools/isles.py`）
+- `data/near.json` … 岸近くの細かい地形（標高タイルから、岸から約2kmの帯を30m間隔で。作り直しは `python3 tools/near.py`）。カメラのまわりだけ細かい網目で描く
+- `data/rivers.json` … 陸の川と池（国土地理院のベクトルタイルの水域から作成。作り直しは `python3 tools/rivers.py`）
+- `data/towns.json` … 湖岸の家並みと道（国土地理院のベクトルタイルの建物・道路から作成。作り直しは `python3 tools/towns.py`）
 - `data/depth.json` … 湖の深さ（国土地理院のベクトルタイルの等深線から作成。作り直しは `python3 tools/depth.py`）
 - `docs/index.html` … 組み立て後の公開用ファイル
-- `tools/` … データ準備（prep.py・dem.py・rail.py・depth.py と、まとめて動かす data.py）と、Playwrightによる確認用の撮影スクリプト
+- `tools/` … データ準備（prep.py・dem.py・isles.py・near.py・rivers.py・towns.py・rail.py・depth.py と、まとめて動かす data.py）と、Playwrightによる確認用の撮影スクリプト
 
 ## ファイルの構成
 
@@ -60,7 +64,7 @@ Settings → Pages → Source を「Deploy from a branch」、Branch を `main` 
 
 ## データの作り方
 
-地理院タイルから作るデータ（地形・湖西線・湖の深さ）は `python3 tools/data.py` でまとめて作り直せる（`python3 tools/data.py depth` のように名前を並べると、そのデータだけ）。取り寄せたタイルは `tools/.dem_cache/`・`tools/.bv_cache/` に残る。作り直したら `git diff data/` で変わり方を確かめ、`python3 tools/check.py` で全場面を撮ってから記録する。
+地理院タイルから作るデータ（地形・島の高さ・岸近くの細かい地形・陸の川・家並みと道・湖西線・湖の深さ）は `python3 tools/data.py` でまとめて作り直せる（`python3 tools/data.py depth` のように名前を並べると、そのデータだけ）。取り寄せたタイルは `tools/.dem_cache/`・`tools/.bv_cache/` に残る。作り直したら `git diff data/` で変わり方を確かめ、`python3 tools/check.py` で全場面を撮ってから記録する。
 
 - `data/lake.json` … OpenStreetMap のデータ（2026年10月に Overpass で書き出した GeoJSON）から `tools/prep.py` で作成
   - 湖岸線と島：琵琶湖の水面（relation/63499）。40m単位で簡略化し、20,000㎡未満の島は省く

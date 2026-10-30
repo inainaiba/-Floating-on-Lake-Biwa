@@ -43,7 +43,7 @@ function treeFade(m, near, far) {
       })
     )
       continue;
-    if (houses.some((q) => Math.abs(q.x - x) < 90 && Math.abs(q.y - y) < 90)) continue;
+    if (houseNear(x, y, 90, true)) continue;
     pts.push([x, y, h, R()]);
   }
   for (const kd of ["cedar", "broad"]) {

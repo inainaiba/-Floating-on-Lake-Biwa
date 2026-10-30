@@ -49,20 +49,29 @@ const TM = 26000,
   ty0 = minY - TM,
   tdx = (maxX - minX + 2 * TM) / (TW - 1),
   tdy = (maxY - minY + 2 * TM) / (TH - 1);
-const terrH = new Float32Array(TW * TH);
+// 地面の高さ（実寸m、湖面から）：標高 lh に、岸の形を重ねる。岸はなだらかに：陸は水際で低く（浜）、内へゆっくり上がる。
+// 湖は岸から少しずつ深くなる。岸から3kmより遠くでは値が変わらないので、岸までの距離はそこで打ち切る
+// 高さ＝岸の形 A ＋ 標高 × 岸からの効き B（B は水際で小さく、岸から800mで1）。B は細かい地形（下の NEAR）にも使う
+let terrShapeB = 0;
+function terrShape(x, y, lh) {
+  const d = distShore(x, y, 3000),
+    sm = Math.min(1, d / 300),
+    rise = sm * sm * (3 - 2 * sm);
+  if (inLake(x, y)) {
+    terrShapeB = 0;
+    return -Math.min(14, 1 + d * 0.06);
+  }
+  terrShapeB = Math.min(1, 0.15 * rise + d / 800);
+  return 1.6 + 2.4 * rise + 6 * (1 - Math.exp(-d / 450)) + lh * terrShapeB;
+}
+const terrH = new Float32Array(TW * TH),
+  terrB = new Float32Array(TW * TH);
 for (let j = 0; j < TH; j++)
   for (let i = 0; i < TW; i++) {
     const x = tx0 + i * tdx,
       y = ty0 + j * tdy;
-    {
-      const d = distShore(x, y);
-      // 岸はなだらかに：陸は水際で低く（浜）、内へゆっくり上がる。湖は岸から少しずつ深くなる
-      const sm = Math.min(1, d / 300),
-        rise = sm * sm * (3 - 2 * sm);
-      terrH[j * TW + i] = inLake(x, y)
-        ? -Math.min(14, 1 + d * 0.06)
-        : 1.6 + 2.4 * rise + 6 * (1 - Math.exp(-d / 450)) + landH(x, y) * Math.min(1, 0.15 * rise + d / 800);
-    }
+    terrH[j * TW + i] = terrShape(x, y, landH(x, y));
+    terrB[j * TW + i] = terrShapeB;
   }
 for (let pass = 0; pass < 3; pass++) {
   const tmp = terrH.slice();
@@ -83,7 +92,66 @@ for (let pass = 0; pass < 3; pass++) {
       terrH[k] = s / w;
     }
 }
+// 岸近くの細かい地形（tools/near.py → data/near.json）：30m間隔で、200mの標高との差を4ビットで持つ。
+// 高さは「粗い地形の高さ＋差×岸からの効き」。家や木の置き場所（terrainAt）と、カメラのまわりの細かい網目（下の nearPatch）で使う
+const NEAR = __NEAR__;
+const nearBlk = new Map();
+{
+  if (NEAR && NEAR.idx) {
+    const ix = Uint8Array.from(atob(NEAR.idx), (c) => c.charCodeAt(0)),
+      dv = new DataView(ix.buffer),
+      d = Uint8Array.from(atob(NEAR.d), (c) => c.charCodeAt(0)),
+      per = (NEAR.bs * NEAR.bs) / 2;
+    for (let k = 0; k < ix.length / 4; k++) nearBlk.set(dv.getUint16(k * 4, true) * 65536 + dv.getUint16(k * 4 + 2, true), d.subarray(k * per, (k + 1) * per));
+  }
+}
+// 細かい網目の点 (gi, gj) の差（m）。区画がない所は null
+function nearRes(gi, gj) {
+  const bs = NEAR.bs,
+    b = nearBlk.get(Math.floor(gi / bs) * 65536 + Math.floor(gj / bs));
+  if (!b) return null;
+  const k = (gj % bs) * bs + (gi % bs),
+    v = k & 1 ? b[k >> 1] & 15 : b[k >> 1] >> 4;
+  return NEAR.lv[v];
+}
+// 粗い地形の高さ（実寸m、湖は負）と、岸からの効き B の補間
+function terrGrid(x, y, arr = terrH) {
+  const i = Math.max(0, Math.min(TW - 1.001, (x - tx0) / tdx)),
+    j = Math.max(0, Math.min(TH - 1.001, (y - ty0) / tdy)),
+    i0 = Math.floor(i),
+    j0 = Math.floor(j),
+    u = i - i0,
+    v = j - j0,
+    g = (a, b) => arr[b * TW + a];
+  return (g(i0, j0) * (1 - u) + g(i0 + 1, j0) * u) * (1 - v) + (g(i0, j0 + 1) * (1 - u) + g(i0 + 1, j0 + 1) * u) * v;
+}
+// 細かい地形の高さ（実寸m）。細かい区画の外は null
+function nearAt(x, y) {
+  if (!nearBlk.size) return null;
+  const u = (x - NEAR.x0) / NEAR.step,
+    v = (y - NEAR.y0) / NEAR.step,
+    i = Math.floor(u),
+    j = Math.floor(v),
+    a = nearRes(i, j),
+    b = nearRes(i + 1, j),
+    c = nearRes(i, j + 1),
+    e = nearRes(i + 1, j + 1);
+  if (a === null || b === null || c === null || e === null) return null;
+  const f = u - i,
+    g = v - j,
+    res = (a * (1 - f) + b * f) * (1 - g) + (c * (1 - f) + e * f) * g;
+  return terrGrid(x, y) + res * terrGrid(x, y, terrB);
+}
 const terrGeo_ = 0;
+// 地形の頂点の色（高さ h は実寸m）
+const terrColor = (h) =>
+  h < 0
+    ? new THREE.Color(0x3d4a35)
+    : h < 60
+      ? new THREE.Color(0x6b7a52)
+      : h < 400
+        ? new THREE.Color(0x4c5f3c).lerp(new THREE.Color(0x3b4c33), (h - 60) / 340)
+        : new THREE.Color(0x3b4c33).lerp(new THREE.Color(0x6a6a5e), Math.min(1, (h - 400) / 900));
 const terrGeo = new THREE.PlaneGeometry((TW - 1) * tdx * S, (TH - 1) * tdy * S, TW - 1, TH - 1).rotateX(
   -Math.PI / 2,
 );
@@ -95,14 +163,7 @@ const terrGeo = new THREE.PlaneGeometry((TW - 1) * tdx * S, (TH - 1) * tdy * S, 
       j = Math.floor(k / TW),
       h = terrH[j * TW + i];
     pos.setY(k, h * S * VEX);
-    const c =
-      h < 0
-        ? new THREE.Color(0x3d4a35)
-        : h < 60
-          ? new THREE.Color(0x6b7a52)
-          : h < 400
-            ? new THREE.Color(0x4c5f3c).lerp(new THREE.Color(0x3b4c33), (h - 60) / 340)
-            : new THREE.Color(0x3b4c33).lerp(new THREE.Color(0x6a6a5e), Math.min(1, (h - 400) / 900));
+    const c = terrColor(h);
     col.set([c.r, c.g, c.b], k * 3);
   }
   terrGeo.setAttribute("color", new THREE.BufferAttribute(col, 3));
@@ -123,7 +184,9 @@ const terrGeo = new THREE.PlaneGeometry((TW - 1) * tdx * S, (TH - 1) * tdy * S, 
 }
 /* 山肌の色（地形のフラグメントに差し込む）：処理の順に区切った部品。上から順につながる。 */
 // 傾きによる明暗
-const TERR_FS_SLOPE = `// ── 山肌の色の重なり ──
+const TERR_FS_SLOPE = `// カメラのまわりの細かい網目（nearPatch）がある所では、粗い地形を描かない（vNear：0 粗い地形・1 細かい網目・2 島）
+if(vNear<.5&&uNear.w>.5&&abs(vXZ.x-uNear.x)<uNear.z&&abs(vXZ.y-uNear.y)<uNear.z)discard;
+// ── 山肌の色の重なり ──
 // 傾き → 岩肌 → 低地と浜 → 田の区画 → 森（杉林・樹冠・新緑と深緑）→ 紅葉 → 冬枯れと雪 → 霞・雲の影・山の縁の光
 vec3 nrm=normalize(cross(dFdx(vec3(vXZ.x,vH,vXZ.y)),dFdy(vec3(vXZ.x,vH,vXZ.y))));
 if(nrm.y<0.)nrm=-nrm;
@@ -258,6 +321,7 @@ const TERR_FS_NIGHT = `if(uNt>0.){float dn_=length(cameraPosition.xz-vXZ);vec2 m
  vec3 hz_=linearToOutputTexel(vec4(uHaze*(1.15+.6*uMoonL),1.)).rgb;
  gl_FragColor.rgb+=vec3(.1,.12,.17)*fm*uMoonL*uNt*(1.-smoothstep(500.,5000.,dn_));
  gl_FragColor.rgb=mix(gl_FragColor.rgb,hz_,uNt*smoothstep(200.,3500.,dn_)*.72);}`; // 作品の1単位は実寸5m（約1kmから17km先で地平の色へ）
+const NEAR_U = { value: new THREE.Vector4(0, 0, 0, 0) }; // 細かい網目の中心 x, z・半分の幅（作品の単位）・使うか
 const terrMat = new THREE.MeshLambertMaterial({ vertexColors: true });
 terrMat.onBeforeCompile = (sh) => {
   sh.uniforms.uHaze = { value: new THREE.Color(0x9fb4c8) };
@@ -270,6 +334,7 @@ terrMat.onBeforeCompile = (sh) => {
   sh.uniforms.uCSh = { value: 1 };
   sh.uniforms.uSunT = { value: new THREE.Vector3(0, 1, 0) };
   sh.uniforms.uMoonT = { value: new THREE.Vector3(0, 1, 0) };
+  sh.uniforms.uNear = NEAR_U;
   sh.uniforms.uMoonL = { value: 0 };
   sh.uniforms.uNt = { value: 0 };
   sh.uniforms.uSL = { value: 0 };
@@ -277,15 +342,15 @@ terrMat.onBeforeCompile = (sh) => {
   sh.uniforms.uAut = { value: 0 };
   terrMat.userData.sh = sh;
   sh.vertexShader = sh.vertexShader
-    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;attribute float aCv;varying float vCv;varying vec3 vWN;")
+    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;attribute float aCv;varying float vCv;varying vec3 vWN;attribute float aNear;varying float vNear;")
     .replace(
       "#include <begin_vertex>",
-      "#include <begin_vertex>\nvH=position.y;vXZ=(modelMatrix*vec4(position,1.)).xz;vCv=aCv;vWN=normal;",
+      "#include <begin_vertex>\nvH=position.y;vXZ=(modelMatrix*vec4(position,1.)).xz;vCv=aCv;vWN=normal;vNear=aNear;",
     );
   sh.fragmentShader = sh.fragmentShader
     .replace(
       "#include <common>",
-      "#include <common>\n" + GLSL_NOISE + "\nvarying float vH;varying vec2 vXZ;varying float vCv;varying vec3 vWN;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;uniform vec3 uMoonT;uniform float uMoonL;uniform float uNt;",
+      "#include <common>\n" + GLSL_NOISE + "\nvarying float vH;varying vec2 vXZ;varying float vCv;varying vec3 vWN;varying float vNear;uniform vec4 uNear;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;uniform vec3 uMoonT;uniform float uMoonL;uniform float uNt;",
     )
     .replace(
       "#include <color_fragment>",
@@ -294,10 +359,80 @@ ${TERR_FS_SLOPE}${TERR_FS_ROCK}${TERR_FS_SHORE}${TERR_FS_FOREST}${TERR_FS_AUTUMN
     )
     .replace("#include <fog_fragment>", "#include <fog_fragment>\n" + TERR_FS_NIGHT);
 };
+terrGeo.setAttribute("aNear", new THREE.BufferAttribute(new Float32Array(terrGeo.attributes.position.count), 1));
 const terr = new THREE.Mesh(terrGeo, terrMat);
 terr.receiveShadow = true;
 terr.position.set((tx0 + ((TW - 1) * tdx) / 2) * S, 0, (ty0 + ((TH - 1) * tdy) / 2) * S);
 scene.add(terr);
+// カメラのまわりの細かい網目：岸近くの細かい地形（NEAR）を30m間隔で描く。カメラが約240m動いたら作り直す。
+// 縁の4マスは粗い地形の高さへなだらかにつなぎ、いちばん外の一周は粗い地形の下へ少し沈めて、すき間が見えないようにする
+G.nearPatch = (() => {
+  const N = QUALITY.nearPatch;
+  if (!N || !nearBlk.size) return null;
+  const st = NEAR.step,
+    geo = new THREE.PlaneGeometry(N * st * S, N * st * S, N, N).rotateX(-Math.PI / 2),
+    pos = geo.attributes.position,
+    col = new Float32Array(pos.count * 3),
+    cv = new Float32Array(pos.count),
+    hh = new Float32Array(pos.count);
+  geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  geo.setAttribute("aCv", new THREE.BufferAttribute(cv, 1));
+  geo.setAttribute("aNear", new THREE.BufferAttribute(new Float32Array(pos.count).fill(1), 1));
+  const m = new THREE.Mesh(geo, terrMat);
+  m.receiveShadow = true;
+  m.frustumCulled = false;
+  m.visible = false;
+  scene.add(m);
+  let cx = 1e9,
+    cy = 1e9;
+  function build(x0, y0) {
+    let any = false;
+    for (let k = 0; k < pos.count; k++) {
+      const i = k % (N + 1),
+        j = Math.floor(k / (N + 1)),
+        x = x0 + (i - N / 2) * st,
+        y = y0 + (j - N / 2) * st,
+        e = Math.min(i, j, N - i, N - j),
+        hc = terrGrid(x, y),
+        hf = nearAt(x, y);
+      if (hf !== null) any = true;
+      const t = Math.min(1, Math.max(0, (e - 1) / 4)),
+        h = hf === null ? hc : hc + (hf - hc) * t * t * (3 - 2 * t);
+      hh[k] = h;
+      pos.setXYZ(k, (i - N / 2) * st * S, h * S * VEX - (e === 0 ? 1.5 : 0), (j - N / 2) * st * S);
+      const c = terrColor(h);
+      col.set([c.r, c.g, c.b], k * 3);
+    }
+    // 尾根と谷（粗い地形と同じ考え方。30m間隔なので、約90m・270m先と比べる）
+    const at = (i, j) => Math.max(0, hh[Math.min(N, Math.max(0, j)) * (N + 1) + Math.min(N, Math.max(0, i))]);
+    for (let k = 0; k < pos.count; k++) {
+      const i = k % (N + 1),
+        j = Math.floor(k / (N + 1)),
+        h = at(i, j);
+      let v = 0;
+      if (h > 0) for (const r of [3, 9]) v += (h - (at(i - r, j) + at(i + r, j) + at(i, j - r) + at(i, j + r)) / 4) / (r === 3 ? 5 : 15);
+      cv[k] = Math.max(-1, Math.min(1, v));
+    }
+    pos.needsUpdate = geo.attributes.color.needsUpdate = geo.attributes.aCv.needsUpdate = true;
+    geo.computeVertexNormals();
+    m.position.set(x0 * S, 0, y0 * S);
+    m.visible = any;
+    NEAR_U.value.set(x0 * S, y0 * S, (N / 2 - 1) * st * S, any ? 1 : 0);
+  }
+  return {
+    mesh: m,
+    // x, y：カメラの真下（実寸m）。網目の点にそろえ、240m以上ずれたら作り直す
+    update(x, y) {
+      const q = st * 8,
+        nx = Math.round(x / q) * q,
+        ny = Math.round(y / q) * q;
+      if (Math.abs(nx - cx) < 240 && Math.abs(ny - cy) < 240) return;
+      cx = nx;
+      cy = ny;
+      build(nx, ny);
+    },
+  };
+})();
 const FOREST_TINT = SEASON.forestTint;
 const SNOW = SEASON.snowPeak;
 // 遠景用の等高線（陸）
@@ -349,8 +484,21 @@ const okiZone = (x, y) => {
   const [a, b, c, d] = OKI_BOX;
   return x > a - 300 && x < a + (c - a) * 0.58 && y > (b + d) / 2 - (d - b) * 0.05 && y < d + 300;
 };
+// 島の標高の格子（tools/isles.py → data/isles.json）：20m間隔、湖面からの高さ。小さすぎて標高データに出ない島（多景島）は作り話の丘のまま
+const ISLE_DEM = __ISLES__;
+function isleGrid(I, x, y) {
+  const g = I.g,
+    u = Math.max(0, Math.min(g.w - 1.001, (x - g.x0) / g.step)),
+    v = Math.max(0, Math.min(g.h - 1.001, (y - g.y0) / g.step)),
+    i = Math.floor(u),
+    j = Math.floor(v),
+    f = u - i,
+    e = v - j,
+    q = (a, b) => g.d[b * g.w + a];
+  return ((q(i, j) * (1 - f) + q(i + 1, j) * f) * (1 - e) + (q(i, j + 1) * (1 - f) + q(i + 1, j + 1) * f) * e) * (g.top / 255);
+}
 function isleShape(I, x, y, dd) {
-  let h = 0.6 + I.top * S * VEX * Math.pow(dd / I.md, 0.6);
+  let h = I.g ? 0.6 + isleGrid(I, x, y) * S * VEX * Math.min(1, 0.25 + dd / 40) : 0.6 + I.top * S * VEX * Math.pow(dd / I.md, 0.6);
   const [a, b, c, d] = I.box;
   if (Math.hypot((a + c) / 2 - OKI[0], (b + d) / 2 - OKI[1]) < 2500) OKI_BOX = I.box;
   if (OKI_BOX === I.box && okiZone(x, y)) {
@@ -403,11 +551,32 @@ for (const h of islands) {
     }
     ds.push(dd);
   }
-  ISLES.push({ h, top, md, box: [a, b, c, d] });
+  // 標高の格子：島の中心を含むもの。湖面から3m以上の高さが出ないもの（小さすぎる島）は使わない
+  let g = (ISLE_DEM || []).find((q) => cx > q.x0 && cx < q.x0 + q.w * q.step && cy > q.y0 && cy < q.y0 + q.h * q.step);
+  if (g) {
+    const dd_ = Uint8Array.from(atob(g.d), (ch) => ch.charCodeAt(0));
+    g = dd_.reduce((m, v) => Math.max(m, v), 0) * (g.top / 255) >= 3 ? { ...g, d: dd_ } : null;
+  }
+  ISLES.push({ h, top, md, box: [a, b, c, d], g });
   for (let k = 0; k < pos.count; k++)
     pos.setY(k, ds[k] < 0 ? -3 : isleShape(ISLES[ISLES.length - 1], cx + pos.getX(k) / S, cy + pos.getZ(k) / S, ds[k]));
   geo.computeVertexNormals();
-  const m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: 0x4a6a3a }));
+  // 地形と同じ材質で描く（岩肌・森・山ひだ・霞・夜の山並みが島にも付く）。色は地形の頂点色と同じ決め方
+  {
+    const col = new Float32Array(pos.count * 3),
+      C = new THREE.Color();
+    for (let k = 0; k < pos.count; k++) {
+      const hh = (pos.getY(k) - 0.6) / (S * VEX);
+      if (hh < 60) C.set(0x6b7a52);
+      else C.set(0x4c5f3c).lerp(new THREE.Color(0x3b4c33), Math.min(1, (hh - 60) / 340));
+      col.set([C.r, C.g, C.b], k * 3);
+    }
+    geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    geo.setAttribute("aCv", new THREE.BufferAttribute(new Float32Array(pos.count), 1));
+    geo.setAttribute("aNear", new THREE.BufferAttribute(new Float32Array(pos.count).fill(2), 1));
+  }
+  const m = new THREE.Mesh(geo, terrMat);
+  m.receiveShadow = true;
   m.position.set(cx * S, 0, cy * S);
   scene.add(m);
 }

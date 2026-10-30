@@ -66,6 +66,7 @@ function frame(now) {
   if (G.boats) G.boats.update(dt, t, c, day, wxNow);
   if (G.shore) G.shore.update(dt, t, c, day, wxNow);
   updateCamera(dt, t, hx, hz);
+  if (G.nearPatch) G.nearPatch.update(camera.position.x / S, camera.position.z / S); // カメラのまわりの細かい地形（16-terrain.js）
   const pC = performance.now();
   renderFrame(c, W, wxNow, day, sunAngle);
   if (G.snapNow) finishPhoto(); // 撮影（32-photo.js）：描いた直後に画像にする
@@ -89,7 +90,7 @@ if (Q.has("debug")) {
   G.S = S;
   G.prof = {};
   G.scene = scene;
-  G.dbg = { houses, inLake, inMain, isleH, terrainAt, distShore, landY, PLACE_LOG, scene, terr, water };
+  G.dbg = { houses, inLake, inMain, inRiver, isleH, terrainAt, distShore, landY, PLACE_LOG, scene, terr, water };
   window.__setH = (k, yw, pt, ds) => {
     const h = houses[k];
     B.x = h.x; B.y = h.y; camX = h.x * S; camZ = h.y * S;
