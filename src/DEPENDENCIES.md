@@ -228,6 +228,13 @@
   - 25-harbors.js（後ろの部品・関数なので可）：`treeGeom`
   - 26-forests.js（後ろの部品・関数なので可）：`treeFade`
 
+## 24b-trains.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`
+  - 01-settings.js：`S`
+  - 12-renderer.js：`scene`
+
 ## 25-harbors.js
 - 作る：`TREE_MAT`、`lumpy`、`treeGeom`
 - 使う：
@@ -702,6 +709,7 @@
 - `G.torii`：35-torii.js
 - `G.towns`：22b-town-glow.js
 - `G.trT`：50-frame-float.js
+- `G.trains`：24b-trains.js
 - `G.wake`：19-boats.js
 - `G.wakeMesh`：19-boats.js
 - `G.wxNow`：49-frame-sky-light.js
