@@ -324,19 +324,31 @@ if (TOWNS && TOWNS.n) {
     placeLog("防波堤", "water", [[breaks.at(-1).x, breaks.at(-1).y]]);
   }
 }
-// 実際の田：地図記号の田（と畑）のまわりに区画を置く。区画の向きは近くの記号どうしで揃える（条里の田のように）
+// 実際の田：地図記号の田（と畑）のまわりを、区画（80×45m）の格子で隙間なく埋める。格子の向きは2km四方ごとにそろえる（条里の田のように）
 if (luPts.length) {
-  const R = rndFor("paddies");
-  for (const [k, px, py] of luPts) {
-    if (k > 1) continue;
-    const rot = Math.round(Math.sin(Math.floor(px / 2000) * 12.9 + Math.floor(py / 2000) * 78.2) * 3) * 0.15; // 2km四方ごとに向きをそろえる
-    for (let j = 0; j < 2; j++) {
-      const x = px + (R() - 0.5) * 160,
-        y = py + (R() - 0.5) * 160,
-        v = R();
-      if (!isLand(x, y) || inInner(x, y) || inRiver(x, y) || distShore(x, y) < 60 || terrainAt(x, y) > 40 || houseNear(x, y, 70)) continue;
-      paddies.push({ x, y, rot: rot + (R() < 0.5 ? 0 : Math.PI / 2), v: k === 1 ? 0.15 * v : v });
-    }
+  const R = rndFor("paddies"),
+    PW = 81,
+    PD = 46,
+    cells = new Set();
+  for (const [k, px, py] of luPts) if (k <= 1) cells.add(Math.floor(px / 2000) * 65536 + Math.floor(py / 2000));
+  for (const key of [...cells].sort((a, b) => a - b)) {
+    const cu = Math.floor(key / 65536),
+      cv = key - cu * 65536,
+      rot = Math.round(Math.sin(cu * 12.9 + cv * 78.2) * 3) * 0.15,
+      c = Math.cos(rot),
+      s = Math.sin(rot),
+      mx = (cu + 0.5) * 2000,
+      my = (cv + 0.5) * 2000;
+    for (let a = -1500; a <= 1500; a += PW)
+      for (let b = -1500; b <= 1500; b += PD) {
+        const x = mx + a * c - b * s,
+          y = my + a * s + b * c;
+        if (Math.floor(x / 2000) !== cu || Math.floor(y / 2000) !== cv) continue; // 隣の升の格子と重ねない
+        const p = luNearest(x, y, 75, [0, 1]);
+        if (!p || !isLand(x, y) || inInner(x, y) || inRiver(x, y) || distShore(x, y) < 60 || terrainAt(x, y) > 40 || houseNear(x, y, 45)) continue;
+        const v = R();
+        paddies.push({ x, y, rot, v: p[0] === 1 ? 0.15 * v : v });
+      }
   }
 }
 const ROOF_COLS = [0x3c4046, 0x474b51, 0x707479, 0x969ba0, 0x51606e, 0x7a4038, 0x4f7ea8, 0x5a9590];

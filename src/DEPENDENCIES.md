@@ -233,7 +233,11 @@
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
-  - 12-renderer.js：`scene`
+  - 06-inner-lakes.js：`inLake`
+  - 10-start.js：`rnd`
+  - 12-renderer.js：`camera`、`scene`
+  - 14-water.js：`water`
+  - 20-villages-layout.js：`cvTex`
 
 ## 25-harbors.js
 - 作る：`TREE_MAT`、`lumpy`、`treeGeom`

@@ -6,14 +6,15 @@
 - 幅60mより細い水路は切り（内湖が本湖とつながらないように）、いちばん大きな水面を琵琶湖とする
 - 島は琵琶湖の中の穴で、1ha以上のもの（多景島も入る）
 - 15mより細かい曲がりは省く。港・橋・川・灯台など（OpenStreetMap から作ったもの）はそのまま残す
+- 河口（mouths：濁りの出る所）だけは、新しい湖岸線のいちばん近い所から40m沖へ寄せる（古い湖岸線のままだと陸に出てしまう）
 - このあと tools/data.py で、湖岸線を使うデータ（島の高さ・岸近くの地形・川・家並み・深さ）を作り直す
 """
 import concurrent.futures as cf, json, math, sys, urllib.request
 from pathlib import Path
 
 import mapbox_vector_tile as mvt
-from shapely.geometry import Polygon, box
-from shapely.ops import unary_union
+from shapely.geometry import Point, Polygon, box
+from shapely.ops import nearest_points, unary_union
 
 r = Path(__file__).resolve().parent.parent
 LAT0, LON0 = 35.25, 136.08
@@ -55,6 +56,12 @@ def fetch(cache, x, y):
     return out
 
 
+def snap_mouths(L):
+    lake = Polygon(L['outer'], L['islands']).buffer(0)
+    inner = lake.buffer(-40)
+    L['mouths'] = [[round(q.x), round(q.y)] for q in (nearest_points(inner, Point(x, y))[0] for x, y in L['mouths'])]
+
+
 def main():
     cache = Path(sys.argv[1] if len(sys.argv) > 1 else r / 'tools/.bv_cache')
     cache.mkdir(parents=True, exist_ok=True)
@@ -78,6 +85,7 @@ def main():
     isl = [[[round(x), round(y)] for x, y in h.coords] for h in lake.interiors if Polygon(h).area >= ISLE_MIN]
     print(f'湖岸線 {len(L["outer"])}点 → {len(outer)}点、島 {len(L["islands"])} → {len(isl)}（面積 {old.area / 1e6:.1f} → {Polygon(outer).area / 1e6:.1f}km²）')
     L['outer'], L['islands'] = outer, isl
+    snap_mouths(L)
     (r / 'data/lake.json').write_text(json.dumps(L, ensure_ascii=False, separators=(',', ':')))
 
 
