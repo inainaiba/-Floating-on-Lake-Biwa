@@ -283,7 +283,7 @@
   - 00-head.js：`G`
   - 01-settings.js：`LAKE`、`S`
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`RECLAIMED`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`
+  - 06-inner-lakes.js：`RECLAIMED`、`RIVERS`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`
   - 07-depth.js：`CELL`、`GH`、`GW`、`depthG`
   - 11-state.js：`B`、`VIS`
   - 16-terrain.js：`PK`、`innerReedPts`、`landContours`、`reedPts`

@@ -100,13 +100,32 @@ function drawFar(boats = [], wxNow = null, W = null) {
     fx.closePath();
     fx.fill();
   }
-  fx.strokeStyle = "rgba(27,27,27,.25)";
-  fx.lineWidth = 0.8 * dpr;
+  // 陸の川と池：3Dの景色と同じ地理院の水域（06-inner-lakes.js の RIVERS。外周と穴の多角形）。うすく塗って縁を細く描く
   fx.beginPath();
-  for (const r of LAKE.rivers) {
-    r.forEach(([x, y], i) => (i ? fx.lineTo(X(x), Y(y)) : fx.moveTo(X(x), Y(y))));
-  }
+  for (const poly of RIVERS)
+    for (const ring of poly) {
+      ring.forEach(([x, y], i) => (i ? fx.lineTo(X(x), Y(y)) : fx.moveTo(X(x), Y(y))));
+      fx.closePath();
+    }
+  fx.fillStyle = "rgba(27,27,27,.07)";
+  fx.fill("evenodd");
+  fx.strokeStyle = "rgba(27,27,27,.3)";
+  fx.lineWidth = 0.6 * dpr;
   fx.stroke();
+  // 湖西線：地図の鉄道の記号のように、黒い線に白い破線を重ねる（24-shore-landmarks.js の G.kosei）
+  if (G.kosei) {
+    fx.beginPath();
+    G.kosei.pts.forEach(([x, y], i) => (i ? fx.lineTo(X(x), Y(y)) : fx.moveTo(X(x), Y(y))));
+    fx.strokeStyle = "rgba(27,27,27,.7)";
+    fx.lineWidth = 2.2 * dpr;
+    fx.stroke();
+    fx.save();
+    fx.setLineDash([5 * dpr, 5 * dpr]);
+    fx.strokeStyle = "#f6f5f0";
+    fx.lineWidth = 1.1 * dpr;
+    fx.stroke();
+    fx.restore();
+  }
   fx.strokeStyle = "#1b1b1b";
   fx.lineWidth = 1.3 * dpr;
   fx.beginPath();
@@ -243,7 +262,7 @@ function drawFar(boats = [], wxNow = null, W = null) {
   fx.fillStyle = "rgba(27,27,27,.45)";
   fx.font = 9 * dpr + "px sans-serif";
   fx.textAlign = "right";
-  fx.fillText("© OpenStreetMap contributors", w - 10 * dpr, h - 8 * dpr);
+  fx.fillText("国土地理院 ／ © OpenStreetMap contributors", w - 10 * dpr, h - 8 * dpr);
   fx.textAlign = "left";
   if (B.goal) {
     fx.strokeStyle = "#1b1b1b";
