@@ -112,10 +112,18 @@ function drawFar(boats = [], wxNow = null, W = null) {
   fx.strokeStyle = "rgba(27,27,27,.3)";
   fx.lineWidth = 0.6 * dpr;
   fx.stroke();
-  // 湖西線：地図の鉄道の記号のように、黒い線に白い破線を重ねる（24-shore-landmarks.js の G.kosei）
+  // 湖西線：地図の鉄道の記号のように、黒い線に白い破線を重ねる（24-shore-landmarks.js の G.kosei）。トンネルは細い破線
   if (G.kosei) {
-    fx.beginPath();
-    G.kosei.pts.forEach(([x, y], i) => (i ? fx.lineTo(X(x), Y(y)) : fx.moveTo(X(x), Y(y))));
+    const { pts: kp, tun } = G.kosei,
+      path = (inT) => {
+        fx.beginPath();
+        for (let i = 0; i < kp.length - 1; i++) {
+          if ((tun[i] && tun[i + 1]) !== inT) continue;
+          fx.moveTo(X(kp[i][0]), Y(kp[i][1]));
+          fx.lineTo(X(kp[i + 1][0]), Y(kp[i + 1][1]));
+        }
+      };
+    path(false);
     fx.strokeStyle = "rgba(27,27,27,.7)";
     fx.lineWidth = 2.2 * dpr;
     fx.stroke();
@@ -123,6 +131,11 @@ function drawFar(boats = [], wxNow = null, W = null) {
     fx.setLineDash([5 * dpr, 5 * dpr]);
     fx.strokeStyle = "#f6f5f0";
     fx.lineWidth = 1.1 * dpr;
+    fx.stroke();
+    path(true);
+    fx.setLineDash([2.5 * dpr, 2.5 * dpr]);
+    fx.strokeStyle = "rgba(27,27,27,.7)";
+    fx.lineWidth = 1 * dpr;
     fx.stroke();
     fx.restore();
   }

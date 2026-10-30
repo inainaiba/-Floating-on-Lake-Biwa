@@ -26,7 +26,7 @@ G.trains = (() => {
     const u = (s - cum[lo]) / (cum[hi] - cum[lo] || 1),
       a = P[lo],
       b = P[hi];
-    return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, K.ht[lo] + (K.ht[hi] - K.ht[lo]) * u, Math.atan2(b[1] - a[1], b[0] - a[0])];
+    return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, K.ht[lo] + (K.ht[hi] - K.ht[lo]) * u, Math.atan2(b[1] - a[1], b[0] - a[0]), K.tun[lo] && K.tun[hi]];
   }
   const body = new THREE.InstancedMesh(new THREE.BoxGeometry(CAR - 0.6, 3.1, 2.9), new THREE.MeshLambertMaterial({ color: 0xd8d4c8 }), N),
     winM = new THREE.MeshBasicMaterial({ color: 0x2a3036 }),
@@ -97,8 +97,9 @@ G.trains = (() => {
             for (let j = 0; j < CARS; j++) {
               const s = s0 - dir * (j * CAR / S + CAR / S / 2);
               if (s < 0 || s > LEN) continue;
-              const [x, y, h, a] = at(s),
-                off = dir * 1.0; // 上下線で横にずらす（桁の幅は4）
+              const [x, y, h, a, inTunnel] = at(s);
+              if (inTunnel) continue; // トンネルの中は見えない
+              const off = dir * 1.0; // 上下線で横にずらす（桁の幅は4）
               Qn.setFromAxisAngle(Y, -a);
               V3.set(x * S - Math.sin(a) * off, h + 0.45 + 1.75, y * S + Math.cos(a) * off);
               M.compose(V3, Qn, one);
