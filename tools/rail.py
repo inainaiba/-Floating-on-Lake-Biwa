@@ -5,13 +5,15 @@
 - 地理院タイル「ベクトルタイル（experimental_bvmap）」のズーム13の鉄道（railway）から、湖西線（路線コード 40201000069）を取り出す
 - タイルの境目で切れた断片を南から北へつなぎ、比叡山坂本の北（北緯35.07°）からマキノの北（35.475°）までを残す
 - 25mより細かい曲がりは省いて、経度・緯度の列として書き出す
+- トンネルの区間（railState 100）は tunnels に、経度・緯度の列の列として別に書き出す（高架と電車を描かず、地図では破線にする）
 - 使うには Python の mapbox-vector-tile と shapely が要る
 """
 import concurrent.futures as cf, json, math, sys, urllib.request
 from pathlib import Path
 
 import mapbox_vector_tile as mvt
-from shapely.geometry import LineString
+from shapely.geometry import LineString, MultiLineString
+from shapely.ops import linemerge
 
 r = Path(__file__).resolve().parent.parent
 LAT0, LON0 = 35.25, 136.08
@@ -24,7 +26,7 @@ def tile_xy(lon, lat):
     return (lon + 180) / 360 * 2**Z, (1 - math.log(math.tan(s) + 1 / math.cos(s)) / math.pi) / 2 * 2**Z
 
 
-def fetch(cache, x, y):
+def fetch(cache, x, y, tunnel=False):
     fn = cache / f'{Z}_{x}_{y}.pbf'
     if not fn.exists():
         try:
@@ -35,7 +37,7 @@ def fetch(cache, x, y):
             return []
     out = []
     for f in mvt.decode(fn.read_bytes(), default_options={'y_coord_down': True}).get('railway', {}).get('features', []):
-        if f['properties'].get('rtCode1') != CODE:
+        if f['properties'].get('rtCode1') != CODE or tunnel and f['properties'].get('railState') != 100:
             continue
         g = f['geometry']
         for c in g['coordinates'] if g['type'] == 'MultiLineString' else [g['coordinates']] if g['type'] == 'LineString' else []:
@@ -84,9 +86,14 @@ def main():
     ys, yn = (LAT0 - LAT_S) * KY, (LAT0 - LAT_N) * KY
     path = [p for p in path if yn <= p[1] <= ys]
     line = LineString(path).simplify(25)
-    out = {'kosei': [[round(LON0 + x / KX, 5), round(LAT0 - y / KY, 5)] for x, y in line.coords]}
+    LL = lambda c: [[round(LON0 + x / KX, 5), round(LAT0 - y / KY, 5)] for x, y in c]
+    with cf.ThreadPoolExecutor(8) as ex:
+        tn = [s for t in ex.map(lambda p: fetch(cache, *p, tunnel=True), jobs) for s in t]
+    tn = linemerge(MultiLineString(tn))
+    tn = [g.simplify(10) for g in getattr(tn, 'geoms', [tn]) if g.length > 30 and any(yn <= y <= ys for x, y in g.coords)]
+    out = {'kosei': LL(line.coords), 'tunnels': [LL(g.coords) for g in tn]}
     (r / 'data/rail.json').write_text(json.dumps(out, separators=(',', ':')))
-    print(f'data/rail.json  湖西線 {len(out["kosei"])}点・{line.length / 1000:.1f}km')
+    print(f'data/rail.json  湖西線 {len(out["kosei"])}点・{line.length / 1000:.1f}km、トンネル {len(tn)}か所・{sum(g.length for g in tn) / 1000:.1f}km')
 
 
 if __name__ == '__main__':

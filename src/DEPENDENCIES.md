@@ -233,7 +233,11 @@
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
-  - 12-renderer.js：`scene`
+  - 06-inner-lakes.js：`inLake`
+  - 10-start.js：`rnd`
+  - 12-renderer.js：`camera`、`scene`
+  - 14-water.js：`water`
+  - 20-villages-layout.js：`cvTex`
 
 ## 25-harbors.js
 - 作る：`TREE_MAT`、`lumpy`、`treeGeom`
@@ -279,7 +283,7 @@
   - 00-head.js：`G`
   - 01-settings.js：`LAKE`、`S`
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`RECLAIMED`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`
+  - 06-inner-lakes.js：`RECLAIMED`、`RIVERS`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`
   - 07-depth.js：`CELL`、`GH`、`GW`、`depthG`
   - 11-state.js：`B`、`VIS`
   - 16-terrain.js：`PK`、`innerReedPts`、`landContours`、`reedPts`

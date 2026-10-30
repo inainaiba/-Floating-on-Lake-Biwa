@@ -40,8 +40,8 @@ OVERLAP = r"""()=>{
  // 沖島の家：四隅が島の上にあるか
  n=0;bad=[];for(const [wx,wz,w,d,r] of (G.okishima&&G.okishima.foot)||[]){n++;const p=corners(wx,wz,w,d,-r);if(p.some(([x,y])=>D.isleH(x,y)===null))bad.push([+(wx/S).toFixed(0),+(wz/S).toFixed(0)]);}
  out.okishima=[n,bad.length,bad.slice(0,8)];
- // 湖西線の高架：桁どうしのすき間（約60以上の飛び）と、桁の下に地面が出ていないか
- const K=G.kosei;if(K){let gaps=0,under=0;for(let i=0;i<K.pts.length-1;i++){const a=K.pts[i],b=K.pts[i+1];if(Math.hypot(b[0]-a[0],b[1]-a[1])*S<0.01)continue;
+ // 湖西線の高架：桁どうしのすき間（約60以上の飛び）と、桁の下に地面が出ていないか（トンネルとその入口の桁は山に入るので数えない）
+ const K=G.kosei;if(K){let gaps=0,under=0;for(let i=0;i<K.pts.length-1;i++){const a=K.pts[i],b=K.pts[i+1];if(Math.hypot(b[0]-a[0],b[1]-a[1])*S<0.01||K.tun[i]||K.tun[i+1])continue;
   for(const u of [.25,.5,.75]){const x=a[0]+(b[0]-a[0])*u,y=a[1]+(b[1]-a[1])*u,h=K.ht[i]+(K.ht[i+1]-K.ht[i])*u;if(D.landY(x,y)>h-1.2)under++;}}
   out.kosei=[K.pts.length,under,['桁が地面にめり込む所 '+under]];
   // 桁が本湖の上を渡っていないか（内湖や川をまたぐ短い橋は許す）

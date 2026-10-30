@@ -57,23 +57,57 @@ scene.add(brk);
     }
     pts = out;
   }
-  // 高さ：地面の高さ＋約9。前後でならして、なめらかに上り下りする
-  const gh = pts.map(([x, y]) => landY(x, y));
-  const top = gh.map((_, i) => {
-    let m = -1e9;
-    for (let k = -3; k <= 3; k++) m = Math.max(m, gh[Math.min(gh.length - 1, Math.max(0, i + k))]);
-    return m + 9;
-  });
-  const ht = top.map((_, i) => {
-    let s = 0,
-      n = 0;
-    for (let k = -4; k <= 4; k++) {
-      const j = Math.min(top.length - 1, Math.max(0, i + k));
-      s += top[j];
-      n++;
+  // トンネル（地理院の鉄道の railState 100。tools/rail.py → data/rail.json の tunnels）：その線から50m以内の点
+  const TN = (RAIL.tunnels || []).map((l) => l.map((p) => ll(...p))),
+    tun = pts.map(([x, y]) =>
+      TN.some((l) =>
+        l.some((a, k) => {
+          if (!k) return false;
+          const b = l[k - 1],
+            dx = b[0] - a[0],
+            dy = b[1] - a[1],
+            t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy || 1)));
+          return Math.hypot(a[0] + dx * t - x, a[1] + dy * t - y) < 50;
+        }),
+      ),
+    );
+  // トンネルの区間の高さ：両側の入口の高さを直線でつなぐ（山の中を通るので、地面には合わせない）
+  const throughTunnels = (h) => {
+    for (let i = 0; i < h.length; i++) {
+      if (!tun[i]) continue;
+      let j = i;
+      while (j < h.length && tun[j]) j++;
+      const a = i > 0 ? h[i - 1] : h[j],
+        b = j < h.length ? h[j] : a;
+      for (let k = i; k < j; k++) h[k] = a + ((b - a) * (k - i + 1)) / (j - i + 1);
+      i = j;
     }
-    return Math.max(s / n, gh[i] + 6);
-  });
+    return h;
+  };
+  // 高さ：地面の高さ＋約9。前後でならして、なめらかに上り下りする（トンネルの中の地面は見ない）
+  const gh = pts.map(([x, y]) => landY(x, y));
+  const top = throughTunnels(
+    gh.map((_, i) => {
+      let m = -1e9;
+      for (let k = -3; k <= 3; k++) {
+        const j = Math.min(gh.length - 1, Math.max(0, i + k));
+        if (!tun[j]) m = Math.max(m, gh[j]);
+      }
+      return (m > -1e9 ? m : gh[i]) + 9;
+    }),
+  );
+  const ht = throughTunnels(
+    top.map((_, i) => {
+      let s = 0,
+        n = 0;
+      for (let k = -4; k <= 4; k++) {
+        const j = Math.min(top.length - 1, Math.max(0, i + k));
+        s += top[j];
+        n++;
+      }
+      return Math.max(s / n, gh[i] + 6);
+    }),
+  );
   // 橋桁：隣り合う点どうしを、すき間なくつなぐ（向きと傾きを合わせる）
   const D = new THREE.InstancedMesh(
       new THREE.BoxGeometry(1, 0.9, 4),
@@ -96,14 +130,14 @@ scene.add(brk);
     A.set(pts[i][0] * S, ht[i], pts[i][1] * S);
     Bv.set(pts[i + 1][0] * S, ht[i + 1], pts[i + 1][1] * S);
     const len = A.distanceTo(Bv);
-    if (len < 0.01) continue; // 湖を避けて寄せた点が重なった所（水の上を渡る所も、そのまま橋桁でつなぐ）
+    if (len < 0.01 || (tun[i] && tun[i + 1])) continue; // 湖を避けて寄せた点が重なった所と、トンネルの中（水の上を渡る所は、そのまま橋桁でつなぐ）
     Q.setFromUnitVectors(X, Bv.clone().sub(A).normalize());
     M.compose(A.clone().add(Bv).multiplyScalar(0.5), Q, new THREE.Vector3(len + 0.3, 1, 1));
     D.setMatrixAt(nd++, M);
   }
   // 橋脚：陸の上だけ、地面から桁の下まで
   pts.forEach(([x, y], i) => {
-    if (inLake(x, y) || i % 2) return;
+    if (inLake(x, y) || tun[i] || i % 2) return;
     const yaw = i < pts.length - 1 ? Math.atan2(pts[i + 1][1] - y, pts[i + 1][0] - x) : 0;
     M.compose(new THREE.Vector3(x * S, gh[i] - 0.5, y * S), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -yaw, 0)), new THREE.Vector3(1, ht[i] - gh[i], 1));
     Pm.setMatrixAt(np++, M);
@@ -111,7 +145,7 @@ scene.add(brk);
   D.count = nd;
   Pm.count = np;
   scene.add(D, Pm);
-  G.kosei = { pts, ht, gh }; // 確認用（高架のつながりの検査）
+  G.kosei = { pts, ht, gh, tun }; // 電車・全体地図・確認（高架のつながりの検査）で使う
 }
 // 岸の松並木と砂浜
 {
