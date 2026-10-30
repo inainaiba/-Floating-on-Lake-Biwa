@@ -27,7 +27,7 @@
   - 01-settings.js：`Q`
 
 ## 05-lake.js
-- 作る：`TAKEI`、`inPoly`、`islands`、`outer`
+- 作る：`inPoly`、`islands`、`outer`
 - 使う：
   - 01-settings.js：`LAKE`
 
@@ -152,7 +152,7 @@
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
 ## 20-villages-layout.js
-- 作る：`ROOF_COLS`、`TOWNS`、`VILLAGES`、`addHouse`、`breaks`、`cvTex`、`groundH`、`houseGrid`、`houseNear`、`houseOk`、`houses`、`isLand`、`landY`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`streets`、`terrainAt`、`wallG`、`wallM`、`wallTex`
+- 作る：`LANDUSE`、`ROOF_COLS`、`TOWNS`、`VILLAGES`、`addHouse`、`breaks`、`cvTex`、`groundH`、`houseGrid`、`houseNear`、`houseOk`、`houses`、`isLand`、`landY`、`luIdx`、`luNearest`、`luPts`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`streets`、`terrainAt`、`wallG`、`wallM`、`wallTex`
 - 使う：
   - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
@@ -193,6 +193,14 @@
   - 16-terrain.js：`VEX`
   - 20-villages-layout.js：`houses`、`landY`、`roads`、`streets`
 
+## 22b-town-glow.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`
+  - 01-settings.js：`S`
+  - 12-renderer.js：`scene`
+  - 20-villages-layout.js：`houses`、`landY`
+
 ## 23-paddies.js
 - 作る：`PADDY`、`ghI`、`paddyI`、`paddyM`、`paddySeason`
 - 使う：
@@ -220,6 +228,13 @@
   - 25-harbors.js（後ろの部品・関数なので可）：`treeGeom`
   - 26-forests.js（後ろの部品・関数なので可）：`treeFade`
 
+## 24b-trains.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`
+  - 01-settings.js：`S`
+  - 12-renderer.js：`scene`
+
 ## 25-harbors.js
 - 作る：`TREE_MAT`、`lumpy`、`treeGeom`
 - 使う：
@@ -242,7 +257,7 @@
   - 12-renderer.js：`MOBILE`、`QUALITY`
   - 16-terrain.js：`VEX`
   - 17-trees.js：`cardForest`
-  - 20-villages-layout.js：`houseNear`、`terrainAt`
+  - 20-villages-layout.js：`houseNear`、`luNearest`、`luPts`、`terrainAt`
 
 ## 26b-rivers.js
 - 作る：（なし）
@@ -524,7 +539,6 @@
   - 00-head.js：`G`
   - 01-settings.js：`LAKE`、`S`
   - 02-season.js：`LOOK`、`SEASON`
-  - 03-coords.js：`ll`
   - 04-clock.js：`DAY`、`astro`
   - 08-weather.js：`LEVEL`、`WXQ`
   - 09-wind.js：`flow`
@@ -693,7 +707,9 @@
 - `G.tFix`：53-frame.js
 - `G.thTx`：18-buildings.js
 - `G.torii`：35-torii.js
+- `G.towns`：22b-town-glow.js
 - `G.trT`：50-frame-float.js
+- `G.trains`：24b-trains.js
 - `G.wake`：19-boats.js
 - `G.wakeMesh`：19-boats.js
 - `G.wxNow`：49-frame-sky-light.js

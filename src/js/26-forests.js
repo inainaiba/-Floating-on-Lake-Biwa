@@ -44,11 +44,18 @@ function treeFade(m, near, far) {
     )
       continue;
     if (houseNear(x, y, 90, true)) continue;
-    pts.push([x, y, h, R()]);
+    // 地図記号：近く（250m以内）が田や畑なら木を立てない。木の種類は、いちばん近い森の記号（1.5km以内）で決める
+    let kind = null;
+    if (luPts.length) {
+      if (h < 60 && luNearest(x, y, 250, [0, 1])) continue;
+      const f = luNearest(x, y, 1500, [2, 3, 4]);
+      if (f) kind = f[0] === 3 ? "cedar" : f[0] === 4 ? "bamboo" : "broad";
+    }
+    pts.push([x, y, h, R(), kind]);
   }
-  for (const kd of ["cedar", "broad"]) {
+  for (const kd of ["cedar", "broad", "bamboo"]) {
     const sel = pts
-      .filter((p) => p[3] < 0.45 === (kd === "cedar"))
+      .filter((p) => (p[4] || (p[3] < 0.45 ? "cedar" : "broad")) === kd)
       .map(([x, y, h, r]) => [x, y, h * S * VEX + 0.4, (1.1 + r * 1.6) * (kd === "cedar" ? 1.2 : 1), r * 20]);
     cardForest(
       kd,

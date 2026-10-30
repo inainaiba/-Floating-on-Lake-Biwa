@@ -5,6 +5,7 @@
   python3 tools/check.py --quick    代表の4場面だけ撮る
   python3 tools/check.py --accept   今回の撮影を新しい基準にする
   python3 tools/check.py --start    開始地点の検査だけ（10回開始して、陸や島に埋まらないか）
+  （撮影のあとには、画面のボタンが別の部品に覆われていないかも、パソコンとスマートフォンの大きさで調べる）
 
 結果
   check/now/NN.png        今回の撮影
@@ -199,6 +200,44 @@ def sheet(idx):
     return report
 
 
+# 押せるかの検査：パソコンとスマートフォンの大きさで、画面のボタンの真ん中に別の部品が重なっていないかを調べる
+# （選ぶ画面の板が矢印を覆って「01しか選べない」ことがあった。撮影は内部の命令で操作するので、これでは見つからない）
+TAP_SELECT = ['prev', 'next', 'go', 'bright', 'ab']
+TAP_LAKE = ['view', 'snd', 'save']
+
+
+def tap_check():
+    srv = serve()
+    port = srv.server_address[1]
+    three = R / 'node_modules/three/build/three.module.js'
+    bad = []
+    js = '''ids => ids.map(id => { const el = document.getElementById(id);
+      if (!el || getComputedStyle(el).display === 'none' || el.offsetParent === null && getComputedStyle(el).position !== 'fixed') return null;
+      const r = el.getBoundingClientRect(); if (!r.width) return null;
+      const t = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      return t && (t === el || el.contains(t)) ? null : id + '（上に ' + (t ? (t.id || t.className || t.tagName) : 'なし') + '）'; }).filter(Boolean)'''
+    with sync_playwright() as p:
+        b = p.chromium.launch(args=['--use-gl=swiftshader'])
+        for name, vw, vh, mob in [('パソコン', 1280, 720, False), ('スマートフォン', 390, 844, True), ('小さいスマートフォン', 360, 640, True)]:
+            pg = b.new_page(viewport={'width': vw, 'height': vh}, is_mobile=mob, has_touch=mob)
+            if three.exists():
+                pg.route('**/three.module.js', lambda r: r.fulfill(path=str(three)))
+            pg.goto(f'http://127.0.0.1:{port}/docs/index.html?debug', timeout=300000)
+            pg.evaluate("()=>{try{localStorage.setItem('floating.hint2','1')}catch(e){}}")
+            pg.wait_for_timeout(800)
+            pg.evaluate("()=>document.getElementById('title').click()")
+            pg.wait_for_timeout(1500)
+            bad += [f'{name}・選ぶ画面：{x}' for x in pg.evaluate(js, TAP_SELECT)]
+            pg.evaluate("()=>document.getElementById('go').click()")
+            pg.wait_for_timeout(1500)
+            bad += [f'{name}・湖：{x}' for x in pg.evaluate(js, TAP_LAKE)]
+            pg.close()
+        b.close()
+    srv.shutdown()
+    print(f'押せるかの検査：{"すべて押せる" if not bad else "覆われたボタン " + str(len(bad))}')
+    return bad
+
+
 def main():
     a = sys.argv[1:]
     if '--start' in a:
@@ -225,6 +264,7 @@ def main():
     if True:
         bad, e2 = start_check(3 if '--quick' in a else 6)
         errs += e2 + [f'開始地点が陸や島に近すぎ：{r}' for r in bad]
+        errs += [f'ボタンが覆われて押せない：{x}' for x in tap_check()]
     if errs:
         print('ページのエラー：')
         for e in sorted(set(errs)):

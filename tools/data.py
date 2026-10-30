@@ -1,13 +1,14 @@
 """地理院タイルから作るデータを、まとめて作り直す。
 
   python3 tools/data.py            地形・線路・深さを順に作り直してから組み立てる
-  python3 tools/data.py dem depth  名前を並べると、そのデータだけ作り直す（dem・isles・near・rivers・towns・rail・depth）
+  python3 tools/data.py dem depth  名前を並べると、そのデータだけ作り直す（dem・isles・near・rivers・towns・landuse・rail・depth）
 
 - dem   … data/dem.json   周囲の地形（tools/dem.py。標高タイル）
 - isles … data/isles.json 島の高さ（tools/isles.py。標高タイルのズーム14）
 - near  … data/near.json  岸近くの細かい地形（tools/near.py。標高タイルのズーム14。dem のあとに作る）
 - rivers… data/rivers.json 陸の川と池（tools/rivers.py。ベクトルタイルの水域）
 - towns … data/towns.json 湖岸の家並みと道（tools/towns.py。ベクトルタイルの建物・道路）
+- landuse … data/landuse.json 田・畑・森の地図記号（tools/landuse.py。ベクトルタイルの記号）
 - rail  … data/rail.json  湖西線の道筋（tools/rail.py。ベクトルタイルの鉄道）
 - depth … data/depth.json 湖の深さ（tools/depth.py。ベクトルタイルの等深線）
 取り寄せたタイルは tools/.dem_cache/・tools/.bv_cache/ に残し、2回目からはそれを使う。
@@ -18,7 +19,7 @@ import subprocess, sys, time
 from pathlib import Path
 
 r = Path(__file__).resolve().parent.parent
-STEPS = {'dem': 'tools/dem.py', 'isles': 'tools/isles.py', 'near': 'tools/near.py', 'rivers': 'tools/rivers.py', 'towns': 'tools/towns.py', 'rail': 'tools/rail.py', 'depth': 'tools/depth.py'}
+STEPS = {'dem': 'tools/dem.py', 'isles': 'tools/isles.py', 'near': 'tools/near.py', 'rivers': 'tools/rivers.py', 'towns': 'tools/towns.py', 'landuse': 'tools/landuse.py', 'rail': 'tools/rail.py', 'depth': 'tools/depth.py'}
 
 
 def main():
