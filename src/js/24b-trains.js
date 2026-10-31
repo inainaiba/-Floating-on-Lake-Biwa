@@ -102,13 +102,14 @@ G.trains = (() => {
           g.fillRect(R() * w * 0.3 - w * 0.15, y, w, 2);
         }
       }),
-      color: 0x000000,
+      color: 0xffffff, // 明るさは筋ごとの色（遠いほど薄く）
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     }),
     glow = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), glowM, N),
-    GLOW = new THREE.Color(0xffc48a);
+    GLOW = new THREE.Color(0xffc48a),
+    GC = new THREE.Color();
   for (const m of [body, win, glow]) {
     m.userData.noChunk = true; // 毎フレーム動かす
     m.frustumCulled = false;
@@ -159,8 +160,11 @@ G.trains = (() => {
                 M.compose(W3, Qn, one);
                 win.setMatrixAt(n, M);
                 n++;
-                // 窓の鏡像（水面で折り返した点）とカメラを結ぶ線が水面を切る所に筋を置く。そこが湖の上のときだけ
-                if (lit > 0.01 && cp.y > wy + 0.2) {
+                // 窓の鏡像（水面で折り返した点）とカメラを結ぶ線が水面を切る所に筋を置く。そこが湖の上のときだけ。
+                // 映り込みが見えるのは近くの電車だけ：カメラから約1.3kmで薄れはじめ、約3kmで消える（遠くの駅に止まる電車は映さない）
+                const dc = Math.hypot(W3.x - cp.x, W3.z - cp.z),
+                  fade = 1 - Math.min(1, Math.max(0, (dc - 260) / 340));
+                if (lit > 0.01 && fade > 0.01 && cp.y > wy + 0.2) {
                   const my = 2 * wy - W3.y,
                     t = (cp.y - wy) / (cp.y - my),
                     gx = cp.x + (W3.x - cp.x) * t,
@@ -170,7 +174,8 @@ G.trains = (() => {
                     Qn.setFromAxisAngle(Y, Math.atan2(cp.x - gx, cp.z - gz));
                     C3.set(gx + ((cp.x - gx) / d) * d * 0.2, wy + 0.05, gz + ((cp.z - gz) / d) * d * 0.2);
                     M.compose(C3, Qn, Sg.set(CAR * 0.22 * Math.max(1, d / 700), 1, d * 0.5));
-                    glow.setMatrixAt(ng++, M);
+                    glow.setMatrixAt(ng, M);
+                    glow.setColorAt(ng++, GC.copy(GLOW).multiplyScalar(0.55 * lit * fade * fade));
                   }
                 }
               }
@@ -180,7 +185,7 @@ G.trains = (() => {
       body.instanceMatrix.needsUpdate = win.instanceMatrix.needsUpdate = glow.instanceMatrix.needsUpdate = true;
       // 夕方から窓が灯る
       winM.color.lerpColors(WIN_DAY, WIN_NIGHT, lit);
-      glowM.color.copy(GLOW).multiplyScalar(0.55 * lit);
+      if (glow.instanceColor) glow.instanceColor.needsUpdate = true;
       // 駅のホームの灯り
       for (const m of G.stationLamps || []) m.color.lerpColors(LAMP_DAY, LAMP_NIGHT, lit);
     },
