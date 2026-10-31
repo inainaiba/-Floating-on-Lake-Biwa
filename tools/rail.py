@@ -3,8 +3,8 @@
   python3 tools/rail.py [タイルを置くフォルダ]
 
 - 地理院タイル「ベクトルタイル（experimental_bvmap）」のズーム13の鉄道（railway）から、路線コードで取り出す
-  ・湖西線（40201000069）：比叡山坂本の北（北緯35.07°）からマキノの北（35.475°）まで
-  ・琵琶湖線：東海道本線（40201000126）の膳所のあたりから米原までと、北陸本線（40201000171。一部は 40201800001）の米原から近江塩津まで
+  ・湖西線（40201000069）：大津の西の山（山科へのトンネル、東経135.845°）からマキノの北（35.475°）まで
+  ・琵琶湖線：東海道本線（40201000126）の大津の西の山（逢坂山トンネル）から米原までと、北陸本線（40201000171。一部は 40201800001）の米原から近江塩津まで
     （新幹線は別の路線コードなので入らない）
 - タイルの境目で切れた断片を南からつなぎ、25mより細かい曲がりは省いて、経度・緯度の列として書き出す
 - トンネルの区間（railState 100）は経度・緯度の列の列として別に書き出す（高架と電車を描かず、地図では破線にする）
@@ -22,7 +22,7 @@ from shapely.ops import linemerge
 r = Path(__file__).resolve().parent.parent
 LAT0, LON0 = 35.25, 136.08
 KX, KY = 111320 * math.cos(math.radians(LAT0)), 110540
-Z, CODE, LAT_S, LAT_N = 13, '40201000069', 35.07, 35.475
+Z, CODE, LON_W, LAT_N = 13, '40201000069', 135.845, 35.475  # 西の端：大津の西の山（山科へのトンネル）の手前
 BIWAKO_TOKAIDO, BIWAKO_HOKURIKU = '40201000126', {'40201000171', '40201800001'}  # 北陸本線は虎姫〜高月のあたりだけ別の路線コード
 
 
@@ -173,10 +173,10 @@ def main():
     LL = lambda c: [[round(LON0 + x / KX, 5), round(LAT0 - y / KY, 5)] for x, y in c]
     ST = lambda sts: [[round(LON0 + x / KX, 5), round(LAT0 - y / KY, 5), n] for x, y, n in sts]
     frag = lambda codes: [f[3] for f in fr if f[0] in codes]
-    # 湖西線：全部の断片をつないでから、緯度の範囲を残す
-    k, kt, ks = line(cache, fr, {CODE}, [p for p in chain(frag({CODE})) if Y(LAT_N) <= p[1] <= Y(LAT_S)])
+    # 湖西線：全部の断片をつないでから、範囲を残す（どちらの線も山科で合わさるが、そこは作品の外の山の中）
+    k, kt, ks = line(cache, fr, {CODE}, [p for p in chain(frag({CODE})) if Y(LAT_N) <= p[1] and p[0] >= X(LON_W)])
     # 琵琶湖線：複線・複々線で断片が入り組むので、断片を網目にして膳所から米原を通って近江塩津までの最短の道筋をたどる
-    b_path = route(frag({BIWAKO_TOKAIDO}), (X(135.885), Y(34.994)), (X(136.2906), Y(35.3145))) + route(
+    b_path = route(frag({BIWAKO_TOKAIDO}), (X(LON_W), Y(34.996)), (X(136.2906), Y(35.3145))) + route(
         frag(BIWAKO_HOKURIKU), (X(136.2906), Y(35.3145)), (X(136.1656), Y(35.5244)))[1:]
     b, bt, bs = line(cache, fr, {BIWAKO_TOKAIDO, *BIWAKO_HOKURIKU}, b_path)
     out = {'kosei': LL(k.coords), 'tunnels': [LL(g.coords) for g in kt], 'stations': ST(ks),
