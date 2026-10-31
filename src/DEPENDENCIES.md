@@ -149,7 +149,7 @@
 ## 19-boats.js
 - 作る：`FISH`、`MinHeap`、`P`、`PN`、`PORT`、`PORT_LL`、`PORT_SITES`、`REED_YEAR`、`ROUTES`、`ROUTE_OFF`、`WAKE_N`、`WP`、`W_SENSE`、`astar`、`avoid`、`boatMeshes`、`boatState`、`clearLine`、`fishPorts`、`flash`、`makeBoat`、`nearestIn`、`nextFlash`、`pPos`、`portLamps`、`precipGeo`、`rainMesh`、`routePos`、`sPos`、`smB`、`smP`、`smoke`、`smokeGeo`、`snowGeo`、`snowMesh`、`updateBoats`、`updatePrecip`、`wake`、`wakeBob`、`wakeI`、`wakeP`
 - 使う：
-  - 00-head.js：`placeLog`
+  - 00-head.js：`mergeStatic`、`placeLog`
   - 01-settings.js：`LAKE`、`S`
   - 03-coords.js：`ll`
   - 04-clock.js：`DAY`
@@ -410,6 +410,19 @@
   - 16-terrain.js：`reedPts`
   - 20-villages-layout.js：`landY`
   - 25-harbors.js：`lumpy`
+
+## 38b-birdman.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`、`placeLog`
+  - 01-settings.js：`S`
+  - 04-clock.js：`DAY`
+  - 07-depth.js：`depth`、`shoreSnap`
+  - 10-start.js：`rndFor`
+  - 12-renderer.js：`scene`
+  - 14-water.js：`water`
+  - 20-villages-layout.js：`landY`
+  - 29-controls.js：`isFar`
 
 ## 39-kaizu.js
 - 作る：（なし）
@@ -697,11 +710,13 @@
 - `G._v3`：53-frame.js
 - `G.afterRain`：49-frame-sky-light.js
 - `G.ambience`：42-ambience.js
+- `G.birdman`：38b-birdman.js
 - `G.birds`：43b-birds.js
 - `G.biwako`：24-shore-landmarks.js
 - `G.blQ`：52-frame-render.js
 - `G.blRT`：52-frame-render.js
 - `G.blS`：52-frame-render.js
+- `G.boatMeshes`：19-boats.js
 - `G.boats`：45-boats.js
 - `G.buoys`：37-buoys.js
 - `G.camera`：53-frame.js

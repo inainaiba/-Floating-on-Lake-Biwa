@@ -320,42 +320,82 @@ function makeBoat(kind) {
   const g = new THREE.Group(),
     white = new THREE.MeshLambertMaterial({ color: 0xf2f2ee }),
     dark = new THREE.MeshLambertMaterial({ color: 0x2d3a48 });
+  const add = (geo, m, x = 0, y = 0, z = 0) => {
+    const o = new THREE.Mesh(geo, m);
+    o.position.set(x, y, z);
+    g.add(o);
+    return o;
+  };
+  // 船体：上から見て舳先のとがった形を、高さ h だけ立ち上げる（長さ L・幅 W、+x が舳先）
+  const hullGeo = (L, W, h, bow) => {
+    const sh = new THREE.Shape();
+    sh.moveTo(-L / 2, -W / 2);
+    sh.lineTo(L / 2 - bow, -W / 2);
+    sh.quadraticCurveTo(L / 2 - bow * 0.15, -W * 0.3, L / 2, 0);
+    sh.quadraticCurveTo(L / 2 - bow * 0.15, W * 0.3, L / 2 - bow, W / 2);
+    sh.lineTo(-L / 2, W / 2);
+    sh.closePath();
+    return new THREE.ExtrudeGeometry(sh, { depth: h, bevelEnabled: false }).rotateX(-Math.PI / 2);
+  };
+  // 大きな白い船は日の当たらない側が真っ黒にならないよう、壁の色に比べた明るさを少し足す
+  if (kind === "cruise" || kind === "michigan") white.emissive.setScalar(0.16);
   if (kind === "cruise") {
-    const hull = new THREE.Mesh(new THREE.BoxGeometry(32, 3, 8), white);
-    hull.position.y = 1;
-    g.add(hull);
-    const c1 = new THREE.Mesh(new THREE.BoxGeometry(18, 3, 6.5), white);
-    c1.position.set(-2, 4, 0);
-    g.add(c1);
-    const band = new THREE.Mesh(new THREE.BoxGeometry(32.2, 0.8, 8.2), dark);
-    band.position.y = 0.2;
-    g.add(band);
-    const win = new THREE.Mesh(
-      new THREE.BoxGeometry(18.1, 1, 6.6),
-      new THREE.MeshLambertMaterial({ color: 0x223040 }),
-    );
-    win.position.set(-2, 4.4, 0);
-    g.add(win);
+    // 竹生島へ渡る定期船：白い船体に青い帯、窓の並ぶ客室を二層、上に操舵室とマスト
+    const blue = new THREE.MeshLambertMaterial({ color: 0x2b5c9a }),
+      glassM = new THREE.MeshLambertMaterial({ color: 0x223040 });
+    add(hullGeo(32, 8, 3.2, 7), white, 0, -0.6);
+    add(new THREE.BoxGeometry(27, 0.7, 8.1), blue, -2, 0.9);
+    add(new THREE.BoxGeometry(20, 2.8, 6.6), white, -3, 4);
+    add(new THREE.BoxGeometry(20.1, 1.1, 6.7), glassM, -3, 4.3);
+    add(new THREE.BoxGeometry(12, 2.4, 5.6), white, -4.5, 6.6);
+    add(new THREE.BoxGeometry(12.1, 0.9, 5.7), glassM, -4.5, 6.8);
+    add(new THREE.BoxGeometry(3.4, 2, 4.4), white, 2.6, 8.6); // 操舵室
+    add(new THREE.BoxGeometry(3.5, 0.8, 4.5), glassM, 2.6, 8.9);
+    add(new THREE.CylinderGeometry(0.12, 0.12, 4), white, 1.8, 11.4); // マスト
   } else if (kind === "michigan") {
-    const hull = new THREE.Mesh(new THREE.BoxGeometry(60, 3, 12), white);
-    hull.position.y = 1;
-    g.add(hull);
+    // 外輪船ミシガン：白い船体に客室の甲板を三層重ね、手すりと窓の帯。前寄りに黒い煙突が二本、船尾に赤い外輪
+    const red = new THREE.MeshLambertMaterial({ color: 0xb03a2e, side: THREE.DoubleSide }),
+      glassM = new THREE.MeshLambertMaterial({ color: 0x24303c }),
+      black = new THREE.MeshLambertMaterial({ color: 0x1d1f22 }),
+      gold = new THREE.MeshLambertMaterial({ color: 0xc19a4a });
+    add(hullGeo(58, 12, 3.4, 9), white, 2, -0.8);
+    add(new THREE.BoxGeometry(50, 0.6, 12.1), red, -1, 2.3); // 船体の上の赤い帯
     for (let i = 0; i < 3; i++) {
-      const d = new THREE.Mesh(new THREE.BoxGeometry(46 - i * 10, 2.8, 11 - i), white);
-      d.position.set(2, 4 + i * 2.8, 0);
-      g.add(d);
+      const L = 46 - i * 9,
+        W = 11.6 - i * 1.2,
+        y = 3 + i * 3;
+      add(new THREE.BoxGeometry(L, 2.6, W), white, 1 - i * 1.5, y + 1.3);
+      add(new THREE.BoxGeometry(L + 0.1, 1, W + 0.1), glassM, 1 - i * 1.5, y + 1.4); // 窓の帯
+      add(new THREE.BoxGeometry(L + 1.2, 0.18, W + 1.2), white, 1 - i * 1.5, y + 2.9); // 手すり
+      add(new THREE.BoxGeometry(L + 1.6, 0.25, W + 1.6), white, 1 - i * 1.5, y + 2.6); // 上の甲板のふち
     }
-    const wheel = new THREE.Mesh(
-      new THREE.CylinderGeometry(4.5, 4.5, 10, 16, 1, true),
-      new THREE.MeshLambertMaterial({ color: 0xb03a2e, side: THREE.DoubleSide }),
-    );
+    add(new THREE.BoxGeometry(6, 2.4, 6), white, 12, 13.2); // 操舵室
+    add(new THREE.BoxGeometry(6.1, 0.9, 6.1), glassM, 12, 13.6);
+    for (const z of [-2.6, 2.6]) {
+      add(new THREE.CylinderGeometry(0.75, 0.85, 9, 12), black, 17, 15.5, z); // 煙突
+      add(new THREE.CylinderGeometry(1.25, 0.8, 0.9, 12), gold, 17, 20.3, z); // 煙突の冠
+    }
+    // 船尾の外輪：左右の輪と、放射状の羽根。軸（ローカルの y）のまわりに回す
+    const wheel = new THREE.Group();
+    for (const zz of [-4.6, 4.6]) {
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(4.6, 0.22, 6, 24).rotateX(Math.PI / 2), red);
+      rim.position.y = zz;
+      wheel.add(rim);
+    }
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * Math.PI * 2,
+        bl = new THREE.Mesh(new THREE.BoxGeometry(1.5, 9.4, 0.25), red);
+      bl.position.set(Math.cos(a) * 3.9, 0, Math.sin(a) * 3.9);
+      bl.rotation.y = -a;
+      wheel.add(bl);
+    }
+    wheel.add(new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 10, 8), black)); // 軸
     wheel.rotation.x = Math.PI / 2;
-    wheel.position.set(-32, 3.5, 0);
+    wheel.position.set(-31.5, 3.6, 0);
+    wheel.traverse((o) => (o.userData.keep = true)); // 回すので束ねない
     g.add(wheel);
     g.wheel = wheel;
-    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 6), dark);
-    st.position.set(10, 13, 0);
-    g.add(st);
+    add(new THREE.BoxGeometry(2.5, 6, 11.5), white, -27.6, 3.2); // 外輪を支える枠
   } else {
     const hull = new THREE.Mesh(
       new THREE.BoxGeometry(8, 1.2, 2.6),
@@ -376,11 +416,13 @@ function makeBoat(kind) {
     new THREE.MeshBasicMaterial({ color: 0xffe2a8 }),
   );
   bulbs.position.y = lamp.position.y;
+  bulbs.userData.keep = true; // 夜だけ見せる
   g.add(bulbs);
   g.bulbs = bulbs;
+  if (kind === "michigan" || kind === "cruise") mergeStatic(g); // 細かい部品を材質ごとに束ねる
   return g;
 }
-const boatMeshes = new Map();
+const boatMeshes = (G.boatMeshes = new Map()); // 確認用に G からも見える
 let W_SENSE = 1;
 // 航跡：白い泡の点を落として薄れさせる
 const WAKE_N = 3000,
