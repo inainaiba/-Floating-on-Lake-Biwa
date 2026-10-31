@@ -8,3 +8,4 @@ check/sheet.png
 tools/.dem_cache/
 tools/.bv_cache/
 __pycache__/
+tools/.bundle-in.mjs

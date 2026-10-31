@@ -314,7 +314,7 @@
   - 28-map.js：`FZ`、`far`、`fzAt`
 
 ## 30-audio.js
-- 作る：`SND`、`audioInit`、`audioUpdate`、`bird`、`gooseCall`、`gullCall`、`heronCall`、`horn`、`kiteCall`、`nburst`、`pan`、`prevMoving`、`wingFlush`
+- 作る：`SND`、`audioInit`、`audioUpdate`、`bird`、`gooseCall`、`gullCall`、`horn`、`kiteCall`、`nburst`、`pan`、`prevMoving`
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
@@ -511,7 +511,7 @@
   - 16-terrain.js：`ISLES`、`isleH`
   - 20-villages-layout.js：`groundH`、`landY`、`paddies`
   - 29-controls.js：`isFar`
-  - 30-audio.js：`SND`、`gooseCall`、`gullCall`、`heronCall`、`kiteCall`、`wingFlush`
+  - 30-audio.js：`SND`、`gooseCall`、`gullCall`、`kiteCall`
 
 ## 44-life.js
 - 作る：（なし）

@@ -215,34 +215,6 @@ function bird(x, z, kind, vol) {
   } // カモのような短い声
   o.connect(g).connect(pan(x, z)).connect(SND.master);
 }
-// 水鳥が一斉に飛び立つ羽音（43b-birds.js から）：細かく震える風切りの音が、遠ざかりながら消える
-function wingFlush(x, z, n, vol) {
-  const ac = SND.ctx,
-    t = ac.currentTime,
-    s = ac.createBufferSource(),
-    f = ac.createBiquadFilter(),
-    am = ac.createGain(),
-    lg = ac.createGain(),
-    lfo = ac.createOscillator(),
-    g = ac.createGain(),
-    dur = 1.2 + Math.min(n, 60) * 0.02;
-  s.buffer = SND.white;
-  f.type = "bandpass";
-  f.frequency.value = 900;
-  f.Q.value = 0.6;
-  lfo.frequency.value = 9 + Math.min(n, 40) * 0.12; // 羽ばたきの速さ
-  lg.gain.value = 0.5;
-  am.gain.value = 0.5;
-  lfo.connect(lg).connect(am.gain);
-  g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(vol, t + 0.08);
-  g.gain.exponentialRampToValueAtTime(0.0005, t + dur);
-  s.connect(f).connect(am).connect(g).connect(pan(x, z)).connect(SND.master);
-  s.start(t, Math.random() * 3);
-  s.stop(t + dur + 0.1);
-  lfo.start(t);
-  lfo.stop(t + dur + 0.1);
-}
 // ガンの鳴き声（43b-birds.js から）：鼻にかかった短い声が2つ3つ続く
 function gooseCall(x, z, vol) {
   const ac = SND.ctx,
@@ -292,32 +264,6 @@ function gullCall(x, z, vol) {
   o.connect(f).connect(g).connect(pan(x, z)).connect(SND.master);
   o.start(t);
   o.stop(t + 0.35);
-}
-// サギの声（43b-birds.js から）：飛び立つときの「グワッ」というしわがれた低い声
-function heronCall(x, z, vol) {
-  const ac = SND.ctx,
-    t = ac.currentTime,
-    o = ac.createOscillator(),
-    s = ac.createBufferSource(),
-    f = ac.createBiquadFilter(),
-    g = ac.createGain();
-  o.type = "sawtooth";
-  o.frequency.setValueAtTime(260, t);
-  o.frequency.exponentialRampToValueAtTime(170, t + 0.35);
-  s.buffer = SND.white;
-  f.type = "bandpass";
-  f.frequency.value = 700;
-  f.Q.value = 0.8;
-  g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(vol, t + 0.02);
-  g.gain.exponentialRampToValueAtTime(0.0005, t + 0.4);
-  o.connect(f);
-  s.connect(f);
-  f.connect(g).connect(pan(x, z)).connect(SND.master);
-  o.start(t);
-  o.stop(t + 0.45);
-  s.start(t, Math.random() * 3);
-  s.stop(t + 0.45);
 }
 // トビの声（43b-birds.js から）：高い空から「ピーヒョロロロ」
 function kiteCall(x, z, vol) {

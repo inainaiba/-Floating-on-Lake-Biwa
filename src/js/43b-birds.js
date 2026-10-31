@@ -1,11 +1,13 @@
 /* ---------- 水鳥と空の鳥：冬のカモの群れとユリカモメ、湖北のコハクチョウとガン（秋の夕方は堅田に雁が降りる）、竹生島のカワウ、
    ヨシ際のカイツブリと岸のサギ、夏の田のシラサギ、空を舞うトビ。
    ・どこにどの群れがいるか、ねぐらへの行き帰りの時刻は、共有時計の日ごとに決まる（見る人みな同じ）
-   ・建築が近づくと群れは一斉に飛び立ち、少し先の水面へ移る（カイツブリは潜る。ユリカモメは建築のあとを追って舞う）。これは各自の画面だけ
+   ・建築が近づくと群れは飛び立ち、少し先の水面へ移る（カイツブリは潜る）。これは各自の画面だけ
+   ・カメラから約800mより近い鳥は描かない（間近では不自然なため）。遠景の群れと、空を渡る編隊を見せる
    ・形は5種類（泳ぐカモ形・ハクチョウ・カワウ・立つサギ・飛ぶ鳥）。飛ぶ鳥の羽ばたきは頂点の計算で動かす
    ・見えやすいよう実物の約2.5倍の大きさ。群れは自分のまわり（約1.6km）にだけ置く ---------- */
 G.birds = (() => {
-  const VIS = 2.5,
+  const NEAR_HIDE = 160, // これより近い鳥は描かない（作品の中の長さ。実寸で約800m）
+    VIS = 2.5,
     U = { uT: { value: 0 } },
     Mx = (x, y, z, sx = 1, sy = 1, sz = 1, rz = 0) => new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, rz)), new THREE.Vector3(sx, sy, sz));
 
@@ -172,10 +174,6 @@ G.birds = (() => {
     f.st = "fly";
     f.fl = { ax: f.x, az: f.z, bx: tx, bz: tz, cx: (f.x + tx) / 2 + (R() - 0.5) * d * 0.4, cz: (f.z + tz) / 2 + (R() - 0.5) * d * 0.4, t0: t, dur: d / sp.v, land };
     for (const b of f.m) b.dl = Math.min(1.4, Math.hypot(f.x + b.ox - hx, f.z + b.oz - hz) * 0.012) * (0.6 + R() * 0.6);
-    if (SND.ctx && SND.on) {
-      wingFlush(f.x, f.z, f.m.length, 0.05 + Math.min(0.08, f.m.length * 0.002));
-      if (f.sp === "heron") heronCall(f.x, f.z, 0.05); // アオサギは飛び立つときに鳴く
-    }
   }
 
   // ---- 自分のまわりの群れ：600m四方の升ごとに、その日の群れを決める（升と日で決まる乱数）----
@@ -350,6 +348,8 @@ G.birds = (() => {
     const I = MESH[kind],
       i = cnt[kind];
     if (i >= CAP[kind]) return;
+    // 近くの鳥は描かない（間近では形の粗さが目立ち不自然なため）。遠景の群れと編隊だけを見せる
+    if ((x - camera.position.x) ** 2 + (z - camera.position.z) ** 2 < NEAR_HIDE * NEAR_HIDE) return;
     cnt[kind]++;
     E.set(roll, -hd, pitch, "YZX");
     M.compose(V.set(x, y, z), Q.setFromEuler(E), Sc.set(sx, sy, sz));
@@ -496,19 +496,11 @@ G.birds = (() => {
         }
       } else if (f.kind === "circle") {
         if (!light || !calm) continue;
-        // ユリカモメは、建築が近いとそのまわりへ寄ってくる
-        if (f.follow) {
-          const d = Math.hypot(hx - f.x, hz - f.z);
-          if (d < 260 && d > 6) {
-            f.x += ((hx - f.x) / d) * Math.min(d, 4 * dt);
-            f.z += ((hz - f.z) / d) * Math.min(d, 4 * dt);
-          }
-        }
         // 声：近くで舞うユリカモメは鳴き交わし、トビはときどき高い空から鳴く
         if (SND.ctx && SND.on && t > nextCall[f.sp]) {
           const d = Math.hypot(f.x - camera.position.x, f.z - camera.position.z),
             hear = f.sp === "kite" ? 500 : 260;
-          if (d < hear) {
+          if (d < hear && d > NEAR_HIDE) {
             const b = f.m[Math.floor(R() * f.m.length)],
               v = (1 - d / hear) * (f.sp === "kite" ? 0.035 : 0.03);
             if (f.sp === "kite") kiteCall(f.x + Math.cos(b.a) * b.r, f.z + Math.sin(b.a) * b.r, v);

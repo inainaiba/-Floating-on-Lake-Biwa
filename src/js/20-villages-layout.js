@@ -90,7 +90,8 @@ function luNearest(x, y, r, kinds) {
       for (const p of luIdx.get(u * 65536 + v) || []) {
         if (!kinds.includes(p[0])) continue;
         const d = (p[1] - x) ** 2 + (p[2] - y) ** 2;
-        if (d < bd) (bd = d), (best = p);
+        // 同じ距離なら、種類・x・y の小さいほう（記号の並び順によらず同じものを選ぶ）
+        if (d < bd || (d === bd && best && (p[0] - best[0] || p[1] - best[1] || p[2] - best[2]) < 0)) (bd = d), (best = p);
       }
   return best;
 }

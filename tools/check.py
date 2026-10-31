@@ -99,15 +99,12 @@ def shoot(idx):
     OUT.mkdir(parents=True, exist_ok=True)
     srv = serve()
     port = srv.server_address[1]
-    three = R / 'node_modules/three/build/three.module.min.js'
     errs = []
     with sync_playwright() as p:
         b = p.chromium.launch(args=['--use-gl=swiftshader'])
         pg = b.new_page(viewport={'width': 640, 'height': 400})
         pg.on('pageerror', lambda e: errs.append(str(e)))
         pg.on('console', lambda m: gl_error(m, errs))
-        if three.exists():
-            pg.route('**/three.module.min.js', lambda r: r.fulfill(path=str(three)))
         loaded = False
         for i in idx:
             name, q, v, bnum = SCENES[i][:4]
@@ -151,15 +148,12 @@ def start_check(n=10):
     """開始を n 回くり返し、カメラが陸や島に埋まっていないか・建物が湖の上にあるかを調べる。"""
     srv = serve()
     port = srv.server_address[1]
-    three = R / 'node_modules/three/build/three.module.min.js'
     bad, errs = [], []
     with sync_playwright() as p:
         b = p.chromium.launch(args=['--use-gl=swiftshader'])
         pg = b.new_page(viewport={'width': 320, 'height': 200})
         pg.on('pageerror', lambda e: errs.append(str(e)))
         pg.on('console', lambda m: gl_error(m, errs))
-        if three.exists():
-            pg.route('**/three.module.min.js', lambda r: r.fulfill(path=str(three)))
         for k in range(n):
             pg.goto(f'http://127.0.0.1:{port}/docs/index.html?debug&start={k * 7919 + 13}')
             pg.evaluate("()=>{try{localStorage.setItem('floating.hint2','1')}catch(e){}}")
@@ -216,7 +210,6 @@ TAP_LAKE = ['view', 'snd', 'save']
 def tap_check():
     srv = serve()
     port = srv.server_address[1]
-    three = R / 'node_modules/three/build/three.module.min.js'
     bad = []
     js = '''ids => ids.map(id => { const el = document.getElementById(id);
       if (!el || getComputedStyle(el).display === 'none' || el.offsetParent === null && getComputedStyle(el).position !== 'fixed') return null;
@@ -227,8 +220,6 @@ def tap_check():
         b = p.chromium.launch(args=['--use-gl=swiftshader'])
         for name, vw, vh, mob in [('パソコン', 1280, 720, False), ('スマートフォン', 390, 844, True), ('小さいスマートフォン', 360, 640, True)]:
             pg = b.new_page(viewport={'width': vw, 'height': vh}, is_mobile=mob, has_touch=mob)
-            if three.exists():
-                pg.route('**/three.module.min.js', lambda r: r.fulfill(path=str(three)))
             pg.goto(f'http://127.0.0.1:{port}/docs/index.html?debug', timeout=300000)
             pg.evaluate("()=>{try{localStorage.setItem('floating.hint2','1')}catch(e){}}")
             pg.wait_for_timeout(800)
