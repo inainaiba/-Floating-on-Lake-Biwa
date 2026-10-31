@@ -99,6 +99,11 @@ function luNearest(x, y, r, kinds) {
 const TOWNS = DATA.towns;
 // 家の位置の升（120m四方）：近くに家があるかを、全部の家を調べずに確かめる（森・田の置き場所で何十万回も使う）
 const houseGrid = new Map();
+// 位置から決まる 0〜1 の値（家の見た目の種類に使う。乱数の列をずらさない）
+const bHash = (x, y) => {
+  const v = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+  return v - Math.floor(v);
+};
 function addHouse(hs) {
   if (meishoClear(hs.x, hs.y)) return; // 名所の建物の上には建てない（03b-meisho-sites.js）
   houses.push(hs);
@@ -168,7 +173,53 @@ if (TOWNS && TOWNS.n) {
       roof: R(),
       ground: 0,
     };
+    // 建物の種類：実際の建物の面積と、地理院の種類（普通の建物／堅ろうな建物）から。乱数は位置から決めて、ほかの家の乱数をずらさない
+    {
+      const W0 = B[o + 4],
+        D0 = B[o + 5],
+        A = W0 * D0,
+        hv = bHash(x, y),
+        cl = (v, a, b) => Math.min(b, Math.max(a, v));
+      hs.kind = sturdy ? (A >= 1500 ? "rcBig" : "rc") : A < 30 ? "shed" : A < 220 ? "house" : A < 700 ? "barn" : "factory";
+      if (hs.kind === "shed") Object.assign(hs, { w: cl(W0, 3, 7.5), d: cl(D0, 2.4, 5.5), h: 2.3 + hv * 0.9 }); // 物置・小屋
+      else if (hs.kind === "barn") Object.assign(hs, { w: cl(W0, 11, 24), d: cl(D0, 8, 15), h: 4.6 + hv * 1.6 }); // 納屋・作業場・大きな農家
+      else if (hs.kind === "factory") Object.assign(hs, { w: cl(W0, 18, 44), d: cl(D0, 12, 28), h: 6 + hv * 5.5 }); // 工場・倉庫
+      else if (hs.kind === "rc") {
+        const fl = A < 250 ? 2 : A < 700 ? 2 + Math.floor(hv * 2) : 3 + Math.floor(hv * 3); // 鉄筋の建物：店・事務所・集合住宅
+        Object.assign(hs, { w: cl(W0, 8, 30), d: cl(D0, 7, 18), h: fl * 3.3 + 0.5 });
+      } else if (hs.kind === "rcBig") Object.assign(hs, { w: cl(W0, 24, 56), d: cl(D0, 12, 26), h: (3 + Math.floor(hv * 2)) * 3.8 + 0.6 }); // 学校・病院・大きな店
+      else {
+        // 住宅：古い家（瓦と板壁）と、今の家（明るい外壁とスレートの屋根）。南ほど今の家が多い
+        hs.modern = bHash(y, x) < (south ? 0.45 : north ? 0.12 : 0.3);
+        if (hs.modern && bHash(x + 7, y) < 0.7) hs.h = 5.6 + hv * 0.5;
+      }
+    }
+    if (!houseOk(hs) && hs.kind !== "house" && hs.kind !== "shed") {
+      // 大きな建物は、岸や川にかかるなら小さくして置き直す
+      hs.w = Math.max(8, hs.w * 0.6);
+      hs.d = Math.max(6, hs.d * 0.6);
+    }
     if (houseOk(hs)) addHouse(hs);
+  }
+  // 大きな建物が隣の家に重ならないよう、いちばん近い家との間に収まる大きさまで縮める
+  for (const h of houses) {
+    if (h.kind === "house" || h.kind === "shed" || !h.kind) continue;
+    const hd0 = Math.hypot(h.w, h.d) / 2,
+      n = Math.ceil((hd0 + 30) / S / 120);
+    let allow = hd0;
+    const cu = Math.floor(h.x / 120),
+      cv = Math.floor(h.y / 120);
+    for (let u = cu - n; u <= cu + n; u++)
+      for (let v = cv - n; v <= cv + n; v++)
+        for (const o of houseGrid.get(u * 65536 + v) || []) {
+          if (o === h) continue;
+          allow = Math.min(allow, Math.hypot(o.x - h.x, o.y - h.y) * S - Math.hypot(o.w, o.d) * 0.4 - 1);
+        }
+    if (allow < hd0) {
+      const f = Math.max(0.35, allow / hd0);
+      h.w *= f;
+      h.d *= f;
+    }
   }
   const rb = Uint8Array.from(atob(TOWNS.r), (ch) => ch.charCodeAt(0)),
     rv = new DataView(rb.buffer);

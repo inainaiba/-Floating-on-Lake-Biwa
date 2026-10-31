@@ -1,6 +1,6 @@
 /* ---------- 名所の建築：竹生島の宝厳寺（本堂・三重塔・観音堂）と都久夫須麻神社（本殿・舟廊下・竜神拝所と湖の鳥居）、
    多景島の見塔寺（本堂・庫裏・題目塔）、彦根城（天守・太鼓門櫓・天秤櫓・西の丸三重櫓）、長浜城（天守）、
-   長命寺（本堂・三重塔・鐘楼）、びわ湖ホール、琵琶湖博物館、菅浦の四足門。
+   長命寺（本堂・三重塔・鐘楼）、びわ湖ホール、琵琶湖博物館、菅浦の四足門、湖岸の大型商業施設（ピエリ守山・イオンモール草津・Oh!Me大津テラス）。
    置き場所は 03b-meisho-sites.js。形は細部を省いた抽象（基壇・壁・屋根の重なり）。夜の彦根城は白壁が灯りに浮かぶ ---------- */
 G.meisho = (() => {
   const L = (c, o = {}) => new THREE.MeshLambertMaterial({ color: c, ...o }),
@@ -255,6 +255,177 @@ G.meisho = (() => {
     return g;
   }
 
+  // ---- 湖岸の大型商業施設：地理院の輪郭を立ち上げた本体、1階の店先のガラスと色の帯、入口のガラスの吹き抜け、
+  //      屋上の設備（駐車場の屋上は白線）、まわりの駐車場と車。夜は店先と帯が灯る ----
+  const MALL = [
+    { wall: "#ebe6da", band: "#2f8f9a", roof: 0x9a9c9a, floors: 0 }, // ピエリ守山：砂色の壁に青緑の帯
+    { wall: "#f3f1ec", band: "#a8287a", roof: 0x7c7f80, floors: 0, deckRoof: true }, // イオンモール：白い壁に赤紫の帯、屋上は駐車場
+    { wall: "#c9c6bf", band: "#c9c6bf", roof: 0x7c7f80, deck: true, deckRoof: true }, // 立体駐車場：床の縁の帯と、開いた階
+    { wall: "#e4d9c6", band: "#d07a2c", roof: 0x9a9c9a, floors: 5 }, // Oh!Me大津テラス：階ごとの窓
+  ];
+  const mallMats = [];
+  function mall(p) {
+    const g = new THREE.Group(),
+      st = MALL[p.sty],
+      H = p.h;
+    // 湖や川にかからない大きさまで縮める（輪郭の頂点で調べる）
+    let sc = p.sc,
+      pts;
+    for (let k = 0; k < 8; k++) {
+      pts = p.fp.map((q) => {
+        const [x, y] = ll(...q);
+        return [(x - p.x) * sc, (y - p.y) * sc];
+      });
+      if (pts.every(([x, y]) => !inLake(p.x + x / S, p.y + y / S) && !inRiver(p.x + x / S, p.y + y / S))) break;
+      sc *= 0.85;
+    }
+    // 壁の絵（横16m・縦は建物の高さ全体）：昼の色と、夜に灯る所
+    const wallTex = (lit) =>
+      cvTex(256, 256, (x, w, hh) => {
+        const py = (m) => hh - (m / H) * hh; // 高さ m → 絵の縦の位置
+        x.fillStyle = lit ? "#000" : st.wall;
+        x.fillRect(0, 0, w, hh);
+        if (st.deck) {
+          // 立体駐車場：3mごとの床の縁（明るい帯）と、その間の暗い開口
+          for (let m = 0; m < H; m += 3) {
+            x.fillStyle = lit ? "#000" : "#3c4044";
+            x.fillRect(0, py(m + 2.2), w, py(m + 0.9) - py(m + 2.2));
+            if (lit) (x.fillStyle = "#806a50"), x.fillRect(0, py(m + 2.1), w, 3);
+          }
+          return;
+        }
+        // 1階の店先：ガラスと方立
+        x.fillStyle = lit ? "#ffe6c0" : "#4e5d68";
+        x.fillRect(0, py(4.6), w, py(0.4) - py(4.6));
+        if (!lit) for (let i = 0; i < w; i += 32) (x.fillStyle = "#d8d8d4"), x.fillRect(i, py(4.6), 3, py(0.4) - py(4.6));
+        // 上の階の窓（Oh!Me大津テラス）、または壁の目地
+        if (st.floors)
+          for (let f = 1; f < st.floors; f++)
+            for (let i = 8; i < w; i += 32) {
+              const on = Math.sin(i * 7.1 + f * 13.3) > -0.1;
+              x.fillStyle = lit ? (on ? "#ffd9a0" : "#000") : "#5d6a74";
+              x.fillRect(i, py(4.6 + f * 4 + 2.6), 20, py(4.6 + f * 4 + 0.6) - py(4.6 + f * 4 + 2.6));
+            }
+        else if (!lit) for (let i = 0; i < w; i += 64) (x.fillStyle = "rgba(0,0,0,.06)"), x.fillRect(i, 0, 2, py(5));
+        // 屋根の下の色の帯
+        x.fillStyle = lit ? st.band : st.band;
+        x.fillRect(0, py(H - 1), w, py(H - 2.6) - py(H - 1));
+      });
+    const roofTex = cvTex(64, 64, (x, w, hh) => {
+      x.fillStyle = "#fff";
+      x.fillRect(0, 0, w, hh);
+      if (st.deckRoof) for (let i = 0; i < w; i += 8) (x.fillStyle = "rgba(255,255,255,.9)"), x.fillRect(i, 0, 1, hh * 0.42), x.fillRect(i, hh * 0.58, 1, hh * 0.42);
+      else (x.fillStyle = "rgba(0,0,0,.08)"), x.fillRect(0, hh / 2, w, 1), x.fillRect(w / 2, 0, 1, hh);
+    });
+    const wm = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, map: wallTex(false), emissiveMap: wallTex(true), emissive: 0xffffff, emissiveIntensity: 0 }),
+      rm = new THREE.MeshStandardMaterial({ color: st.roof, roughness: 0.95, map: roofTex });
+    wm.map.wrapS = wm.emissiveMap.wrapS = roofTex.wrapS = roofTex.wrapT = THREE.RepeatWrapping;
+    // 日の当たらない面も暗くなりすぎないように（南湖の街の建物と同じ明るさの足し方）
+    wm.onBeforeCompile = (sh) => {
+      sh.fragmentShader = sh.fragmentShader.replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * .16;");
+    };
+    wm.customProgramCacheKey = () => "mall-wall";
+    // 壁の模様：横は16mごとに繰り返し、縦は下から上へ建物の高さ全体（押し出しの面の座標は m 単位）
+    for (const t of [wm.map, wm.emissiveMap]) (t.repeat.set(1 / 16, -1 / H)), t.offset.set(0, 1 / H);
+    roofTex.repeat.set(1 / 18, 1 / 18);
+    mallMats.push(wm);
+    const shape = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, -y)));
+    const body = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: H, bevelEnabled: false }).rotateX(-Math.PI / 2), [rm, wm]);
+    g.add(body);
+    // 入口のガラスの吹き抜け：いちばん長い辺の中ほどに、外へ少し張り出す
+    if (!st.deck) {
+      let bi = 0,
+        bl = 0;
+      for (let i = 0; i < pts.length; i++) {
+        const a = pts[i],
+          b = pts[(i + 1) % pts.length],
+          l = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        if (l > bl) (bl = l), (bi = i);
+      }
+      const a = pts[bi],
+        b = pts[(bi + 1) % pts.length],
+        ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+      let nx = -Math.sin(ang),
+        ny = Math.cos(ang);
+      const mx = (a[0] + b[0]) / 2,
+        my = (a[1] + b[1]) / 2;
+      // 外向き：中心から離れる向き
+      if (nx * mx + ny * my < 0) (nx = -nx), (ny = -ny);
+      const at = mesh(new THREE.BoxGeometry(14, H + 4, 6).translate(0, (H + 4) / 2, 0), glassMall, mx + nx * 2, 0, my + ny * 2);
+      at.rotation.y = -ang;
+      g.add(at);
+      const cap = mesh(new THREE.BoxGeometry(18, 0.8, 9).translate(0, 0.4, 0), mallBand(st.band), mx + nx * 3, H + 4, my + ny * 3);
+      cap.rotation.y = -ang;
+      g.add(cap);
+    }
+    // 屋上の設備（駐車場の屋上でないもの）
+    if (!st.deckRoof)
+      for (let k = 0; k < 4; k++) {
+        const q = pts[Math.floor((k / 4) * pts.length)];
+        g.add(box(6, 2.4, 4, concrete, q[0] * 0.5, H, q[1] * 0.5));
+      }
+    // まわりの駐車場：輪郭の外接長方形を広げた灰色の地面と、白線、とめてある車
+    {
+      let x0 = 1e9,
+        x1 = -1e9,
+        y0 = 1e9,
+        y1 = -1e9;
+      for (const [x, y] of pts) (x0 = Math.min(x0, x)), (x1 = Math.max(x1, x)), (y0 = Math.min(y0, y)), (y1 = Math.max(y1, y));
+      let m = 14;
+      const ok = (mm) => [[x0 - mm, y0 - mm], [x1 + mm, y0 - mm], [x1 + mm, y1 + mm], [x0 - mm, y1 + mm]].every(([x, y]) => !inLake(p.x + x / S, p.y + y / S));
+      while (m > 3 && !ok(m)) m -= 3;
+      const lot = mesh(new THREE.PlaneGeometry(x1 - x0 + 2 * m, y1 - y0 + 2 * m).rotateX(-Math.PI / 2), parkLot(x1 - x0 + 2 * m, y1 - y0 + 2 * m), (x0 + x1) / 2, 0.12, (y0 + y1) / 2);
+      g.add(lot);
+      // 車：建物の外の駐車場に並べる
+      const inPolyL = (x, y) => {
+        let c = false;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+          const [xi, yi] = pts[i],
+            [xj, yj] = pts[j];
+          if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+        }
+        return c;
+      };
+      const cars = [];
+      for (let y = y0 - m + 4; y < y1 + m - 4; y += 6)
+        for (let x = x0 - m + 4; x < x1 + m - 4; x += 3) {
+          const hsh = Math.sin(x * 12.9898 + y * 78.233 + p.sty) * 43758.5453;
+          if (hsh - Math.floor(hsh) < 0.45 || inPolyL(x, y) || inPolyL(x + 3, y) || inPolyL(x - 3, y) || inPolyL(x, y + 4) || inPolyL(x, y - 4)) continue;
+          cars.push([x, y, hsh - Math.floor(hsh)]);
+        }
+      if (cars.length) {
+        const I = new THREE.InstancedMesh(new THREE.BoxGeometry(1.8, 1.45, 4.4).translate(0, 0.72, 0), L(0xffffff), cars.length),
+          Mx = new THREE.Matrix4(),
+          cc = new THREE.Color(),
+          CAR = [0xf2f2f2, 0x1f2124, 0x9ea2a6, 0x6f7377, 0x7a1f22, 0x24395c, 0xd9d4c8, 0x3a4a3a];
+        cars.forEach(([x, y, r], i) => {
+          Mx.makeTranslation(x, 0.12, y);
+          I.setMatrixAt(i, Mx);
+          I.setColorAt(i, cc.setHex(CAR[Math.floor(r * 1000) % CAR.length]));
+        });
+        I.userData.keep = true;
+        g.add(I);
+      }
+    }
+    return g;
+  }
+  const glassMall = new THREE.MeshStandardMaterial({ color: 0x9fb4c2, roughness: 0.2, metalness: 0.15, emissive: 0x2a3540 }),
+    bandMats = {},
+    mallBand = (c) => bandMats[c] || (bandMats[c] = L(new THREE.Color(c).getHex())),
+    lotMats = {},
+    parkLot = (w, d) => {
+      const k = Math.round(w) + "x" + Math.round(d);
+      if (lotMats[k]) return lotMats[k];
+      const t = cvTex(64, 64, (x, ww, hh) => {
+        x.fillStyle = "#6e7072";
+        x.fillRect(0, 0, ww, hh);
+        x.fillStyle = "rgba(255,255,255,.75)";
+        for (let i = 0; i < ww; i += 6) (x.fillRect(i, 4, 1, 22), x.fillRect(i, 38, 1, 22));
+      });
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(w / 30, d / 12);
+      return (lotMats[k] = L(0xffffff, { map: t }));
+    };
   function build(p) {
     switch (p.k) {
       case "hondo":
@@ -302,6 +473,8 @@ G.meisho = (() => {
         return museum(p.w, p.d, p.low);
       case "gate":
         return gate(p.w, p.d);
+      case "mall":
+        return mall(p);
     }
     return new THREE.Group();
   }
@@ -324,13 +497,13 @@ G.meisho = (() => {
         top = (hs[0] + Math.max(...hs)) / 2,
         low = Math.min(...hs);
       const g = build(p);
-      if (top - low > 0.3) {
+      if (top - low > 0.3 && p.k !== "mall") {
         const H = top - low + 1,
           f = frustum(p.w + 2.4, p.d + 2.4, H, Math.min(3, H * 0.18), m.isle ? stone : castleStone);
         f.position.y = -H;
         g.add(f);
       }
-      g.position.set(p.x * S, top, p.y * S);
+      g.position.set(p.x * S, p.k === "mall" ? hs[0] : top, p.y * S);
       g.quaternion.setFromAxisAngle(UP, -a);
       site.add(g);
       placeLog(m.name + "の建物", "land", [[p.x, p.y]]);
@@ -373,6 +546,7 @@ G.meisho = (() => {
       castleWall.emissive.copy(NIGHT).multiplyScalar(0.55 * k);
       castleStone.emissive.copy(NIGHT).multiplyScalar(0.12 * k);
       castleTile.emissive.copy(NIGHT).multiplyScalar(0.06 * k);
+      for (const m of mallMats) m.emissiveIntensity = k * 1.4; // 商業施設の店先と帯
     },
   };
 })();
