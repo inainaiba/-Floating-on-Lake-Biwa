@@ -2,7 +2,7 @@
    組み立て（build.py）で、大きな2進のデータ（base64 の文字列）を、並べ方を変えてから圧縮して埋め込んである（読み込む量を減らすため）。
    ここで伸張して並べ方を戻し、元とまったく同じ base64 の文字列に戻す（それを読む各部品は変わらない）。
    並べ方：raw そのまま／delta 前のバイトとの差／p{k} k バイトごとの組を、バイトの位置ごとの列に分ける／pd{k} 列に分けてから差／
-   2d 左と上と左上から予測した値との差（横 w マスの格子） ---------- */
+   2d 左と上と左上から予測した値との差（横 w マスの格子）／med 同じく、角を見分けて予測した値との差 ---------- */
 async function unpackBlob(p) {
   const z = Uint8Array.from(atob(p.$p), (c) => c.charCodeAt(0)),
     b = new Uint8Array(await new Response(new Blob([z]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()),
@@ -16,13 +16,14 @@ async function unpackBlob(p) {
   else if (t === "delta") {
     o.set(b);
     sum(o, 0, n);
-  } else if (t === "2d") {
+  } else if (t === "2d" || t === "med") {
     const w = p.w;
     for (let i = 0; i < n; i++) {
       const a = i % w ? o[i - 1] : 0,
         c = i >= w ? o[i - w] : 0,
-        d = i >= w && i % w ? o[i - w - 1] : 0;
-      o[i] = (b[i] + a + c - d) & 255;
+        d = i >= w && i % w ? o[i - w - 1] : 0,
+        q = t === "2d" ? a + c - d : d >= Math.max(a, c) ? Math.min(a, c) : d <= Math.min(a, c) ? Math.max(a, c) : a + c - d;
+      o[i] = (b[i] + q) & 255;
     }
   } else {
     const k = +t.replace(/\D/g, ""),

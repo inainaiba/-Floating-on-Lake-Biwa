@@ -6,7 +6,7 @@
 
 読み込む量を減らすため（見た目は変えない）：
   ・大きな2進のデータ（base64 の文字列）は、並べ方を変えてから圧縮して埋め込み、作品の中で元の文字列に戻す（pack と src/js/00a-data.js）
-  ・コードのコメントと行頭の字下げを取り除く（tools/strip.mjs。TypeScript を使う：npm install -g typescript@6.0.2）
+  ・three.js（使う部分だけ）と作品のコードを1つにまとめて縮める（esbuild：npm install --no-save esbuild@0.24.2 three@0.160.0）
 """
 import base64, pathlib, json, re, zlib
 from openpyxl import load_workbook
@@ -83,13 +83,25 @@ def _pred2d(b, w):
     return bytes(o)
 
 
+def _med(b, w):
+    """左・上・左上から、角を見分けて予測する（MED）。滑らかな面は 2d と同じ、段差では段差に沿って予測する"""
+    o = bytearray(len(b))
+    for i in range(len(b)):
+        a = b[i - 1] if i % w else 0
+        c = b[i - w] if i >= w else 0
+        d = b[i - w - 1] if i >= w and i % w else 0
+        p = min(a, c) if d >= max(a, c) else max(a, c) if d <= min(a, c) else a + c - d
+        o[i] = (b[i] - p) & 255
+    return bytes(o)
+
+
 def pack(s, t, w=0):
     """base64 の文字列 s を、並べ方 t で並べ替えて圧縮した形にする（どの並べ方が効くかは、データごとに試して決めた）"""
     b = base64.b64decode(s)
-    x = b if t == 'raw' else _delta(b) if t == 'delta' else _pred2d(b, w) if t == '2d' else _planes(b, int(t[2:] if t[1] == 'd' else t[1:]), t[1] == 'd')
+    x = b if t == 'raw' else _delta(b) if t == 'delta' else _pred2d(b, w) if t == '2d' else _med(b, w) if t == 'med' else _planes(b, int(t[2:] if t[1] == 'd' else t[1:]), t[1] == 'd')
     c = zlib.compressobj(9, zlib.DEFLATED, -15)
     out = {'$p': base64.b64encode(c.compress(x) + c.flush()).decode(), 't': t}
-    if t == '2d':
+    if t in ('2d', 'med'):
         out['w'] = w
     return out
 
@@ -98,23 +110,38 @@ def data():
     """作品のコードが DATA として読むデータ（00a-data.js）"""
     L = lambda n: json.loads((r / f'data/{n}.json').read_text())
     dem, depth, near, towns, lu, isles = L('dem'), L('depth'), L('near'), L('towns'), L('landuse'), L('isles')
-    dem['d'] = pack(dem['d'], '2d', dem['w'])
+    dem['d'] = pack(dem['d'], 'med', dem['w'])
     depth['d'] = pack(depth['d'], '2d', depth['w'])
     near['d'], near['idx'] = pack(near['d'], 'raw'), pack(near['idx'], 'raw')
     towns['b'], towns['r'] = pack(towns['b'], 'p8'), pack(towns['r'], 'p2')
-    lu['d'] = pack(lu['d'], 'pd5')
+    # 地図記号は、種類ごとに北から南へ並べ替えてから詰める（近い点どうしが並んで差が小さくなる。読む側は並び順に頼らない）
+    import struct
+    b = base64.b64decode(lu['d'])
+    pts = sorted(struct.unpack_from('<Bhh', b, i * 5) for i in range(lu['n']))
+    pts.sort(key=lambda q: (q[0], q[2] // 50, q[1], q[2]))
+    lu['d'] = pack(base64.b64encode(b''.join(struct.pack('<Bhh', *q) for q in pts)).decode(), 'pd5')
     for q in isles:
         q['d'] = pack(q['d'], 'delta')
     return {'dem': dem, 'depth': depth, 'near': near, 'towns': towns, 'landuse': lu, 'isles': isles}
 
 
-def strip(script):
-    """コメントと行頭の字下げを取り除く（tools/strip.mjs）。動かない環境では止める（公開ファイルが環境で変わらないように）"""
+def bundle(script):
+    """three.js（使う部分だけ）と作品のコードを1つにまとめて縮める（esbuild。名前を短くし、コメントと空白を除く）。
+    手元の src のコードはそのまま。道具がない環境では止める（公開ファイルが環境で変わらないように）"""
     import subprocess
-    res = subprocess.run(['node', str(r / 'tools/strip.mjs')], input=script, capture_output=True, text=True)
-    if res.returncode or not res.stdout.strip():
-        print(res.stderr[-600:])
-        raise SystemExit('コードを軽くする手順（tools/strip.mjs）が動きません。npm install -g typescript@6.0.2 を入れてください')
+    exe = r / 'node_modules/.bin/esbuild'
+    if not exe.exists() or not (r / 'node_modules/three/package.json').exists():
+        raise SystemExit('組み立てに esbuild と three.js が要ります：npm install --no-save esbuild@0.24.2 three@0.160.0')
+    src = r / 'tools/.bundle-in.mjs'
+    src.write_text(script)
+    try:
+        res = subprocess.run([str(exe), str(src), '--bundle', '--format=esm', '--minify', '--target=es2022', '--charset=utf8',
+                              '--legal-comments=inline', '--log-level=error'], capture_output=True, text=True)
+    finally:
+        src.unlink()
+    if res.returncode:
+        print(res.stderr[-1500:])
+        raise SystemExit('コードをまとめる手順（esbuild）で誤りがありました')
     return res.stdout
 
 
@@ -128,10 +155,14 @@ def build():
             print('エラー：', e)
         raise SystemExit('部品の名前が重なっています（src/DEPENDENCIES.md 参照）')
     parts = sorted((r / 'src/js').glob('*.js'))
-    script = strip('\n'.join(p.read_text() for p in parts))
+    script = bundle('\n'.join(p.read_text() for p in parts))
     html = (r / 'src/shell.html').read_text().replace('__SCRIPT__', script)
     B = buoys()
-    html = (html.replace('__LAKE__', (r / 'data/lake.json').read_text())
+    # 湖岸線などのうち、作品で使わないもの（OpenStreetMap の川の線・灯台）は埋め込まない
+    lake = json.loads((r / 'data/lake.json').read_text())
+    for k in ('rivers', 'lights'):
+        lake.pop(k, None)
+    html = (html.replace('__LAKE__', json.dumps(lake, ensure_ascii=False, separators=(',', ':')))
                 .replace('__RAIL__', (r / 'data/rail.json').read_text())
                 .replace('__RIVERS__', (r / 'data/rivers.json').read_text())
                 .replace('__DATA__', json.dumps(data(), separators=(',', ':')))

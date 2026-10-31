@@ -67,9 +67,6 @@ def main():
         pg = b.new_page(viewport={'width': 640, 'height': 400})
         pg.on('pageerror', lambda e: errs.append(str(e)))
         pg.on('console', lambda m: check.gl_error(m, errs))
-        three = check.R / 'node_modules/three/build/three.module.min.js'
-        if three.exists():
-            pg.route('**/three.module.min.js', lambda r: r.fulfill(path=str(three)))
         pg.goto(f'http://127.0.0.1:{port}/docs/index.html?debug&q=mid')  # 重さの上限は中画質で測る（スマートフォンの既定）
         pg.evaluate("()=>{try{localStorage.setItem('floating.hint2','1')}catch(e){}}")
         pg.wait_for_timeout(900)
