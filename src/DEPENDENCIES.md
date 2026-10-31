@@ -353,17 +353,6 @@
   - 31-ui.js：`$`
   - 33-resize.js（後ろの部品・関数なので可）：`resize`
 
-## 32b-video.js
-- 作る：`REC`、`REC_MAX`、`REC_TL`、`recLabel`、`recMime`、`recOk`、`recSave`、`recStart`、`recStop`、`recTick`
-- 使う：
-  - 00-head.js：`G`
-  - 12-renderer.js：`renderer`
-  - 29-controls.js：`isFar`
-  - 30-audio.js：`SND`
-  - 31-ui.js：`$`
-  - 32-photo.js：`DL`
-  - 33-resize.js（後ろの部品・関数なので可）：`resize`
-
 ## 33-resize.js
 - 作る：`resize`
 - 使う：
@@ -676,7 +665,6 @@
   - 29-controls.js：`dist`、`distT`、`isFar`、`pitch`、`yaw`、`yawT`
   - 30-audio.js：`audioUpdate`
   - 32-photo.js：`finishPhoto`
-  - 32b-video.js：`recTick`
   - 33-resize.js：`resize`
   - 34-frame-state.js：`fpsN`、`fpsT`、`last`、`trailT`
   - 36-fireworks.js：`FW`
@@ -754,9 +742,7 @@
 - `G.plTx`：18-buildings.js
 - `G.pm`：29-controls.js
 - `G.prof`：53-frame.js
-- `G.pw`：32b-video.js
 - `G.rc`：52-frame-render.js
-- `G.recOn`：32b-video.js
 - `G.resetSky`：49-frame-sky-light.js
 - `G.resetTrail`：50-frame-float.js
 - `G.rf`：52-frame-render.js

@@ -210,7 +210,7 @@ def sheet(idx):
 # 押せるかの検査：パソコンとスマートフォンの大きさで、画面のボタンの真ん中に別の部品が重なっていないかを調べる
 # （選ぶ画面の板が矢印を覆って「01しか選べない」ことがあった。撮影は内部の命令で操作するので、これでは見つからない）
 TAP_SELECT = ['prev', 'next', 'go', 'bright', 'ab']
-TAP_LAKE = ['view', 'snd', 'save', 'rec']
+TAP_LAKE = ['view', 'snd', 'save']
 
 
 def tap_check():

@@ -9,7 +9,7 @@ function frame(now) {
   last = now;
   fpsN++;
   fpsT += dt;
-  if (fpsT > 3 && !G.prof && !G.recOn) {
+  if (fpsT > 3 && !G.prof) {
     // 描画が重いときは解像度を下げる（確認用 ?debug のときは、撮影の条件をそろえるため変えない）
     const f = fpsN / fpsT;
     const old = resScale;
@@ -25,7 +25,6 @@ function frame(now) {
     renderer.info.autoReset = false; // 確認用：1フレーム分（映り込み・本描画・仕上げ）を合計して数える
     renderer.info.reset();
   } // 確認用：処理時間の内訳（?debug のときだけ G.prof がある）
-  recTick(dt); // 動画の撮影（32b-video.js）：早回しの時刻を進め、上限で止める
   const c = clock(),
     W = wind(c),
     t = now / 1000;
