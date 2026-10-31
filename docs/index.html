@@ -107,7 +107,7 @@ body.far #rest{display:none}
 <div id="snd" class="ico" aria-label="sound"><svg viewBox="0 0 24 24"><path d="M4 10h4l5-4v12l-5-4H4z"/><path class="w" d="M16 9c1.5 1.5 1.5 4.5 0 6M18.5 6.5c3 3 3 8 0 11"/></svg></div>
 <div id="save" class="ico" aria-label="photo"><svg viewBox="0 0 24 24"><path d="M4 8h3.5l1.5-2h6l1.5 2H20v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg></div>
 <div id="rec" class="ico" aria-label="video"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle class="d" cx="12" cy="12" r="3.6"/></svg></div>
-<div id="recm"><div id="recV">動画<span>30秒まで・音も</span></div><div id="recT">早回し<span>一日を約20秒で</span></div></div>
+<div id="recm"><div id="recV">動画<span>30秒まで</span></div><div id="recT">早回し<span>一日を約20秒で</span></div></div>
 <div id="rect"></div>
 <div id="shot"><img alt=""><video muted loop playsinline></video></div>
 <div id="rest" aria-label="drift"><svg viewBox="0 0 24 24"><path d="M3 16c3-3 6 3 9 0s6 3 9 0"/><path d="M8 9h9M14 6l3 3-3 3"/></svg></div>
@@ -8413,7 +8413,7 @@ $("shot").onclick = () => $("shot").classList.remove("on");
 
 // ==== 32b-video.js ====
 /* ---------- 動画の撮影：右上のカメラの下の丸から。画面の部品は写さない
-   ・動画：いま見ている湖をそのまま、音も一緒に（30秒まで）
+   ・動画：いま見ている湖をそのまま（30秒まで。音は mp4 に入れて再生できる環境でだけ一緒に録る）
    ・早回し：その日の時刻だけを速く進めて、一日の移り変わりを約20秒に縮める（月と天気はそのまま）。撮り終えたら今の時刻に戻る
    撮影の間は、描画の重さで解像度を変えない（動画の大きさが途中で変わらないように）。写真のボタンは隠す ---------- */
 const REC = { on: false, mode: null, mr: null, chunks: [], t0: 0 },
@@ -8421,25 +8421,32 @@ const REC = { on: false, mode: null, mr: null, chunks: [], t0: 0 },
   REC_TL = 20; // 早回しで一日にかける秒数
 const recOk = !!(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream);
 if (!recOk) document.body.classList.add("norec");
-// 録れる形式：mp4 を先に（iPhone でも開きやすい）、なければ webm
-function recMime() {
-  for (const t of ["video/mp4;codecs=avc1.42E01E", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"])
-    if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) return t;
-  return "";
+// 録れる形式：Android や iPhone の動画アプリで再生できるよう、mp4（H.264）を選ぶ。
+// 音は mp4 に AAC で入れられるとき（Safari など）だけ録る。Chrome の mp4 は音が Opus になり、多くのスマートフォンで再生できないため、映像だけにする。
+// mp4 が録れないときは webm（音つき）
+function recMime(audio) {
+  const ok = (t) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
+  if (audio && ok("video/mp4;codecs=avc1.42E01E,mp4a.40.2")) return ["video/mp4;codecs=avc1.42E01E,mp4a.40.2", true];
+  for (const t of ["video/mp4;codecs=avc1.42E01E", "video/mp4;codecs=avc1", "video/mp4"]) if (ok(t)) return [t, false];
+  for (const t of ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]) if (ok(t)) return [t, audio];
+  return ["", false];
 }
 function recStart(mode) {
   $("recm").classList.remove("on");
   if (!recOk || REC.on || isFar) return;
-  const stream = renderer.domElement.captureStream(30);
+  // H.264 は幅と高さが偶数でないと正しく作れないことがあるので、撮影の間は描く大きさを偶数にそろえる（止めたら resize で戻す）
+  const cv = renderer.domElement;
+  if (cv.width % 2 || cv.height % 2) renderer.setDrawingBufferSize(cv.width - (cv.width % 2), cv.height - (cv.height % 2), 1);
+  const stream = cv.captureStream(30),
+    [mime, withAudio] = recMime(mode === "video" && !!SND.ctx);
   // 動画は音も録る（Web Audio の出口を分けて、映像と一緒に）
-  if (mode === "video" && SND.ctx) {
+  if (withAudio) {
     if (!SND.recDest) {
       SND.recDest = SND.ctx.createMediaStreamDestination();
       SND.master.connect(SND.recDest);
     }
     for (const tr of SND.recDest.stream.getAudioTracks()) stream.addTrack(tr);
   }
-  const mime = recMime();
   let mr;
   try {
     mr = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 10e6 } : { videoBitsPerSecond: 10e6 });
@@ -8447,6 +8454,7 @@ function recStart(mode) {
     try {
       mr = new MediaRecorder(stream);
     } catch (e2) {
+      resize();
       return;
     }
   }
@@ -8473,6 +8481,7 @@ function recStop() {
   document.body.classList.remove("rec");
   $("rec").classList.remove("on");
   G.pw = 0; // 早回しで進めた時刻を戻す
+  resize(); // 偶数にそろえた描く大きさを戻す
 }
 function recLabel(el) {
   const s = Math.floor(el);

@@ -356,6 +356,7 @@
   - 30-audio.js：`SND`
   - 31-ui.js：`$`
   - 32-photo.js：`DL`
+  - 33-resize.js（後ろの部品・関数なので可）：`resize`
 
 ## 33-resize.js
 - 作る：`resize`
