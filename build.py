@@ -5,10 +5,11 @@
   data/lake.json, data/dem.json, data/depth.json, data/isles.json, data/rivers.json, data/towns.json, data/near.json, data/landuse.json, data/rail.json, data/buoys.xlsx … 湖・地形・深さ・線路・ブイのデータ
 
 読み込む量を減らすため（見た目は変えない）：
-  ・大きな2進のデータ（base64 の文字列）は、並べ方を変えてから圧縮して埋め込み、作品の中で元の文字列に戻す（pack と src/js/00a-data.js）
+  ・大きな2進のデータ（base64 の文字列）は、算術符号で詰めて埋め込み（tools/acpack.py。小さなものは並べ方を変えてから deflate：pack）、
+    作品の中で元の文字列に戻す（src/js/00a-data.js）。詰めた結果は tools/.ac_cache/ に取っておく（同じデータなら詰め直さない）
   ・three.js（使う部分だけ）と作品のコードを1つにまとめて縮める（esbuild：npm install --no-save esbuild@0.24.2 three@0.160.0）
 """
-import base64, pathlib, json, re, zlib
+import base64, hashlib, pathlib, json, re, sys, zlib
 from openpyxl import load_workbook
 
 r = pathlib.Path(__file__).parent
@@ -106,23 +107,71 @@ def pack(s, t, w=0):
     return out
 
 
+def ac(m, s, **kw):
+    """base64 の文字列 s を算術符号で詰める（tools/acpack.py。m は詰め方）。結果は取っておき、同じ入力なら使い回す"""
+    sys.path.insert(0, str(r / 'tools'))
+    import acpack
+    b = base64.b64decode(s)
+    key = hashlib.sha1((m + json.dumps(kw, sort_keys=True)).encode() + b + (r / 'tools/acpack.py').read_bytes()).hexdigest()
+    fn = r / 'tools/.ac_cache' / f'{key}.json'
+    if fn.exists():
+        return json.loads(fn.read_text())
+    out = {'m': m, 'n': len(b), 'c32': acpack.crc(b), **kw}
+    if m == 'g':
+        z = acpack.enc_g(b, kw['w'])
+    elif m == 'n4':
+        z = acpack.enc_n4(b, kw['bs'])
+    elif m == 'st':
+        z, out['c'] = acpack.enc_st(b)
+    elif m == 'tw':
+        z = acpack.enc_tw(b)
+    elif m == 'lu':
+        z = acpack.enc_lu(b)
+    out['$a'] = base64.b64encode(z).decode()
+    fn.parent.mkdir(exist_ok=True)
+    fn.write_text(json.dumps(out))
+    return out
+
+
 def data():
     """作品のコードが DATA として読むデータ（00a-data.js）"""
+    sys.path.insert(0, str(r / 'tools'))
+    import acpack, struct
     L = lambda n: json.loads((r / f'data/{n}.json').read_text())
     dem, depth, near, towns, lu, isles = L('dem'), L('depth'), L('near'), L('towns'), L('landuse'), L('isles')
-    dem['d'] = pack(dem['d'], 'med', dem['w'])
-    depth['d'] = pack(depth['d'], '2d', depth['w'])
-    near['d'], near['idx'] = pack(near['d'], 'raw'), pack(near['idx'], 'raw')
-    towns['b'], towns['r'] = pack(towns['b'], 'p8'), pack(towns['r'], 'p2')
-    # 地図記号は、種類ごとに北から南へ並べ替えてから詰める（近い点どうしが並んで差が小さくなる。読む側は並び順に頼らない）
-    import struct
+    dem['d'] = ac('g', dem['d'], w=dem['w'])
+    depth['d'] = ac('g', depth['d'], w=depth['w'])
+    near['d'], near['idx'] = ac('n4', near['d'], bs=near['bs']), pack(near['idx'], 'raw')
+    towns['b'], towns['r'] = ac('tw', towns['b']), ac('st', towns['r'])
+    # 地図記号は、種類ごと・帯ごとに並べ替えてから詰める（近い点どうしが並んで差が小さくなる。読む側は並び順に頼らない）
     b = base64.b64decode(lu['d'])
-    pts = sorted(struct.unpack_from('<Bhh', b, i * 5) for i in range(lu['n']))
-    pts.sort(key=lambda q: (q[0], q[2] // 50, q[1], q[2]))
-    lu['d'] = pack(base64.b64encode(b''.join(struct.pack('<Bhh', *q) for q in pts)).decode(), 'pd5')
+    pts = acpack.lu_order(struct.unpack_from('<Bhh', b, i * 5) for i in range(lu['n']))
+    lu['d'] = ac('lu', base64.b64encode(b''.join(struct.pack('<Bhh', *q) for q in pts)).decode())
     for q in isles:
         q['d'] = pack(q['d'], 'delta')
     return {'dem': dem, 'depth': depth, 'near': near, 'towns': towns, 'landuse': lu, 'isles': isles}
+
+
+GLSL_HINT = re.compile(r'gl_|vec[234]|uniform |varying |#include|void main')
+
+
+def glsl_comments(src):
+    """シェーダー（GLSL）の文字の中のコメント（// …）を除く。作品のシェーダーには説明の日本語が多く、そのまま埋め込むと重い。
+    テンプレート文字列（`…`）のうち GLSL らしいものだけを対象にし、${…} を含む行や URL（://）には触れない"""
+    def fix(m):
+        t = m.group(0)
+        if not GLSL_HINT.search(t):
+            return t
+        out = []
+        for line in t.split('\n'):
+            k = line.find('//')
+            if k >= 0 and line[k - 1:k] != ':' and '${' not in line[k:] and '`' not in line[k:]:
+                line = line[:k].rstrip()
+                if not line.strip():
+                    continue
+            out.append(line)
+        return '\n'.join(out)
+    return re.sub(r'`[^`]*`', fix, src)
 
 
 def bundle(script):
@@ -142,7 +191,9 @@ def bundle(script):
     if res.returncode:
         print(res.stderr[-1500:])
         raise SystemExit('コードをまとめる手順（esbuild）で誤りがありました')
-    return res.stdout
+    # まとめたコードの中で改行があるのはテンプレート文字列（主にシェーダー）の中だけ。行頭の字下げは要らないので除く
+    #（GLSL の # で始まる指示は行頭にあればよく、three.js のシェーダーの部品の結合・置き換えも字下げに頼らない）
+    return re.sub(r'\n[ \t]+', '\n', res.stdout)
 
 
 def build():
@@ -155,7 +206,7 @@ def build():
             print('エラー：', e)
         raise SystemExit('部品の名前が重なっています（src/DEPENDENCIES.md 参照）')
     parts = sorted((r / 'src/js').glob('*.js'))
-    script = bundle('\n'.join(p.read_text() for p in parts))
+    script = bundle('\n'.join(glsl_comments(p.read_text()) for p in parts))
     html = (r / 'src/shell.html').read_text().replace('__SCRIPT__', script)
     B = buoys()
     # 湖岸線などのうち、作品で使わないもの（OpenStreetMap の川の線・灯台）は埋め込まない
