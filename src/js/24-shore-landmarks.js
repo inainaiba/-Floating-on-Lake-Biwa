@@ -92,7 +92,15 @@ function railLine(line, tunnels, stations, opt) {
   });
   const ht = top.map((_, i) => {
     if (tun[i]) return gh[i] - 4;
-    if (dT[i] < 4) return gh[i] + lift[i];
+    if (dT[i] < 4) {
+      // トンネルの前後：隣の点との間の地面も見て、いちばん高い所に合わせる（点と点の間の盛り上がりに桁が埋まらないように）
+      let m = gh[i];
+      for (const j of [i - 1, i + 1]) {
+        if (j < 0 || j >= pts.length || tun[j]) continue;
+        for (const u of [0.25, 0.5]) m = Math.max(m, landY(pts[i][0] + (pts[j][0] - pts[i][0]) * u, pts[i][1] + (pts[j][1] - pts[i][1]) * u));
+      }
+      return m + lift[i];
+    }
     let s = 0,
       n = 0;
     for (let k = -4; k <= 4; k++) {
