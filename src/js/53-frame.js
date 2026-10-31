@@ -9,7 +9,7 @@ function frame(now) {
   last = now;
   fpsN++;
   fpsT += dt;
-  if (fpsT > 3 && !G.prof) {
+  if (fpsT > 3 && !G.prof && !G.recOn) {
     // 描画が重いときは解像度を下げる（確認用 ?debug のときは、撮影の条件をそろえるため変えない）
     const f = fpsN / fpsT;
     const old = resScale;
@@ -25,6 +25,7 @@ function frame(now) {
     renderer.info.autoReset = false; // 確認用：1フレーム分（映り込み・本描画・仕上げ）を合計して数える
     renderer.info.reset();
   } // 確認用：処理時間の内訳（?debug のときだけ G.prof がある）
+  recTick(dt); // 動画の撮影（32b-video.js）：早回しの時刻を進め、上限で止める
   const c = clock(),
     W = wind(c),
     t = now / 1000;
@@ -66,6 +67,8 @@ function frame(now) {
   if (G.boats) G.boats.update(dt, t, c, day, wxNow);
   if (G.shore) G.shore.update(dt, t, c, day, wxNow);
   if (G.trains) G.trains.update(c, day); // 湖西線と琵琶湖線の電車（24b-trains.js）
+  if (G.meisho) G.meisho.update(day); // 名所の建築（40b-meisho.js）：夜の彦根城
+  if (G.birds) G.birds.update(dt, t, c, day, W, wxNow); // 水鳥と空の鳥（43b-birds.js）
   updateCamera(dt, t, hx, hz);
   if (G.nearPatch) G.nearPatch.update(camera.position.x / S, camera.position.z / S); // カメラのまわりの細かい地形（16-terrain.js）
   // 木が縮んで消える距離（cardForest の far）より遠い森の区画は、はじめから描かない

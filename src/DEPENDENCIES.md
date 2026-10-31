@@ -20,6 +20,12 @@
 ## 03-coords.js
 - 作る：`KX`、`KY`、`LAT0`、`LON0`、`ll`
 
+## 03b-meisho-sites.js
+- 作る：`MEISHO`、`meishoClear`
+- 使う：
+  - 01-settings.js：`S`
+  - 03-coords.js：`ll`
+
 ## 04-clock.js
 - 作る：`DAY`、`EPOCH`、`LAT_R`、`MO`、`PH`、`astro`、`clock`
 - 使う：
@@ -120,6 +126,7 @@
 - 使う：
   - 00-head.js：`G`、`chunkOf`、`placeLog`
   - 01-settings.js：`S`
+  - 03b-meisho-sites.js：`meishoClear`
   - 06-inner-lakes.js：`inRiver`
   - 10-start.js：`rnd`
   - 12-renderer.js：`scene`
@@ -157,6 +164,7 @@
   - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
+  - 03b-meisho-sites.js：`meishoClear`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inInner`、`inLake`、`inRiver`、`maxY`、`minY`
   - 07-depth.js：`depth`、`distShore`
@@ -209,7 +217,6 @@
   - 02-season.js：`SEASON`
   - 12-renderer.js：`scene`
   - 20-villages-layout.js：`cvTex`、`landY`、`paddies`
-  - 31-ui.js（後ろの部品・要注意）：`hex`
 
 ## 24-shore-landmarks.js
 - 作る：`brk`、`railLine`、`shoreTrees`、`treeI`、`treeM`、`treeSeason`
@@ -301,7 +308,7 @@
   - 28-map.js：`FZ`、`far`、`fzAt`
 
 ## 30-audio.js
-- 作る：`SND`、`audioInit`、`audioUpdate`、`bird`、`horn`、`nburst`、`pan`、`prevMoving`
+- 作る：`SND`、`audioInit`、`audioUpdate`、`bird`、`gooseCall`、`horn`、`nburst`、`pan`、`prevMoving`、`wingFlush`
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
@@ -339,6 +346,16 @@
   - 12-renderer.js：`renderer`
   - 31-ui.js：`$`
   - 33-resize.js（後ろの部品・関数なので可）：`resize`
+
+## 32b-video.js
+- 作る：`REC`、`REC_MAX`、`REC_TL`、`recLabel`、`recMime`、`recOk`、`recSave`、`recStart`、`recStop`、`recTick`
+- 使う：
+  - 00-head.js：`G`
+  - 12-renderer.js：`renderer`
+  - 29-controls.js：`isFar`
+  - 30-audio.js：`SND`
+  - 31-ui.js：`$`
+  - 32-photo.js：`DL`
 
 ## 33-resize.js
 - 作る：`resize`
@@ -422,6 +439,17 @@
   - 18-buildings.js：`reedMask`
   - 20-villages-layout.js：`landY`
 
+## 40b-meisho.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`、`mergeStatic`、`placeLog`
+  - 01-settings.js：`S`
+  - 03b-meisho-sites.js：`MEISHO`
+  - 12-renderer.js：`scene`
+  - 16-terrain.js：`isleH`
+  - 18-buildings.js：`gable`
+  - 20-villages-layout.js：`landY`
+
 ## 41-islands.js
 - 作る：（なし）
 - 使う：
@@ -468,6 +496,26 @@
   - 20-villages-layout.js：`landY`
   - 29-controls.js：`isFar`
   - 30-audio.js：`SND`
+
+## 43b-birds.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`
+  - 01-settings.js：`S`
+  - 02-season.js：`SEASON`
+  - 03-coords.js：`KX`、`KY`、`LAT0`、`LON0`、`ll`
+  - 03b-meisho-sites.js：`MEISHO`、`meishoClear`
+  - 04-clock.js：`DAY`
+  - 06-inner-lakes.js：`inLake`
+  - 07-depth.js：`depth`、`distShore`
+  - 10-start.js：`rndFor`
+  - 11-state.js：`B`
+  - 12-renderer.js：`camera`、`scene`
+  - 14-water.js：`water`、`waveH`
+  - 16-terrain.js：`ISLES`、`isleH`
+  - 20-villages-layout.js：`groundH`、`landY`、`paddies`
+  - 29-controls.js：`isFar`
+  - 30-audio.js：`SND`、`gooseCall`、`wingFlush`
 
 ## 44-life.js
 - 作る：（なし）
@@ -621,6 +669,7 @@
   - 29-controls.js：`dist`、`distT`、`isFar`、`pitch`、`yaw`、`yawT`
   - 30-audio.js：`audioUpdate`
   - 32-photo.js：`finishPhoto`
+  - 32b-video.js：`recTick`
   - 33-resize.js：`resize`
   - 34-frame-state.js：`fpsN`、`fpsT`、`last`、`trailT`
   - 36-fireworks.js：`FW`
@@ -651,6 +700,7 @@
 - `G._v3`：53-frame.js
 - `G.afterRain`：49-frame-sky-light.js
 - `G.ambience`：42-ambience.js
+- `G.birds`：43b-birds.js
 - `G.biwako`：24-shore-landmarks.js
 - `G.blQ`：52-frame-render.js
 - `G.blRT`：52-frame-render.js
@@ -685,6 +735,7 @@
 - `G.life`：44-life.js
 - `G.lock`：53-frame.js
 - `G.lt`：49-frame-sky-light.js
+- `G.meisho`：40b-meisho.js
 - `G.moments`：43-moments.js
 - `G.moonLit`：49-frame-sky-light.js
 - `G.morning`：49-frame-sky-light.js
@@ -696,7 +747,9 @@
 - `G.plTx`：18-buildings.js
 - `G.pm`：29-controls.js
 - `G.prof`：53-frame.js
+- `G.pw`：32b-video.js
 - `G.rc`：52-frame-render.js
+- `G.recOn`：32b-video.js
 - `G.resetSky`：49-frame-sky-light.js
 - `G.resetTrail`：50-frame-float.js
 - `G.rf`：52-frame-render.js

@@ -57,8 +57,8 @@ scene.add(ghI);
 const PADDY = SEASON.paddy;
 function paddySeason(m, sky) {
   // 水を張った田（空の色が強い色）は空を映す。区画ごとの状態は位置から決まる乱数で（毎月同じ区画が先に田植え・稲刈り）
-  const states = PADDY[m].map(([hex, share]) => {
-      const c = new THREE.Color(hex);
+  const states = PADDY[m].map(([col, share]) => {
+      const c = new THREE.Color(col);
       if (c.b > c.g && c.b > c.r) c.lerp(sky, 0.5);
       return [c, share];
     }),
