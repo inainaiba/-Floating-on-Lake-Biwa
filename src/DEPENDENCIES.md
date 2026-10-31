@@ -12,7 +12,7 @@
   - 31-ui.js（後ろの部品・要注意）：`$`
 
 ## 00a-data.js
-- 作る：`DATA`、`unpackBlob`、`unpackData`
+- 作る：`DATA`、`b64`、`unpackAC`、`unpackBlob`、`unpackData`
 
 ## 01-settings.js
 - 作る：`LAKE`、`Q`、`RAIL`、`RM`、`S`、`SPEED`
