@@ -136,6 +136,7 @@ G.trains = (() => {
         wy = water.position.y;
       let n = 0,
         ng = 0;
+      const near = (G.trainNear = []); // 音のために、近くの電車（いちばん近い車両の位置・隔たり・速さ）
       if (run)
         for (const { K, LEN, sched, NT } of lines)
           for (const dir of [1, -1])
@@ -145,6 +146,9 @@ G.trains = (() => {
                 head = headAt(sched[dir > 0 ? 0 : 1], tau);
               if (head < 0) continue;
               const s0 = dir > 0 ? head : LEN - head;
+              let nd = 1e9,
+                nx = 0,
+                nz = 0;
               for (let j = 0; j < CARS; j++) {
                 const s = s0 - dir * (j * CAR / S + CAR / S / 2);
                 if (s < 0 || s > LEN) continue;
@@ -153,6 +157,10 @@ G.trains = (() => {
                 const off = dir * 1.0; // 上下線で横にずらす（桁の幅は4）
                 Qn.setFromAxisAngle(Y, -a);
                 V3.set(x * S - Math.sin(a) * off, h + 0.45 + 1.75, y * S + Math.cos(a) * off);
+                {
+                  const dd = Math.hypot(V3.x - cp.x, V3.z - cp.z);
+                  if (dd < nd) (nd = dd), (nx = V3.x), (nz = V3.z);
+                }
                 M.compose(V3, Qn, one);
                 body.setMatrixAt(n, M);
                 W3.copy(V3);
@@ -179,6 +187,8 @@ G.trains = (() => {
                   }
                 }
               }
+              // 速さ（実寸 m/s）は、0.5秒後の先頭の位置との差から
+              if (nd < 600) near.push({ x: nx, z: nz, d: nd, v: Math.abs(headAt(sched[dir > 0 ? 0 : 1], tau + 0.5) - head) * 2 });
             }
       body.count = win.count = n;
       glow.count = ng;

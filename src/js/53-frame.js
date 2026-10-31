@@ -71,6 +71,8 @@ function frame(now) {
   if (G.meisho) G.meisho.update(day); // 名所の建築（40b-meisho.js）：夜の彦根城
   if (G.city) G.city.update(day); // 南湖の街（47-city.js）：夜の窓
   if (G.birdman) G.birdman.update(dt, t, c); // 鳥人間コンテスト（38b-birdman.js）：7月の発進台と飛行機
+  if (G.fest) G.fest.update(dt, t, c, day); // 湖の祭り（38c-festivals.js）：8月の船幸祭・10月の大津祭・1月の左義長
+  if (G.showers) G.showers.update(dt, t, c, day, wxNow); // 遠くのにわか雨と雷（43c-showers.js）
   if (G.birds) G.birds.update(dt, t, c, day, W, wxNow); // 水鳥と空の鳥（43b-birds.js）
   updateCamera(dt, t, hx, hz);
   if (G.nearPatch) G.nearPatch.update(camera.position.x / S, camera.position.z / S); // カメラのまわりの細かい地形（16-terrain.js）

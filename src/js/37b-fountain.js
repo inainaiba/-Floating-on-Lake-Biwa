@@ -123,8 +123,8 @@ void main(){
   vec4 mv=modelViewMatrix*vec4(q.x,uY+.8+y,q.y,1.);
   gl_Position=projectionMatrix*mv;
   float sz=mix(.55+s*.9,2.4+s*2.,mist),px=sz*uPx/max(1.,-mv.z);
-  gl_PointSize=max(1.5,px);
-  float far=1.-smoothstep(1400.,2600.,-mv.z);
+  gl_PointSize=clamp(px,1.5,28.);
+  float far=(1.-smoothstep(1400.,2600.,-mv.z))*smoothstep(3.,14.,-mv.z); // すぐ近くの粒は大きな玉にならないよう薄める
   vA=uOn*(1.-s*s)*mix(mix(.15,.42,uNight),mix(.05,.08,uNight),mist)*min(1.,px*px/3.)*far*step(.5,h);
   vec3 lit=mix(vec3(1.),hue(aU*.55+uT*.025+floor(uT/48.)*.31),.78)*(.7+.6*(1.-s));
   vC=mix(uDay,lit*2.2,uNight);
