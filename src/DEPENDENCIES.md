@@ -563,6 +563,7 @@
   - 00-head.js：`G`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
+  - 03b-meisho-sites.js：`meishoClear`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inInner`、`inLake`
   - 07-depth.js：`distShore`

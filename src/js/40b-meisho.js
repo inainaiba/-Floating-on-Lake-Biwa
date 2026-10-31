@@ -1,5 +1,6 @@
 /* ---------- 名所の建築：竹生島の宝厳寺（本堂・三重塔・観音堂）と都久夫須麻神社（本殿・舟廊下・竜神拝所と湖の鳥居）、
-   多景島の見塔寺（本堂・庫裏・題目塔）、彦根城（天守・太鼓門櫓・天秤櫓・西の丸三重櫓）。
+   多景島の見塔寺（本堂・庫裏・題目塔）、彦根城（天守・太鼓門櫓・天秤櫓・西の丸三重櫓）、長浜城（天守）、
+   長命寺（本堂・三重塔・鐘楼）、びわ湖ホール、琵琶湖博物館、菅浦の四足門。
    置き場所は 03b-meisho-sites.js。形は細部を省いた抽象（基壇・壁・屋根の重なり）。夜の彦根城は白壁が灯りに浮かぶ ---------- */
 G.meisho = (() => {
   const L = (c, o = {}) => new THREE.MeshLambertMaterial({ color: c, ...o }),
@@ -211,6 +212,49 @@ G.meisho = (() => {
     return g;
   }
 
+  // ---- 現代の建物と、集落の門 ----
+  const concrete = L(0xe9e7e2),
+    glass = L(0x6f8a9c),
+    metal = L(0x8d9398),
+    beige = L(0xd9d2c4),
+    thatch = L(0x8a7458, { side: THREE.DoubleSide }); // 茅葺
+  // 白い現代の建物は湖に向いた北側がいつも日陰になるので、壁の色に比べた明るさを少し足す（南湖の街の建物と同じくらい）
+  for (const m of [concrete, glass, metal, beige]) m.emissive.copy(m.color).multiplyScalar(0.2);
+  // びわ湖ホール：白い壁の大きな箱、湖に向いたガラスの帯、ゆるく傾いた大屋根。大ホールは舞台の上に高い塔
+  function bhall(w, d, tower) {
+    const g = new THREE.Group();
+    g.add(box(w, 17, d, concrete));
+    g.add(box(w * 0.96, 6, 0.4, glass, 0, 1.5, d / 2));
+    const roof = box(w + 5, 1.1, d + 5, metal, 0, 0, 0);
+    roof.rotation.x = 0.1;
+    roof.position.y = 18;
+    g.add(roof);
+    if (tower) g.add(box(w * 0.36, 36, d * 0.46, concrete, -w * 0.12, 0, -d * 0.18));
+    return g;
+  }
+  // 琵琶湖博物館：低く広い棟が重なり、中ほどにガラスの高い吹き抜け
+  function museum(w, d, low) {
+    const g = new THREE.Group(),
+      h = low ? 9 : 14;
+    g.add(box(w, h, d, beige));
+    g.add(box(w * 0.55, h + 4, d * 0.5, concrete, w * 0.18, 0, -d * 0.12));
+    g.add(box(w * 1.01, 0.8, d * 1.01, metal, 0, h - 0.8));
+    if (!low) g.add(box(w * 0.24, h + 9, d * 0.3, glass, -w * 0.2, 0, d * 0.12));
+    return g;
+  }
+  // 菅浦の四足門：四本の脚の上に、茅葺の屋根をのせた集落の入口の門
+  function gate(w, d) {
+    const g = new THREE.Group();
+    for (const sx of [-1, 1]) {
+      g.add(box(0.5, 4.2, 0.5, wood, (sx * w) / 2 * 0.62, 0, 0)); // 本柱
+      for (const sz of [-1, 1]) g.add(box(0.35, 3.6, 0.35, wood, (sx * w) / 2 * 0.62, 0, (sz * d) / 2 * 0.7)); // 控柱
+    }
+    g.add(box(w * 0.8, 0.45, 0.5, wood, 0, 3.8, 0)); // 冠木
+    g.add(mesh(hipGeo(w + 1.6, d + 1.8, 2.6), thatch, 0, 4.1));
+    g.add(box(w * 0.5, 0.5, 0.7, thatch, 0, 6.5, 0)); // 棟
+    return g;
+  }
+
   function build(p) {
     switch (p.k) {
       case "hondo":
@@ -242,6 +286,22 @@ G.meisho = (() => {
         return tenbin(p.w, p.d);
       case "sanju":
         return keep(p.w, p.d, [3.4, 3, 2.6], 5);
+      case "nagahama": // 長浜城：低い石垣の上に、三重の天守と最上階の望楼（昭和の再建。夜は灯らない）
+        return keep(p.w, p.d, [4.2, 3.7, 3.2, 2.7], 3.5, { wall: plaster, roof: tile, stone });
+      case "chomeiji": // 長命寺の本堂：檜皮葺の大きな屋根
+        return hall(p.w, p.d, { h: 5, wall: wood, post: wood, roof: bark, roofH: 6.4, eave: 2.6, base: 1.4 });
+      case "belfry": {
+        // 鐘楼：柱の上の屋根と、吊られた梵鐘
+        const g = pavilion(p.w, p.d);
+        g.add(mesh(new THREE.CylinderGeometry(0.9, 1.15, 2, 12), lacq, 0, 2.6));
+        return g;
+      }
+      case "bhall":
+        return bhall(p.w, p.d, p.tower);
+      case "museum":
+        return museum(p.w, p.d, p.low);
+      case "gate":
+        return gate(p.w, p.d);
     }
     return new THREE.Group();
   }
