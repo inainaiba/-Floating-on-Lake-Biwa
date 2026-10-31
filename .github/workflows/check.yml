@@ -14,6 +14,7 @@ on:
       - "docs/index.html"
       - "tools/check.py"
       - "tools/audit.py"
+      - "tools/strip.mjs"
   workflow_dispatch:
 
 concurrency:
@@ -43,6 +44,7 @@ jobs:
       - name: 道具を入れる
         run: |
           pip install playwright==1.63.0 pillow openpyxl
+          npm install -g typescript@6.0.2
           python -m playwright install-deps chromium
           python -m playwright install chromium
 

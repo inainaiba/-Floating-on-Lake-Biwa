@@ -64,7 +64,7 @@ const houses = [],
   breaks = [],
   streets = []; // 実際の道（地理院のベクトルタイル）：{ w: 幅の段, p: [[x, y], …] }。描くのは 22-village-lights-roads.js
 // 田・畑・森の地図記号（tools/landuse.py → data/landuse.json）：種類 0 田・1 畑・2 広葉樹林・3 針葉樹林・4 竹林。500m四方の升で引く
-const LANDUSE = __LANDUSE__;
+const LANDUSE = DATA.landuse;
 const luPts = [],
   luIdx = new Map();
 if (LANDUSE && LANDUSE.n) {
@@ -95,7 +95,7 @@ function luNearest(x, y, r, kinds) {
   return best;
 }
 // 実際の家並み（tools/towns.py → data/towns.json）：岸に近い順に並んでいる。1軒8バイト（x/2, y/2, 幅, 奥行き, 向き×40, 種類）
-const TOWNS = __TOWNS__;
+const TOWNS = DATA.towns;
 // 家の位置の升（120m四方）：近くに家があるかを、全部の家を調べずに確かめる（森・田の置き場所で何十万回も使う）
 const houseGrid = new Map();
 function addHouse(hs) {

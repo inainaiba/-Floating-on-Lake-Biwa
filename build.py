@@ -3,8 +3,12 @@
   src/shell.html  … HTML・CSS・画面の部品（__SCRIPT__ の位置に描画のコードが入る）
   src/js/NN-*.js  … 描画のコード。ファイル名の番号順につなげる（1つのモジュールとして動く）
   data/lake.json, data/dem.json, data/depth.json, data/isles.json, data/rivers.json, data/towns.json, data/near.json, data/landuse.json, data/rail.json, data/buoys.xlsx … 湖・地形・深さ・線路・ブイのデータ
+
+読み込む量を減らすため（見た目は変えない）：
+  ・大きな2進のデータ（base64 の文字列）は、並べ方を変えてから圧縮して埋め込み、作品の中で元の文字列に戻す（pack と src/js/00a-data.js）
+  ・コードのコメントと行頭の字下げを取り除く（tools/strip.mjs。TypeScript を使う：npm install -g typescript@6.0.2）
 """
-import pathlib, json, re
+import base64, pathlib, json, re, zlib
 from openpyxl import load_workbook
 
 r = pathlib.Path(__file__).parent
@@ -55,6 +59,65 @@ def buoys():
     return out
 
 
+# ---- データを詰める（src/js/00a-data.js で元に戻す）----
+def _delta(b):
+    o, p = bytearray(len(b)), 0
+    for i, v in enumerate(b):
+        o[i] = (v - p) & 255
+        p = v
+    return bytes(o)
+
+
+def _planes(b, k, d=False):
+    n = len(b) // k
+    return b''.join(_delta(b[j::k][:n]) if d else bytes(b[j::k][:n]) for j in range(k)) + b[n * k:]
+
+
+def _pred2d(b, w):
+    o = bytearray(len(b))
+    for i in range(len(b)):
+        a = b[i - 1] if i % w else 0
+        c = b[i - w] if i >= w else 0
+        d = b[i - w - 1] if i >= w and i % w else 0
+        o[i] = (b[i] - (a + c - d)) & 255
+    return bytes(o)
+
+
+def pack(s, t, w=0):
+    """base64 の文字列 s を、並べ方 t で並べ替えて圧縮した形にする（どの並べ方が効くかは、データごとに試して決めた）"""
+    b = base64.b64decode(s)
+    x = b if t == 'raw' else _delta(b) if t == 'delta' else _pred2d(b, w) if t == '2d' else _planes(b, int(t[2:] if t[1] == 'd' else t[1:]), t[1] == 'd')
+    c = zlib.compressobj(9, zlib.DEFLATED, -15)
+    out = {'$p': base64.b64encode(c.compress(x) + c.flush()).decode(), 't': t}
+    if t == '2d':
+        out['w'] = w
+    return out
+
+
+def data():
+    """作品のコードが DATA として読むデータ（00a-data.js）"""
+    L = lambda n: json.loads((r / f'data/{n}.json').read_text())
+    dem, depth, near, towns, lu, isles = L('dem'), L('depth'), L('near'), L('towns'), L('landuse'), L('isles')
+    dem['d'] = pack(dem['d'], '2d', dem['w'])
+    depth['d'] = pack(depth['d'], '2d', depth['w'])
+    near['d'], near['idx'] = pack(near['d'], 'raw'), pack(near['idx'], 'raw')
+    towns['b'], towns['r'] = pack(towns['b'], 'p8'), pack(towns['r'], 'p2')
+    lu['d'] = pack(lu['d'], 'pd5')
+    for q in isles:
+        q['d'] = pack(q['d'], 'delta')
+    return {'dem': dem, 'depth': depth, 'near': near, 'towns': towns, 'landuse': lu, 'isles': isles}
+
+
+def strip(script):
+    """コメントと行頭の字下げを取り除く（tools/strip.mjs）。動かない環境では止める（公開ファイルが環境で変わらないように）"""
+    import subprocess
+    res = subprocess.run(['node', str(r / 'tools/strip.mjs')], input=script, capture_output=True, text=True)
+    if res.returncode or not res.stdout.strip():
+        print(res.stderr[-600:])
+        raise SystemExit('コードを軽くする手順（tools/strip.mjs）が動きません。npm install -g typescript@6.0.2 を入れてください')
+    return res.stdout
+
+
 def build():
     import sys
     sys.path.insert(0, str(r / 'tools'))
@@ -65,24 +128,19 @@ def build():
             print('エラー：', e)
         raise SystemExit('部品の名前が重なっています（src/DEPENDENCIES.md 参照）')
     parts = sorted((r / 'src/js').glob('*.js'))
-    script = '\n'.join(f'// ==== {p.name} ====\n' + p.read_text() for p in parts)
+    script = strip('\n'.join(p.read_text() for p in parts))
     html = (r / 'src/shell.html').read_text().replace('__SCRIPT__', script)
     B = buoys()
     html = (html.replace('__LAKE__', (r / 'data/lake.json').read_text())
-                .replace('__DEM__', (r / 'data/dem.json').read_text())
                 .replace('__RAIL__', (r / 'data/rail.json').read_text())
-                .replace('__DEPTH__', (r / 'data/depth.json').read_text())
-                .replace('__ISLES__', (r / 'data/isles.json').read_text())
                 .replace('__RIVERS__', (r / 'data/rivers.json').read_text())
-                .replace('__TOWNS__', (r / 'data/towns.json').read_text())
-                .replace('__NEAR__', (r / 'data/near.json').read_text())
-                .replace('__LANDUSE__', (r / 'data/landuse.json').read_text())
+                .replace('__DATA__', json.dumps(data(), separators=(',', ':')))
                 .replace('__BUOYS__', json.dumps(B, ensure_ascii=False)))
     # 文法の確認：node があれば、組み立てたコードを読み込めるか確かめる（壊れたまま公開しないため）
     import subprocess, shutil, tempfile
     if shutil.which('node'):
         with tempfile.NamedTemporaryFile('w', suffix='.mjs', delete=False) as f:
-            f.write(script.replace('__LAKE__', '{}').replace('__DEM__', '{}').replace('__RAIL__', '{}').replace('__DEPTH__', '{}').replace('__ISLES__', '[]').replace('__RIVERS__', '[]').replace('__TOWNS__', '{}').replace('__NEAR__', '{}').replace('__LANDUSE__', '{}').replace('__BUOYS__', '[]'))
+            f.write(script.replace('__LAKE__', '{}').replace('__RAIL__', '{}').replace('__RIVERS__', '[]').replace('__DATA__', '{}').replace('__BUOYS__', '[]'))
         res = subprocess.run(['node', '--check', f.name], capture_output=True, text=True)
         if res.returncode:
             print(res.stderr.split('SyntaxError')[0][-400:] + 'SyntaxError' + res.stderr.split('SyntaxError')[-1][:200])

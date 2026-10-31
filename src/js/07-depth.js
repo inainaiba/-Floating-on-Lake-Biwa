@@ -100,7 +100,7 @@ function shoreSnap(x, y) {
   return best;
 }
 // 湖の深さの格子（tools/depth.py）：地理院のベクトルタイルの等深線から補間した、200m間隔の実際の深さ。1マス1バイトで d = top·(v/255)²
-const DEPTH = __DEPTH__;
+const DEPTH = DATA.depth;
 {
   const D = Uint8Array.from(atob(DEPTH.d || ""), (c) => c.charCodeAt(0)),
     q = (i, j) => (D[Math.min(DEPTH.h - 1, Math.max(0, j)) * DEPTH.w + Math.min(DEPTH.w - 1, Math.max(0, i))] / 255) ** 2 * DEPTH.top;

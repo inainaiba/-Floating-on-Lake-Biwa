@@ -11,6 +11,9 @@
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
   - 31-ui.js（後ろの部品・要注意）：`$`
 
+## 00a-data.js
+- 作る：`DATA`、`unpackBlob`、`unpackData`
+
 ## 01-settings.js
 - 作る：`LAKE`、`Q`、`RAIL`、`RM`、`S`、`SPEED`
 
@@ -48,6 +51,7 @@
 ## 07-depth.js
 - 作る：`CELL`、`DEPTH`、`GH`、`GW`、`SEG_CELL`、`depth`、`depthG`、`distShore`、`distShoreAll`、`segD2`、`segIdx`、`segs`、`shoreSnap`
 - 使う：
+  - 00a-data.js：`DATA`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`LAKE_MASK`、`inInner`、`inLake`、`inMain`、`inMainPoly`、`maxX`、`maxY`、`minX`、`minY`
 
@@ -111,6 +115,7 @@
 - 作る：`DEM`、`DEM_D`、`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_DEM`、`ISLE_H`、`NEAR`、`NEAR_U`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`SNOW`、`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_NIGHT`、`TERR_FS_ROCK`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleGrid`、`isleH`、`isleShape`、`landContours`、`landH`、`nearAt`、`nearBlk`、`nearRes`、`okiZone`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`tdx`、`tdy`、`terr`、`terrB`、`terrColor`、`terrGeo`、`terrGeo_`、`terrGrid`、`terrH`、`terrMat`、`terrShape`、`terrShapeB`、`tx0`、`ty0`、`vnoise`
 - 使う：
   - 00-head.js：`G`、`GLSL_NOISE`
+  - 00a-data.js：`DATA`
   - 01-settings.js：`S`
   - 02-season.js：`SEASON`
   - 03-coords.js：`ll`
@@ -162,6 +167,7 @@
 - 作る：`LANDUSE`、`ROOF_COLS`、`TOWNS`、`VILLAGES`、`addHouse`、`breaks`、`cvTex`、`groundH`、`houseGrid`、`houseNear`、`houseOk`、`houses`、`isLand`、`landY`、`luIdx`、`luNearest`、`luPts`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`streets`、`terrainAt`、`wallG`、`wallM`、`wallTex`
 - 使う：
   - 00-head.js：`G`、`placeLog`
+  - 00a-data.js：`DATA`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 03b-meisho-sites.js：`meishoClear`
