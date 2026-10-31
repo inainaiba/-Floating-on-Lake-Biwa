@@ -92,37 +92,54 @@ G.moments = (() => {
   bI.visible = false;
   scene.add(bI);
 
-  // 夕方の鐘：一日に一度、日暮れのころ湖岸の寺から遠く響く
-  let lastBell = -1;
-  function bell() {
+  // 夕方の鐘：一日に一度、日暮れのころ、湖岸の寺々から響く（三井の晩鐘・長命寺・竹生島の宝厳寺）。
+  // 寺の場所から、離れている分だけ小さく、こもって、遅れて届く（音の速さ。遠い寺ほど後から）。12月の夜更けは除夜の鐘
+  const TEMPLES = [
+    [135.8536, 35.0135], // 三井寺（園城寺）
+    [136.06421, 35.16263], // 長命寺の鐘楼
+    [136.1433, 35.4214], // 竹生島の宝厳寺
+  ].map(([lo, la]) => ll(lo, la));
+  let lastBell = -1,
+    nextJoya = 0;
+  function strike(st, vol, lpF, out) {
+    const ac = SND.ctx;
+    for (const [f, a, d] of [
+      [98, 0.05, 9],
+      [196.5, 0.03, 7],
+      [271, 0.018, 5],
+      [530, 0.008, 3],
+    ]) {
+      const o = ac.createOscillator(),
+        g = ac.createGain(),
+        lp = ac.createBiquadFilter();
+      o.type = "sine";
+      o.frequency.value = f * (1 + (Math.random() - 0.5) * 0.004);
+      lp.type = "lowpass";
+      lp.frequency.value = lpF;
+      g.gain.setValueAtTime(0, st);
+      g.gain.linearRampToValueAtTime(a * vol, st + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.0003 * vol + 1e-6, st + d);
+      o.connect(lp).connect(g);
+      g.connect(out);
+      g.connect(SND.rev);
+      o.start(st);
+      o.stop(st + d + 0.1);
+    }
+  }
+  function bell(strokes, onlyNearest) {
     if (!SND.ctx || !SND.on) return;
     const ac = SND.ctx,
-      t0 = ac.currentTime;
-    for (let n = 0; n < 3; n++) {
-      const st = t0 + n * 9;
-      for (const [f, a, d] of [
-        [98, 0.05, 9],
-        [196.5, 0.03, 7],
-        [271, 0.018, 5],
-        [530, 0.008, 3],
-      ]) {
-        const o = ac.createOscillator(),
-          g = ac.createGain(),
-          lp = ac.createBiquadFilter();
-        o.type = "sine";
-        o.frequency.value = f * (1 + (Math.random() - 0.5) * 0.004);
-        lp.type = "lowpass";
-        lp.frequency.value = 900;
-        g.gain.setValueAtTime(0, st);
-        g.gain.linearRampToValueAtTime(a, st + 0.05);
-        g.gain.exponentialRampToValueAtTime(0.0003, st + d);
-        o.connect(lp).connect(g);
-        g.connect(SND.master);
-        g.connect(SND.rev);
-        o.start(st);
-        o.stop(st + d + 0.1);
-      }
-    }
+      cx = camera.position.x / S,
+      cz = camera.position.z / S;
+    const list = TEMPLES.map(([x, y]) => ({ x, y, d: Math.hypot(x - cx, y - cz) })).sort((p, q) => p.d - q.d);
+    (onlyNearest ? list.slice(0, 1) : list).forEach((q, i) => {
+      const vol = Math.max(0.12, Math.min(1, 4000 / (q.d + 1500))), // 遠い寺もかすかに聞こえる
+        delay = Math.min(14, q.d / 340) + i * 1.5,
+        out = ac.createStereoPanner();
+      out.pan.value = panV(q.x * S, q.y * S) * 0.6;
+      out.connect(SND.master);
+      for (let n = 0; n < strokes; n++) strike(ac.currentTime + delay + n * 9, vol, Math.max(380, 900 - q.d / 30), out);
+    });
   }
 
   function update(dt, t, c, W) {
@@ -149,7 +166,12 @@ G.moments = (() => {
     const dayNo = Math.floor(c.t / DAY);
     if (c.phase > 0.735 && c.phase < 0.75 && dayNo !== lastBell && !isFar) {
       lastBell = dayNo;
-      bell();
+      bell(3, false);
+    }
+    // 除夜の鐘：12月の夜更け（23時半〜0時半）、いちばん近い寺から、ゆっくり一つずつ
+    if (c.month === 11 && (c.phase > 0.98 || c.phase < 0.02) && !isFar && t > nextJoya) {
+      nextJoya = t + 11;
+      bell(1, true);
     }
   }
   return { update, lone };

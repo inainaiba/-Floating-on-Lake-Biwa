@@ -110,6 +110,12 @@ const wallGA = wallG.clone(),
   wallGA.setAttribute("aVar", new THREE.InstancedBufferAttribute(v, 1));
   wallGB.setAttribute("aVar", new THREE.InstancedBufferAttribute(v.slice(), 1));
 }
+// 瓦や板壁の家として描くのは、住宅と納屋だけ（物置・工場・鉄筋の建物は 21b-building-kinds.js）
+const plainHouse = (h) => !h.kind || h.kind === "house" || h.kind === "barn";
+const ZERO_M = new THREE.Matrix4().makeScale(0, 0, 0);
+// 今の家：明るい外壁（サイディング）と、スレートや金属の屋根
+const MODERN_WALL = [0xe9e6df, 0xdcd9d2, 0xcfd3d6, 0xe6dcc6, 0xdac9bc, 0xb9b0a5, 0x8f8c88, 0xd2c2a8],
+  MODERN_ROOF = [0x3a3d42, 0x4a4440, 0x5b4a3e, 0x2f3438, 0x6a6e72, 0x3f4a52];
 const walls = new THREE.InstancedMesh(wallGA, atlasMat(wallAt), houses.length),
   walls2 = new THREE.InstancedMesh(wallGB, wallM2, houses.length),
   roofs = new THREE.InstancedMesh(roofHip, roofM, houses.length),
@@ -121,6 +127,10 @@ const walls = new THREE.InstancedMesh(wallGA, atlasMat(wallAt), houses.length),
     e = new THREE.Euler(),
     c = new THREE.Color();
   houses.forEach((h, i) => {
+    if (!plainHouse(h)) {
+      for (const m of [walls, walls2, roofs, roofs2, skirt]) m.setMatrixAt(i, ZERO_M);
+      return;
+    }
     const gy = 0.6 + h.ground * S * VEX;
     q.setFromEuler(e.set(0, -h.rot, 0));
     M.compose(new THREE.Vector3(h.x * S, gy, h.y * S), q, new THREE.Vector3(h.w, h.h, h.d));
@@ -140,13 +150,14 @@ const walls = new THREE.InstancedMesh(wallGA, atlasMat(wallAt), houses.length),
               : h.roof < 0.7
                 ? 0xbfb6a6
                 : 0x8a7f70;
-      walls2.setColorAt(i, new THREE.Color(wc));
-      walls.setColorAt(i, c.set(wc));
+      const wc2 = h.modern ? MODERN_WALL[Math.floor(h.roof * 97) % MODERN_WALL.length] : wc;
+      walls2.setColorAt(i, new THREE.Color(wc2));
+      walls.setColorAt(i, c.set(wc2));
     }
     M.compose(new THREE.Vector3(h.x * S, gy + h.h, h.y * S), q, new THREE.Vector3(h.d, h.w * 0.75, h.w));
     // 屋根は棟を長手方向に。ExtrudeはZ方向に伸びるので、幅dで回転を合わせる
-    const hip = (h.roof * 7) % 1 < 0.5;
-    M.compose(new THREE.Vector3(h.x * S, gy + h.h, h.y * S), q, new THREE.Vector3(h.w, h.d * 0.95, h.d));
+    const hip = (h.roof * 7) % 1 < 0.5 && !h.modern; // 今の家は切妻（屋根の勾配もゆるく）
+    M.compose(new THREE.Vector3(h.x * S, gy + h.h, h.y * S), q, new THREE.Vector3(h.w, h.d * (h.modern ? 0.62 : 0.95), h.d));
     (hip ? roofs : roofs2).setMatrixAt(i, M);
     const Z = new THREE.Matrix4().makeScale(0, 0, 0);
     (hip ? roofs2 : roofs).setMatrixAt(i, Z);
@@ -162,7 +173,9 @@ const walls = new THREE.InstancedMesh(wallGA, atlasMat(wallAt), houses.length),
       i,
       c
         .set(
-          h.north
+          h.modern
+            ? MODERN_ROOF[Math.floor(h.roof * 53) % MODERN_ROOF.length]
+            : h.north
             ? h.roof < 0.85
               ? [0x2c2f34, 0x35383d, 0x3f4247][Math.floor(h.roof * 3.5) % 3]
               : 0x6b4a3a
@@ -212,14 +225,14 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
     M = new THREE.Matrix4(),
     c = new THREE.Color();
   houses.forEach((h, i) => {
-    const hip = (h.roof * 7) % 1 < 0.5;
-    if (hip) {
+    const hip = (h.roof * 7) % 1 < 0.5 && !h.modern;
+    if (hip || !plainHouse(h)) {
       M.makeScale(0, 0, 0);
     } else
       M.compose(
         new THREE.Vector3(h.x * S, 0.6 + h.ground * S * VEX + h.h, h.y * S),
         new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -h.rot, 0)),
-        new THREE.Vector3(h.w, h.d * 0.95, h.d),
+        new THREE.Vector3(h.w, h.d * (h.modern ? 0.62 : 0.95), h.d),
       );
     GW.setMatrixAt(i, M);
     walls.getColorAt(i, c);
@@ -235,6 +248,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
     ),
     M = new THREE.Matrix4();
   houses.forEach((h, i) => {
+    if (!plainHouse(h)) return eb.setMatrixAt(i, ZERO_M);
     M.compose(
       new THREE.Vector3(h.x * S, 0.6 + h.ground * S * VEX + h.h - 0.12, h.y * S),
       new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -h.rot, 0)),
@@ -252,6 +266,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
     ),
     M = new THREE.Matrix4();
   houses.forEach((h, i) => {
+    if (h.kind === "shed") return dr.setMatrixAt(i, ZERO_M);
     const fx = -Math.sin(h.rot),
       fz = Math.cos(h.rot);
     M.compose(
@@ -305,9 +320,10 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
       q,
       new THREE.Vector3(h.w * 1.08, 1, 1),
     );
-    const hip = (h.roof * 7) % 1 < 0.5;
+    const hip = (h.roof * 7) % 1 < 0.5 && !h.modern;
+    if (!plainHouse(h)) return rg.setMatrixAt(i, ZERO_M);
     M.compose(
-      new THREE.Vector3(h.x * S, 0.6 + h.ground * S * VEX + h.h + h.d * 0.95 * 0.42, h.y * S),
+      new THREE.Vector3(h.x * S, 0.6 + h.ground * S * VEX + h.h + h.d * (h.modern ? 0.62 : 0.95) * 0.42, h.y * S),
       new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -h.rot, 0)),
       new THREE.Vector3(hip ? h.w * 0.52 : h.w * 1.16, 1, 1),
     );

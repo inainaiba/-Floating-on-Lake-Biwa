@@ -157,7 +157,8 @@ function pan(x, z) {
   p.pan.value = Math.max(-1, Math.min(1, r / Math.max(30, Math.hypot(dx, dz))));
   return p;
 }
-function horn(x, z, d) {
+function horn(x, z, d, kind) {
+  if (kind === "michigan") return steamWhistle(x, z, d);
   const ac = SND.ctx,
     t = ac.currentTime,
     g = ac.createGain(),
@@ -178,6 +179,146 @@ function horn(x, z, d) {
     o.stop(t + 3.3);
   }
   f.connect(g).connect(pan(x, z)).connect(SND.master);
+}
+// ---- 場所ごとの音（2026年10月の追加）----
+// 左右の振り分け（-1〜1）
+function panV(x, z) {
+  const dx = x - camera.position.x,
+    dz = z - camera.position.z;
+  return Math.max(-1, Math.min(1, (Math.cos(yaw) * dx - Math.sin(yaw) * dz) / Math.max(30, Math.hypot(dx, dz))));
+}
+// ミシガンの汽笛：蒸気の3和音（息の混じった柔らかい音）を、長く2回
+function steamWhistle(x, z, d) {
+  const ac = SND.ctx,
+    vol = Math.min(0.22, 70 / (d + 70)),
+    out = pan(x, z),
+    lp = ac.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = 2200;
+  lp.connect(out).connect(SND.master);
+  out.connect(SND.rev);
+  for (let n = 0; n < 2; n++) {
+    const t = ac.currentTime + n * 3.4,
+      L = n ? 2.6 : 1.6,
+      g = ac.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.35);
+    g.gain.setValueAtTime(vol, t + L);
+    g.gain.linearRampToValueAtTime(0, t + L + 0.6);
+    g.connect(lp);
+    for (const fr of [311, 392, 466]) {
+      const o = ac.createOscillator(),
+        f = ac.createBiquadFilter(),
+        og = ac.createGain();
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(fr * 0.97, t);
+      o.frequency.linearRampToValueAtTime(fr, t + 0.3); // 吹きはじめに少し下から上がる
+      f.type = "bandpass";
+      f.frequency.value = fr;
+      f.Q.value = 6;
+      og.gain.value = 0.5;
+      o.connect(f).connect(og).connect(g);
+      o.start(t);
+      o.stop(t + L + 0.7);
+    }
+    const s = ac.createBufferSource(),
+      bf = ac.createBiquadFilter(),
+      bg = ac.createGain();
+    s.buffer = SND.white;
+    bf.type = "bandpass";
+    bf.frequency.value = 1400;
+    bf.Q.value = 0.8;
+    bg.gain.value = 0.12; // 蒸気の息
+    s.connect(bf).connect(bg).connect(g);
+    s.start(t, Math.random() * 3);
+    s.stop(t + L + 0.7);
+  }
+}
+// 雷鳴：光ってから、離れている分だけ遅れて届く。近いと「バリッ」という裂ける音のあとに、低い轟きが長く転がる
+function thunder(delay, vol, x, z, big) {
+  if (!SND.ctx || !SND.on || vol < 0.01) return;
+  setTimeout(() => {
+    if (!SND.on) return;
+    const pn = panV(x, z) * 0.7;
+    if (big && vol > 0.3) {
+      SND.atk = 0;
+      nburst(4200, 500, 0.4, vol * 0.45, pn, 0.7, 0.4);
+    }
+    SND.atk = 0.25 + Math.random() * 0.3;
+    nburst(140 + vol * 260, 22, 3.5 + Math.random() * 3, vol, pn, 0.5, 0.9);
+    setTimeout(() => {
+      if (!SND.on) return;
+      SND.atk = 0.6;
+      nburst(110 + vol * 120, 20, 3 + Math.random() * 2, vol * 0.6, pn * 0.8, 0.5, 1);
+      SND.atk = 0;
+    }, 700 + Math.random() * 900);
+    SND.atk = 0;
+  }, delay * 1000);
+}
+// 港の音：停泊した船の索具が帆柱に当たる金属の音と、岸壁に寄せる水の音
+function rigging(x, z, vol) {
+  const ac = SND.ctx,
+    t = ac.currentTime,
+    out = pan(x, z),
+    g = ac.createGain();
+  out.connect(SND.master);
+  out.connect(SND.rev);
+  g.connect(out);
+  const f0 = 1900 + Math.random() * 1400;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0003, t + 0.6);
+  for (const [m, a] of [
+    [1, 1],
+    [2.76, 0.4],
+    [5.4, 0.15],
+  ]) {
+    const o = ac.createOscillator(),
+      og = ac.createGain();
+    o.frequency.value = f0 * m;
+    og.gain.value = a;
+    o.connect(og).connect(g);
+    o.start(t);
+    o.stop(t + 0.65);
+  }
+}
+// 電車の走る音：低い轟き（ずっと鳴る）と、レールの継ぎ目を渡る「ガタン、ゴトン」
+const trainV = [];
+function trainSound(dt, list) {
+  const ac = SND.ctx,
+    now = ac.currentTime;
+  list = list.slice().sort((a, b) => a.d - b.d).slice(0, 2);
+  while (trainV.length < 2) {
+    const s = ac.createBufferSource(),
+      f = ac.createBiquadFilter(),
+      g = ac.createGain(),
+      p = ac.createStereoPanner();
+    s.buffer = SND.brown;
+    s.loop = true;
+    f.type = "lowpass";
+    f.frequency.value = 280;
+    g.gain.value = 0;
+    s.connect(f).connect(g).connect(p).connect(SND.master);
+    s.start(0, Math.random() * 3);
+    trainV.push({ g, p, f, acc: 0 });
+  }
+  trainV.forEach((v, i) => {
+    const q = list[i],
+      vol = q ? Math.min(0.09, 9 / (q.d + 50)) * Math.min(1, q.v / 12) : 0;
+    v.g.gain.setTargetAtTime(vol, now, 0.6);
+    if (!q) return;
+    v.p.pan.setTargetAtTime(panV(q.x, q.z) * 0.8, now, 0.3);
+    v.f.frequency.setTargetAtTime(180 + q.v * 6, now, 0.5);
+    // 継ぎ目：車両1両（20m）ごとに2つ続けて鳴る。速いほど間が詰まる
+    v.acc += dt;
+    const per = 20 / Math.max(2, q.v);
+    if (q.v > 2 && v.acc > per && vol > 0.004) {
+      v.acc = 0;
+      const pn = panV(q.x, q.z) * 0.8;
+      nburst(1100, 140, 0.07, vol * 0.9, pn, 1.4, 0.15);
+      setTimeout(() => SND.on && nburst(900, 120, 0.07, vol * 0.7, pn, 1.4, 0.15), Math.min(140, per * 250));
+    }
+  });
 }
 function bird(x, z, kind, vol) {
   const ac = SND.ctx,
@@ -401,7 +542,12 @@ function audioUpdate(dt, c, W, boats, nearReed) {
     seen.add(b.id);
     const was = prevMoving.get(b.id);
     prevMoving.set(b.id, b.moving);
-    if (!isFar && b.kind !== "fish" && was === false && b.moving && d < 1500) horn(x, z, d);
+    if (!isFar && b.kind !== "fish" && was === false && b.moving && d < 1500) horn(x, z, d, b.kind);
+    // ミシガンの外輪：近くでは、羽根が水をかく音が続く
+    if (!isFar && b.kind === "michigan" && b.moving && d < 160 && now > (SND.nextPaddle || 0)) {
+      SND.nextPaddle = now + 0.42;
+      nburst(1600, 260, 0.3, Math.min(0.05, 2.5 / (d + 30)), panV(x, z), 0.6, 0.35);
+    }
     let e = SND.engines.get(b.id);
     const hear = !isFar && b.moving && d < (b.kind === "fish" ? 220 : 400);
     if (hear && !e) {
@@ -453,6 +599,25 @@ function audioUpdate(dt, c, W, boats, nearReed) {
       }, 1500);
       SND.engines.delete(id);
     }
+  // 電車（24b-trains.js が近くの電車を G.trainNear に入れる）
+  trainSound(dt, isFar ? [] : G.trainNear || []);
+  // 港：近くの港では、索具の金属の音と、岸壁に寄せる水の音
+  if (!isFar && now > (SND.nextPort || 0)) {
+    SND.nextPort = now + 0.8 + Math.random() * (2.5 - ws * 1.5);
+    let best = null,
+      bd = 1e9;
+    for (const q of PORT_SITES) {
+      const d = Math.hypot(q[0] * S - camera.position.x, q[1] * S - camera.position.z);
+      if (d < bd) (bd = d), (best = q);
+    }
+    if (best && bd < 140) {
+      const x = best[0] * S + (Math.random() - 0.5) * 30,
+        z = best[1] * S + (Math.random() - 0.5) * 30,
+        v = (1 - bd / 140) * (0.5 + ws);
+      if (Math.random() < 0.6) rigging(x, z, 0.012 * v);
+      else nburst(700, 120, 0.6, 0.02 * v, panV(x, z), 0.5, 0.4);
+    }
+  }
   // 水鳥：冬に多く、夜は少ない。岸やヨシの近くでよく鳴く
   if (!isFar && now > SND.nextBird) {
     const winter = SEASON.waterbirds[c.month],

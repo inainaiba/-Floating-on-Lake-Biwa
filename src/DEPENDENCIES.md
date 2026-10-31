@@ -164,7 +164,7 @@
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
 ## 20-villages-layout.js
-- 作る：`LANDUSE`、`ROOF_COLS`、`TOWNS`、`VILLAGES`、`addHouse`、`breaks`、`cvTex`、`groundH`、`houseGrid`、`houseNear`、`houseOk`、`houses`、`isLand`、`landY`、`luIdx`、`luNearest`、`luPts`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`streets`、`terrainAt`、`wallG`、`wallM`、`wallTex`
+- 作る：`LANDUSE`、`ROOF_COLS`、`TOWNS`、`VILLAGES`、`addHouse`、`bHash`、`breaks`、`cvTex`、`groundH`、`houseGrid`、`houseNear`、`houseOk`、`houses`、`isLand`、`landY`、`luIdx`、`luNearest`、`luPts`、`paddies`、`roads`、`roofG`、`roofGab`、`roofGeom`、`roofHip`、`roofM`、`roofShape`、`roofSnowU`、`roofTex`、`streets`、`terrainAt`、`wallG`、`wallM`、`wallTex`
 - 使う：
   - 00-head.js：`G`、`placeLog`
   - 00a-data.js：`DATA`
@@ -181,7 +181,7 @@
   - 19-boats.js：`PORT`
 
 ## 21-villages-walls-roofs.js
-- 作る：`atlasMat`、`roofs`、`roofs2`、`skirt`、`wallAt`、`wallAt2`、`wallGA`、`wallGB`、`wallM2`、`wallVar`、`walls`、`walls2`
+- 作る：`MODERN_ROOF`、`MODERN_WALL`、`ZERO_M`、`atlasMat`、`plainHouse`、`roofs`、`roofs2`、`skirt`、`wallAt`、`wallAt2`、`wallGA`、`wallGB`、`wallM2`、`wallVar`、`walls`、`walls2`
 - 使う：
   - 00-head.js：`G`、`NEAR_TREE_MAT`
   - 01-settings.js：`S`
@@ -196,6 +196,16 @@
   - 20-villages-layout.js：`ROOF_COLS`、`cvTex`、`houses`、`landY`、`roads`、`roofGab`、`roofHip`、`roofM`、`wallG`
   - 25-harbors.js（後ろの部品・関数なので可）：`lumpy`
   - 26-forests.js（後ろの部品・関数なので可）：`treeFade`
+
+## 21b-building-kinds.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`
+  - 01-settings.js：`S`
+  - 10-start.js：`rnd`
+  - 12-renderer.js：`QUALITY`、`scene`
+  - 16-terrain.js：`VEX`
+  - 20-villages-layout.js：`bHash`、`cvTex`、`houses`
 
 ## 22-village-lights-roads.js
 - 作る：`winGeo`、`windows`、`wp`
@@ -314,7 +324,7 @@
   - 28-map.js：`FZ`、`far`、`fzAt`
 
 ## 30-audio.js
-- 作る：`SND`、`audioInit`、`audioUpdate`、`bird`、`gooseCall`、`gullCall`、`horn`、`kiteCall`、`nburst`、`pan`、`prevMoving`
+- 作る：`SND`、`audioInit`、`audioUpdate`、`bird`、`gooseCall`、`gullCall`、`horn`、`kiteCall`、`nburst`、`pan`、`panV`、`prevMoving`、`rigging`、`steamWhistle`、`thunder`、`trainSound`、`trainV`
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
@@ -322,7 +332,7 @@
   - 07-depth.js：`distShore`
   - 11-state.js：`B`
   - 12-renderer.js：`camera`
-  - 19-boats.js：`boatMeshes`
+  - 19-boats.js：`PORT_SITES`、`boatMeshes`
   - 29-controls.js：`isFar`、`yaw`
 
 ## 30d-debussy.js
@@ -438,6 +448,20 @@
   - 20-villages-layout.js：`landY`
   - 29-controls.js：`isFar`
 
+## 38c-festivals.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`、`mergeStatic`、`placeLog`
+  - 01-settings.js：`S`
+  - 03-coords.js：`ll`
+  - 06-inner-lakes.js：`inLake`、`inRiver`
+  - 07-depth.js：`depth`、`shoreSnap`
+  - 10-start.js：`rnd`
+  - 12-renderer.js：`camera`、`renderer`、`scene`
+  - 14-water.js：`water`、`waveH`
+  - 20-villages-layout.js：`VILLAGES`、`cvTex`、`landY`
+  - 29-controls.js：`isFar`
+
 ## 39-kaizu.js
 - 作る：（なし）
 - 使う：
@@ -467,11 +491,13 @@
 - 使う：
   - 00-head.js：`G`、`mergeStatic`、`placeLog`
   - 01-settings.js：`S`
+  - 03-coords.js：`ll`
   - 03b-meisho-sites.js：`MEISHO`
+  - 06-inner-lakes.js：`inLake`、`inRiver`
   - 12-renderer.js：`camera`、`scene`
   - 16-terrain.js：`isleH`
   - 18-buildings.js：`gable`
-  - 20-villages-layout.js：`landY`
+  - 20-villages-layout.js：`cvTex`、`landY`
 
 ## 41-islands.js
 - 作る：（なし）
@@ -508,6 +534,7 @@
   - 00-head.js：`G`、`placeLog`
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
+  - 03-coords.js：`ll`
   - 04-clock.js：`DAY`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inLake`
@@ -518,7 +545,7 @@
   - 17-trees.js：`cardForest`
   - 20-villages-layout.js：`landY`
   - 29-controls.js：`isFar`
-  - 30-audio.js：`SND`
+  - 30-audio.js：`SND`、`panV`
 
 ## 43b-birds.js
 - 作る：（なし）
@@ -539,6 +566,22 @@
   - 20-villages-layout.js：`groundH`、`landY`、`paddies`
   - 29-controls.js：`isFar`
   - 30-audio.js：`SND`、`gooseCall`、`gullCall`、`kiteCall`
+
+## 43c-showers.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`
+  - 01-settings.js：`S`
+  - 04-clock.js：`DAY`
+  - 05-lake.js：`outer`
+  - 06-inner-lakes.js：`inLake`
+  - 10-start.js：`rndFor`
+  - 12-renderer.js：`camera`、`scene`
+  - 13-sky-dome.js：`skyU`
+  - 14-water.js：`water`
+  - 20-villages-layout.js：`landY`
+  - 29-controls.js：`isFar`
+  - 30-audio.js：`thunder`
 
 ## 44-life.js
 - 作る：（なし）
@@ -740,6 +783,7 @@
 - `G.birdman`：38b-birdman.js
 - `G.birds`：43b-birds.js
 - `G.biwako`：24-shore-landmarks.js
+- `G.bkinds`：21b-building-kinds.js
 - `G.blQ`：52-frame-render.js
 - `G.blRT`：52-frame-render.js
 - `G.blS`：52-frame-render.js
@@ -755,6 +799,7 @@
 - `G.dotTex`：00-head.js
 - `G.eri`：46-shore-life.js
 - `G.exp`：12-renderer.js
+- `G.fest`：38c-festivals.js
 - `G.forest`：17-trees.js
 - `G.fountain`：37b-fountain.js
 - `G.frameWaiters`：53-frame.js
@@ -799,6 +844,7 @@
 - `G.shTick`：52-frame-render.js
 - `G.shigure`：49-frame-sky-light.js
 - `G.shore`：46-shore-life.js
+- `G.showers`：43c-showers.js
 - `G.snapNow`：32-photo.js
 - `G.stationLamps`：24-shore-landmarks.js
 - `G.street`：21-villages-walls-roofs.js
@@ -808,6 +854,7 @@
 - `G.torii`：35-torii.js
 - `G.towns`：22b-town-glow.js
 - `G.trT`：50-frame-float.js
+- `G.trainNear`：24b-trains.js
 - `G.trains`：24b-trains.js
 - `G.wake`：19-boats.js
 - `G.wakeMesh`：19-boats.js

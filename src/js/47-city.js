@@ -22,7 +22,17 @@ G.city = (() => {
   const span = ([a, b]) => a + R() * (b - a);
   // 建物どうしが重ならないか（作品の中の大きさで、中心の間隔が半径の和の8割以上）
   const free = (x, y, rr) => bl.every((b) => Math.hypot(b[0] - x, b[1] - y) * S >= (rr + Math.hypot(b[2], b[3]) / 2) * 0.8);
-  const onLand = (x, y, w, d) => !inLake(x, y) && !inInner(x, y) && !meishoClear(x, y) && distShore(x, y) * S >= Math.hypot(w, d) * 0.5 + 3; // 名所（びわ湖ホールなど）の上には建てない
+  // 大津祭の曳山の通り（38c-festivals.js）：建物の角が通りにかからないように
+  const street = (G.fest && G.fest.street) || [],
+    offStreet = (x, y, w, d) => {
+      if (street.length < 2) return true;
+      const [a, b] = street,
+        dx = b[0] - a[0],
+        dy = b[1] - a[1];
+      const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy)));
+      return Math.hypot(a[0] + t * dx - x, a[1] + t * dy - y) * S > Math.hypot(w, d) * 0.5 + 7;
+    };
+  const onLand = (x, y, w, d) => !inLake(x, y) && !inInner(x, y) && !meishoClear(x, y) && offStreet(x, y, w, d) && distShore(x, y) * S >= Math.hypot(w, d) * 0.5 + 3; // 名所（びわ湖ホールなど）の上には建てない
   // 湖岸の目印：びわ湖大津プリンスホテル（なぎさの湖岸。高さ約133m・38階、細長い楕円の塔）
   {
     let [x, y] = ll(135.8884, 35.0062);
