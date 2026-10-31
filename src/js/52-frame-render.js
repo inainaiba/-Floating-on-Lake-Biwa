@@ -1,4 +1,20 @@
 /* ---------- 毎フレーム⑤：描画（映り込み → 本描画 → 色の仕上げ） ---------- */
+// 数が0の InstancedMesh（季節や時刻で出ない鳥・走っていない電車・灯っていない灯りなど）は描かない。
+// 中身がなくても描画の回数（映り込み・影・本描画）だけは増えるため。描く間だけ隠し、描き終えたら戻す（53-frame.js）
+let INST = null;
+function hideEmpty() {
+  if (!INST) {
+    INST = [];
+    scene.traverse((o) => o.isInstancedMesh && INST.push(o));
+  }
+  const hid = [];
+  for (const o of INST)
+    if (o.visible && o.count === 0) {
+      o.visible = false;
+      hid.push(o);
+    }
+  return hid;
+}
 function renderFrame(c, W, wxNow, day, sunAngle) {
   {
     const q = 5000 / (QUALITY.waterGrid);

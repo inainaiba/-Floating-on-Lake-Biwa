@@ -185,7 +185,8 @@ function cardTreeMat(kind, v, near, far) {
   return m;
 }
 // 種類ごとに3枚の絵を描き分け、木ごとにどれかを使う
-function cardForest(kind, list, hgt, wid, near, far, shadow) {
+// tint：木の色にかける倍率 [r, g, b]（1より大きくもできる。竹生島のカワウで白く枯れた木などに使う）
+function cardForest(kind, list, hgt, wid, near, far, shadow, tint) {
   list = list.filter(([x, y]) => !inRiver(x, y) && !meishoClear(x, y)); // 川の上と、名所の建物の上（03b-meisho-sites.js）には立てない
   placeLog("木・" + ({ broad: "広葉樹", pine: "松", cedar: "杉", bamboo: "竹" }[kind] || kind), "land", list);
   for (let v = 0; v < 3; v++) {
@@ -214,9 +215,11 @@ function cardForest(kind, list, hgt, wid, near, far, shadow) {
       // 木ごとの明るさと色のむら（黄緑寄り〜青緑寄り）
       const hv = ((i * 29) % 11) / 10 - 0.5;
       I.setColorAt(i, c.setRGB(1 + hv * 0.1, 1, 1 - hv * 0.12).multiplyScalar(1.05 + ((i * 13) % 7) * 0.04));
+      if (tint) I.instanceColor.setXYZ(i, c.r * tint[0], c.g * tint[1], c.b * tint[2]);
     });
     I.castShadow = !!shadow;
     I.userData.kind = kind;
+    I.userData.tint = tint; // 季節の塗り直し（49-frame-sky-light.js）でも同じ倍率をかける
     I.userData.noChunk = true; // すでに区画ごと
     I.userData.far = far; // これより遠い区画は描かない（53-frame.js。木は far までに縮んで消えている）
     I.computeBoundingSphere();

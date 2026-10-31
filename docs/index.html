@@ -2841,7 +2841,8 @@ function cardTreeMat(kind, v, near, far) {
   return m;
 }
 // 種類ごとに3枚の絵を描き分け、木ごとにどれかを使う
-function cardForest(kind, list, hgt, wid, near, far, shadow) {
+// tint：木の色にかける倍率 [r, g, b]（1より大きくもできる。竹生島のカワウで白く枯れた木などに使う）
+function cardForest(kind, list, hgt, wid, near, far, shadow, tint) {
   list = list.filter(([x, y]) => !inRiver(x, y) && !meishoClear(x, y)); // 川の上と、名所の建物の上（03b-meisho-sites.js）には立てない
   placeLog("木・" + ({ broad: "広葉樹", pine: "松", cedar: "杉", bamboo: "竹" }[kind] || kind), "land", list);
   for (let v = 0; v < 3; v++) {
@@ -2870,9 +2871,11 @@ function cardForest(kind, list, hgt, wid, near, far, shadow) {
       // 木ごとの明るさと色のむら（黄緑寄り〜青緑寄り）
       const hv = ((i * 29) % 11) / 10 - 0.5;
       I.setColorAt(i, c.setRGB(1 + hv * 0.1, 1, 1 - hv * 0.12).multiplyScalar(1.05 + ((i * 13) % 7) * 0.04));
+      if (tint) I.instanceColor.setXYZ(i, c.r * tint[0], c.g * tint[1], c.b * tint[2]);
     });
     I.castShadow = !!shadow;
     I.userData.kind = kind;
+    I.userData.tint = tint; // 季節の塗り直し（49-frame-sky-light.js）でも同じ倍率をかける
     I.userData.noChunk = true; // すでに区画ごと
     I.userData.far = far; // これより遠い区画は描かない（53-frame.js。木は far までに縮んで消えている）
     I.computeBoundingSphere();
@@ -7793,6 +7796,83 @@ function gooseCall(x, z, vol) {
     o.stop(t + 0.2);
   }
 }
+// ユリカモメの声（43b-birds.js から）：「ギュイ」「キュー」と少しかすれた短い声
+function gullCall(x, z, vol) {
+  const ac = SND.ctx,
+    t = ac.currentTime,
+    o = ac.createOscillator(),
+    f = ac.createBiquadFilter(),
+    g = ac.createGain(),
+    f0 = 1500 + Math.random() * 500;
+  o.type = "sawtooth";
+  o.frequency.setValueAtTime(f0, t);
+  o.frequency.linearRampToValueAtTime(f0 * 1.35, t + 0.06);
+  o.frequency.exponentialRampToValueAtTime(f0 * 0.7, t + 0.3);
+  f.type = "bandpass";
+  f.frequency.value = 2400;
+  f.Q.value = 1.5;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.03);
+  g.gain.exponentialRampToValueAtTime(0.0005, t + 0.32);
+  o.connect(f).connect(g).connect(pan(x, z)).connect(SND.master);
+  o.start(t);
+  o.stop(t + 0.35);
+}
+// サギの声（43b-birds.js から）：飛び立つときの「グワッ」というしわがれた低い声
+function heronCall(x, z, vol) {
+  const ac = SND.ctx,
+    t = ac.currentTime,
+    o = ac.createOscillator(),
+    s = ac.createBufferSource(),
+    f = ac.createBiquadFilter(),
+    g = ac.createGain();
+  o.type = "sawtooth";
+  o.frequency.setValueAtTime(260, t);
+  o.frequency.exponentialRampToValueAtTime(170, t + 0.35);
+  s.buffer = SND.white;
+  f.type = "bandpass";
+  f.frequency.value = 700;
+  f.Q.value = 0.8;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0005, t + 0.4);
+  o.connect(f);
+  s.connect(f);
+  f.connect(g).connect(pan(x, z)).connect(SND.master);
+  o.start(t);
+  o.stop(t + 0.45);
+  s.start(t, Math.random() * 3);
+  s.stop(t + 0.45);
+}
+// トビの声（43b-birds.js から）：高い空から「ピーヒョロロロ」
+function kiteCall(x, z, vol) {
+  const ac = SND.ctx,
+    t = ac.currentTime,
+    o = ac.createOscillator(),
+    g = ac.createGain(),
+    out = ac.createGain();
+  o.type = "sine";
+  o.frequency.setValueAtTime(2300, t);
+  o.frequency.linearRampToValueAtTime(2700, t + 0.5); // 「ピー」
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.08);
+  g.gain.setValueAtTime(vol, t + 0.5);
+  g.gain.linearRampToValueAtTime(vol * 0.3, t + 0.62);
+  // 「ヒョロロロ」：高さを震わせながら下げていく
+  for (let i = 0; i < 6; i++) {
+    const a = t + 0.65 + i * 0.13;
+    o.frequency.setValueAtTime(2500 - i * 90, a);
+    o.frequency.linearRampToValueAtTime(1900 - i * 90, a + 0.11);
+    g.gain.setValueAtTime(vol * (0.85 - i * 0.1), a);
+    g.gain.linearRampToValueAtTime(vol * 0.15, a + 0.12);
+  }
+  g.gain.linearRampToValueAtTime(0, t + 1.5);
+  out.gain.value = 1;
+  o.connect(g).connect(out).connect(pan(x, z)).connect(SND.master);
+  out.connect(SND.rev);
+  o.start(t);
+  o.stop(t + 1.55);
+}
 const prevMoving = new Map();
 function audioUpdate(dt, c, W, boats, nearReed) {
   if (!SND.ctx) return;
@@ -10013,6 +10093,7 @@ G.meisho = (() => {
   const gnd = (m, x, y) => (m.isle ? isleH(x, y) ?? 0 : landY(x, y));
   for (const m of MEISHO) {
     const site = new THREE.Group();
+    site.userData.c = [m.ax * S, m.ay * S]; // 名所の中心（遠いときは描かない）
     root.add(site);
     for (const p of m.parts) {
       const a = (p.a * Math.PI) / 180,
@@ -10067,6 +10148,9 @@ G.meisho = (() => {
     root,
     // 夜の彦根城：白壁と石垣が灯りに浮かぶ
     update(day) {
+      // 9km（作品の中で1800）より遠い名所は描かない（霞に溶けて見えず、描画の回数だけが増えるため）
+      const cp = camera.position;
+      for (const g of root.children) g.visible = Math.hypot(g.userData.c[0] - cp.x, g.userData.c[1] - cp.z) < 1800;
       const k = Math.min(1, Math.max(0, (0.2 - day) / 0.12));
       castleWall.emissive.copy(NIGHT).multiplyScalar(0.55 * k);
       castleStone.emissive.copy(NIGHT).multiplyScalar(0.12 * k);
@@ -10118,6 +10202,13 @@ G.isl = (() => {
       tr.push([x, y, gy - 0.3, 0.8 + R() * 0.6, R()]);
     }
   }
+  // 竹生島の北側の木は、巣をつくるカワウの糞で白く枯れている（近年よく知られた姿）。その一部を白っぽい色で別に描く
+  const [ckx, cky] = ll(136.1434, 35.4221),
+    dead = [];
+  for (let i = tr.length - 1; i >= 0; i--) {
+    const [x, y] = tr[i];
+    if (Math.abs(x - ckx) < 450 && Math.abs(y - cky) < 450 && y < cky + 60 && R() < 0.55) dead.push(...tr.splice(i, 1));
+  }
   thinQ(rk);
   const I = new THREE.InstancedMesh(
     new THREE.DodecahedronGeometry(1, 0),
@@ -10158,6 +10249,7 @@ G.isl = (() => {
       false,
     );
   }
+  if (dead.length) cardForest("broad", dead, 8, 6.5, 40, 2500, false, [1.75, 1.2, 2.3]);
   return I;
 })();
 
@@ -10749,7 +10841,10 @@ G.birds = (() => {
     f.st = "fly";
     f.fl = { ax: f.x, az: f.z, bx: tx, bz: tz, cx: (f.x + tx) / 2 + (R() - 0.5) * d * 0.4, cz: (f.z + tz) / 2 + (R() - 0.5) * d * 0.4, t0: t, dur: d / sp.v, land };
     for (const b of f.m) b.dl = Math.min(1.4, Math.hypot(f.x + b.ox - hx, f.z + b.oz - hz) * 0.012) * (0.6 + R() * 0.6);
-    if (SND.ctx && SND.on) wingFlush(f.x, f.z, f.m.length, 0.05 + Math.min(0.08, f.m.length * 0.002));
+    if (SND.ctx && SND.on) {
+      wingFlush(f.x, f.z, f.m.length, 0.05 + Math.min(0.08, f.m.length * 0.002));
+      if (f.sp === "heron") heronCall(f.x, f.z, 0.05); // アオサギは飛び立つときに鳴く
+    }
   }
 
   // ---- 自分のまわりの群れ：600m四方の升ごとに、その日の群れを決める（升と日で決まる乱数）----
@@ -10949,7 +11044,8 @@ G.birds = (() => {
     fixed = [],
     sched = [],
     tCells = 0,
-    nextHonk = 0;
+    nextHonk = 0,
+    nextCall = { gull: 2, kite: 6 };
   function update(dt, t, c, day, W, wx) {
     U.uT.value = t;
     for (const k in cnt) cnt[k] = 0;
@@ -10964,8 +11060,8 @@ G.birds = (() => {
       wy = water.position.y,
       light = day > 0.25,
       calm = !wx || wx.rain < 0.6;
-    if (dn !== dnNow) {
-      dnNow = dn;
+    if (dn * 100 + c.month !== dnNow) {
+      dnNow = dn * 100 + c.month; // 日（作品では月も日で変わる）ごとに群れを決め直す。確認で月だけを変えたときも
       flocks = [];
       made.clear();
       fixed = fixedFlocks(c, dn);
@@ -11075,6 +11171,18 @@ G.birds = (() => {
           if (d < 260 && d > 6) {
             f.x += ((hx - f.x) / d) * Math.min(d, 4 * dt);
             f.z += ((hz - f.z) / d) * Math.min(d, 4 * dt);
+          }
+        }
+        // 声：近くで舞うユリカモメは鳴き交わし、トビはときどき高い空から鳴く
+        if (SND.ctx && SND.on && t > nextCall[f.sp]) {
+          const d = Math.hypot(f.x - camera.position.x, f.z - camera.position.z),
+            hear = f.sp === "kite" ? 500 : 260;
+          if (d < hear) {
+            const b = f.m[Math.floor(R() * f.m.length)],
+              v = (1 - d / hear) * (f.sp === "kite" ? 0.035 : 0.03);
+            if (f.sp === "kite") kiteCall(f.x + Math.cos(b.a) * b.r, f.z + Math.sin(b.a) * b.r, v);
+            else gullCall(f.x + Math.cos(b.a) * b.r, f.z + Math.sin(b.a) * b.r, v);
+            nextCall[f.sp] = t + (f.sp === "kite" ? 9 + R() * 14 : 0.8 + R() * 3);
           }
         }
         for (const b of f.m) {
@@ -12359,7 +12467,8 @@ function updateSkyLight(dt, t, c, W) {
     roofM.color.setScalar(1 + roofSnowU.value * 2.2);
     (G.forest || []).forEach((I) => {
       if (I.userData.kind === "broad") {
-        const au = c.month === 9 || c.month === 10;
+        const tint = I.userData.tint, // 竹生島の白く枯れた木は紅葉しない
+          au = !tint && (c.month === 9 || c.month === 10);
         I.material.color.set(au ? 0xffffff : FOREST_TINT[c.month]);
         if (I.instanceColor) {
           const P = [0xff8a3a, 0xffc23a, 0xff5a32, 0xffa848, 0xe8d870, 0xfff090, 0xc8e090],
@@ -12372,6 +12481,7 @@ function updateSkyLight(dt, t, c, W) {
             else {
               const hv = ((i * 29) % 11) / 10 - 0.5; // 木ごとの色のむら（17-trees.js の cardForest と同じ）
               cc.setRGB(1 + hv * 0.1, 1, 1 - hv * 0.12).multiplyScalar(1.05 + ((i * 13) % 7) * 0.04);
+              if (tint) cc.setRGB(cc.r * tint[0], cc.g * tint[1], cc.b * tint[2]);
             }
             I.setColorAt(i, cc);
           }
@@ -12539,6 +12649,22 @@ function updateCamera(dt, t, hx, hz) {
 
 // ==== 52-frame-render.js ====
 /* ---------- 毎フレーム⑤：描画（映り込み → 本描画 → 色の仕上げ） ---------- */
+// 数が0の InstancedMesh（季節や時刻で出ない鳥・走っていない電車・灯っていない灯りなど）は描かない。
+// 中身がなくても描画の回数（映り込み・影・本描画）だけは増えるため。描く間だけ隠し、描き終えたら戻す（53-frame.js）
+let INST = null;
+function hideEmpty() {
+  if (!INST) {
+    INST = [];
+    scene.traverse((o) => o.isInstancedMesh && INST.push(o));
+  }
+  const hid = [];
+  for (const o of INST)
+    if (o.visible && o.count === 0) {
+      o.visible = false;
+      hid.push(o);
+    }
+  return hid;
+}
 function renderFrame(c, W, wxNow, day, sunAngle) {
   {
     const q = 5000 / (QUALITY.waterGrid);
@@ -12851,7 +12977,9 @@ function frame(now) {
     }
   }
   const pC = performance.now();
+  const hid = hideEmpty(); // 数が0の部品は描かない（52-frame-render.js）
   renderFrame(c, W, wxNow, day, sunAngle);
+  for (const o of hid) o.visible = true;
   if (G.snapNow) finishPhoto(); // 撮影（32-photo.js）：描いた直後に画像にする
   if (prof) {
     const pD = performance.now(),

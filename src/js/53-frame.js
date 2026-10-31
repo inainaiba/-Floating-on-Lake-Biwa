@@ -82,7 +82,9 @@ function frame(now) {
     }
   }
   const pC = performance.now();
+  const hid = hideEmpty(); // 数が0の部品は描かない（52-frame-render.js）
   renderFrame(c, W, wxNow, day, sunAngle);
+  for (const o of hid) o.visible = true;
   if (G.snapNow) finishPhoto(); // 撮影（32-photo.js）：描いた直後に画像にする
   if (prof) {
     const pD = performance.now(),

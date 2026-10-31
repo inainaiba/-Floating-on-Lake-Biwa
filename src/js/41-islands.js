@@ -40,6 +40,13 @@ G.isl = (() => {
       tr.push([x, y, gy - 0.3, 0.8 + R() * 0.6, R()]);
     }
   }
+  // 竹生島の北側の木は、巣をつくるカワウの糞で白く枯れている（近年よく知られた姿）。その一部を白っぽい色で別に描く
+  const [ckx, cky] = ll(136.1434, 35.4221),
+    dead = [];
+  for (let i = tr.length - 1; i >= 0; i--) {
+    const [x, y] = tr[i];
+    if (Math.abs(x - ckx) < 450 && Math.abs(y - cky) < 450 && y < cky + 60 && R() < 0.55) dead.push(...tr.splice(i, 1));
+  }
   thinQ(rk);
   const I = new THREE.InstancedMesh(
     new THREE.DodecahedronGeometry(1, 0),
@@ -80,6 +87,7 @@ G.isl = (() => {
       false,
     );
   }
+  if (dead.length) cardForest("broad", dead, 8, 6.5, 40, 2500, false, [1.75, 1.2, 2.3]);
   return I;
 })();
 
