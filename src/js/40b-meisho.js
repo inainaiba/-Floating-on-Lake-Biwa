@@ -251,6 +251,7 @@ G.meisho = (() => {
   const gnd = (m, x, y) => (m.isle ? isleH(x, y) ?? 0 : landY(x, y));
   for (const m of MEISHO) {
     const site = new THREE.Group();
+    site.userData.c = [m.ax * S, m.ay * S]; // 名所の中心（遠いときは描かない）
     root.add(site);
     for (const p of m.parts) {
       const a = (p.a * Math.PI) / 180,
@@ -305,6 +306,9 @@ G.meisho = (() => {
     root,
     // 夜の彦根城：白壁と石垣が灯りに浮かぶ
     update(day) {
+      // 9km（作品の中で1800）より遠い名所は描かない（霞に溶けて見えず、描画の回数だけが増えるため）
+      const cp = camera.position;
+      for (const g of root.children) g.visible = Math.hypot(g.userData.c[0] - cp.x, g.userData.c[1] - cp.z) < 1800;
       const k = Math.min(1, Math.max(0, (0.2 - day) / 0.12));
       castleWall.emissive.copy(NIGHT).multiplyScalar(0.55 * k);
       castleStone.emissive.copy(NIGHT).multiplyScalar(0.12 * k);

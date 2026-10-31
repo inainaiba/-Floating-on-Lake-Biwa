@@ -271,6 +271,83 @@ function gooseCall(x, z, vol) {
     o.stop(t + 0.2);
   }
 }
+// ユリカモメの声（43b-birds.js から）：「ギュイ」「キュー」と少しかすれた短い声
+function gullCall(x, z, vol) {
+  const ac = SND.ctx,
+    t = ac.currentTime,
+    o = ac.createOscillator(),
+    f = ac.createBiquadFilter(),
+    g = ac.createGain(),
+    f0 = 1500 + Math.random() * 500;
+  o.type = "sawtooth";
+  o.frequency.setValueAtTime(f0, t);
+  o.frequency.linearRampToValueAtTime(f0 * 1.35, t + 0.06);
+  o.frequency.exponentialRampToValueAtTime(f0 * 0.7, t + 0.3);
+  f.type = "bandpass";
+  f.frequency.value = 2400;
+  f.Q.value = 1.5;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.03);
+  g.gain.exponentialRampToValueAtTime(0.0005, t + 0.32);
+  o.connect(f).connect(g).connect(pan(x, z)).connect(SND.master);
+  o.start(t);
+  o.stop(t + 0.35);
+}
+// サギの声（43b-birds.js から）：飛び立つときの「グワッ」というしわがれた低い声
+function heronCall(x, z, vol) {
+  const ac = SND.ctx,
+    t = ac.currentTime,
+    o = ac.createOscillator(),
+    s = ac.createBufferSource(),
+    f = ac.createBiquadFilter(),
+    g = ac.createGain();
+  o.type = "sawtooth";
+  o.frequency.setValueAtTime(260, t);
+  o.frequency.exponentialRampToValueAtTime(170, t + 0.35);
+  s.buffer = SND.white;
+  f.type = "bandpass";
+  f.frequency.value = 700;
+  f.Q.value = 0.8;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0005, t + 0.4);
+  o.connect(f);
+  s.connect(f);
+  f.connect(g).connect(pan(x, z)).connect(SND.master);
+  o.start(t);
+  o.stop(t + 0.45);
+  s.start(t, Math.random() * 3);
+  s.stop(t + 0.45);
+}
+// トビの声（43b-birds.js から）：高い空から「ピーヒョロロロ」
+function kiteCall(x, z, vol) {
+  const ac = SND.ctx,
+    t = ac.currentTime,
+    o = ac.createOscillator(),
+    g = ac.createGain(),
+    out = ac.createGain();
+  o.type = "sine";
+  o.frequency.setValueAtTime(2300, t);
+  o.frequency.linearRampToValueAtTime(2700, t + 0.5); // 「ピー」
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.08);
+  g.gain.setValueAtTime(vol, t + 0.5);
+  g.gain.linearRampToValueAtTime(vol * 0.3, t + 0.62);
+  // 「ヒョロロロ」：高さを震わせながら下げていく
+  for (let i = 0; i < 6; i++) {
+    const a = t + 0.65 + i * 0.13;
+    o.frequency.setValueAtTime(2500 - i * 90, a);
+    o.frequency.linearRampToValueAtTime(1900 - i * 90, a + 0.11);
+    g.gain.setValueAtTime(vol * (0.85 - i * 0.1), a);
+    g.gain.linearRampToValueAtTime(vol * 0.15, a + 0.12);
+  }
+  g.gain.linearRampToValueAtTime(0, t + 1.5);
+  out.gain.value = 1;
+  o.connect(g).connect(out).connect(pan(x, z)).connect(SND.master);
+  out.connect(SND.rev);
+  o.start(t);
+  o.stop(t + 1.55);
+}
 const prevMoving = new Map();
 function audioUpdate(dt, c, W, boats, nearReed) {
   if (!SND.ctx) return;

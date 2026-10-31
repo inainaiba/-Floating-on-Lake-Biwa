@@ -172,7 +172,10 @@ G.birds = (() => {
     f.st = "fly";
     f.fl = { ax: f.x, az: f.z, bx: tx, bz: tz, cx: (f.x + tx) / 2 + (R() - 0.5) * d * 0.4, cz: (f.z + tz) / 2 + (R() - 0.5) * d * 0.4, t0: t, dur: d / sp.v, land };
     for (const b of f.m) b.dl = Math.min(1.4, Math.hypot(f.x + b.ox - hx, f.z + b.oz - hz) * 0.012) * (0.6 + R() * 0.6);
-    if (SND.ctx && SND.on) wingFlush(f.x, f.z, f.m.length, 0.05 + Math.min(0.08, f.m.length * 0.002));
+    if (SND.ctx && SND.on) {
+      wingFlush(f.x, f.z, f.m.length, 0.05 + Math.min(0.08, f.m.length * 0.002));
+      if (f.sp === "heron") heronCall(f.x, f.z, 0.05); // アオサギは飛び立つときに鳴く
+    }
   }
 
   // ---- 自分のまわりの群れ：600m四方の升ごとに、その日の群れを決める（升と日で決まる乱数）----
@@ -372,7 +375,8 @@ G.birds = (() => {
     fixed = [],
     sched = [],
     tCells = 0,
-    nextHonk = 0;
+    nextHonk = 0,
+    nextCall = { gull: 2, kite: 6 };
   function update(dt, t, c, day, W, wx) {
     U.uT.value = t;
     for (const k in cnt) cnt[k] = 0;
@@ -387,8 +391,8 @@ G.birds = (() => {
       wy = water.position.y,
       light = day > 0.25,
       calm = !wx || wx.rain < 0.6;
-    if (dn !== dnNow) {
-      dnNow = dn;
+    if (dn * 100 + c.month !== dnNow) {
+      dnNow = dn * 100 + c.month; // 日（作品では月も日で変わる）ごとに群れを決め直す。確認で月だけを変えたときも
       flocks = [];
       made.clear();
       fixed = fixedFlocks(c, dn);
@@ -498,6 +502,18 @@ G.birds = (() => {
           if (d < 260 && d > 6) {
             f.x += ((hx - f.x) / d) * Math.min(d, 4 * dt);
             f.z += ((hz - f.z) / d) * Math.min(d, 4 * dt);
+          }
+        }
+        // 声：近くで舞うユリカモメは鳴き交わし、トビはときどき高い空から鳴く
+        if (SND.ctx && SND.on && t > nextCall[f.sp]) {
+          const d = Math.hypot(f.x - camera.position.x, f.z - camera.position.z),
+            hear = f.sp === "kite" ? 500 : 260;
+          if (d < hear) {
+            const b = f.m[Math.floor(R() * f.m.length)],
+              v = (1 - d / hear) * (f.sp === "kite" ? 0.035 : 0.03);
+            if (f.sp === "kite") kiteCall(f.x + Math.cos(b.a) * b.r, f.z + Math.sin(b.a) * b.r, v);
+            else gullCall(f.x + Math.cos(b.a) * b.r, f.z + Math.sin(b.a) * b.r, v);
+            nextCall[f.sp] = t + (f.sp === "kite" ? 9 + R() * 14 : 0.8 + R() * 3);
           }
         }
         for (const b of f.m) {

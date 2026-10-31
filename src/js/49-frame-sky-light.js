@@ -327,7 +327,8 @@ function updateSkyLight(dt, t, c, W) {
     roofM.color.setScalar(1 + roofSnowU.value * 2.2);
     (G.forest || []).forEach((I) => {
       if (I.userData.kind === "broad") {
-        const au = c.month === 9 || c.month === 10;
+        const tint = I.userData.tint, // 竹生島の白く枯れた木は紅葉しない
+          au = !tint && (c.month === 9 || c.month === 10);
         I.material.color.set(au ? 0xffffff : FOREST_TINT[c.month]);
         if (I.instanceColor) {
           const P = [0xff8a3a, 0xffc23a, 0xff5a32, 0xffa848, 0xe8d870, 0xfff090, 0xc8e090],
@@ -340,6 +341,7 @@ function updateSkyLight(dt, t, c, W) {
             else {
               const hv = ((i * 29) % 11) / 10 - 0.5; // 木ごとの色のむら（17-trees.js の cardForest と同じ）
               cc.setRGB(1 + hv * 0.1, 1, 1 - hv * 0.12).multiplyScalar(1.05 + ((i * 13) % 7) * 0.04);
+              if (tint) cc.setRGB(cc.r * tint[0], cc.g * tint[1], cc.b * tint[2]);
             }
             I.setColorAt(i, cc);
           }

@@ -308,7 +308,7 @@
   - 28-map.js：`FZ`、`far`、`fzAt`
 
 ## 30-audio.js
-- 作る：`SND`、`audioInit`、`audioUpdate`、`bird`、`gooseCall`、`horn`、`nburst`、`pan`、`prevMoving`、`wingFlush`
+- 作る：`SND`、`audioInit`、`audioUpdate`、`bird`、`gooseCall`、`gullCall`、`heronCall`、`horn`、`kiteCall`、`nburst`、`pan`、`prevMoving`、`wingFlush`
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
@@ -356,6 +356,7 @@
   - 30-audio.js：`SND`
   - 31-ui.js：`$`
   - 32-photo.js：`DL`
+  - 33-resize.js（後ろの部品・関数なので可）：`resize`
 
 ## 33-resize.js
 - 作る：`resize`
@@ -445,7 +446,7 @@
   - 00-head.js：`G`、`mergeStatic`、`placeLog`
   - 01-settings.js：`S`
   - 03b-meisho-sites.js：`MEISHO`
-  - 12-renderer.js：`scene`
+  - 12-renderer.js：`camera`、`scene`
   - 16-terrain.js：`isleH`
   - 18-buildings.js：`gable`
   - 20-villages-layout.js：`landY`
@@ -515,7 +516,7 @@
   - 16-terrain.js：`ISLES`、`isleH`
   - 20-villages-layout.js：`groundH`、`landY`、`paddies`
   - 29-controls.js：`isFar`
-  - 30-audio.js：`SND`、`gooseCall`、`wingFlush`
+  - 30-audio.js：`SND`、`gooseCall`、`gullCall`、`heronCall`、`kiteCall`、`wingFlush`
 
 ## 44-life.js
 - 作る：（なし）
@@ -636,7 +637,7 @@
   - 42-ambience.js：`idleLook`
 
 ## 52-frame-render.js
-- 作る：`renderFrame`
+- 作る：`INST`、`hideEmpty`、`renderFrame`
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
@@ -677,7 +678,7 @@
   - 49-frame-sky-light.js：`updateSkyLight`
   - 50-frame-float.js：`floatHouse`
   - 51-frame-camera.js：`updateCamera`
-  - 52-frame-render.js：`renderFrame`
+  - 52-frame-render.js：`hideEmpty`、`renderFrame`
 
 ## 共有の値（window.__xxx）
 

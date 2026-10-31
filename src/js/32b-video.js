@@ -1,5 +1,5 @@
 /* ---------- 動画の撮影：右上のカメラの下の丸から。画面の部品は写さない
-   ・動画：いま見ている湖をそのまま、音も一緒に（30秒まで）
+   ・動画：いま見ている湖をそのまま（30秒まで。音は mp4 に入れて再生できる環境でだけ一緒に録る）
    ・早回し：その日の時刻だけを速く進めて、一日の移り変わりを約20秒に縮める（月と天気はそのまま）。撮り終えたら今の時刻に戻る
    撮影の間は、描画の重さで解像度を変えない（動画の大きさが途中で変わらないように）。写真のボタンは隠す ---------- */
 const REC = { on: false, mode: null, mr: null, chunks: [], t0: 0 },
@@ -7,25 +7,32 @@ const REC = { on: false, mode: null, mr: null, chunks: [], t0: 0 },
   REC_TL = 20; // 早回しで一日にかける秒数
 const recOk = !!(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream);
 if (!recOk) document.body.classList.add("norec");
-// 録れる形式：mp4 を先に（iPhone でも開きやすい）、なければ webm
-function recMime() {
-  for (const t of ["video/mp4;codecs=avc1.42E01E", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"])
-    if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) return t;
-  return "";
+// 録れる形式：Android や iPhone の動画アプリで再生できるよう、mp4（H.264）を選ぶ。
+// 音は mp4 に AAC で入れられるとき（Safari など）だけ録る。Chrome の mp4 は音が Opus になり、多くのスマートフォンで再生できないため、映像だけにする。
+// mp4 が録れないときは webm（音つき）
+function recMime(audio) {
+  const ok = (t) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
+  if (audio && ok("video/mp4;codecs=avc1.42E01E,mp4a.40.2")) return ["video/mp4;codecs=avc1.42E01E,mp4a.40.2", true];
+  for (const t of ["video/mp4;codecs=avc1.42E01E", "video/mp4;codecs=avc1", "video/mp4"]) if (ok(t)) return [t, false];
+  for (const t of ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]) if (ok(t)) return [t, audio];
+  return ["", false];
 }
 function recStart(mode) {
   $("recm").classList.remove("on");
   if (!recOk || REC.on || isFar) return;
-  const stream = renderer.domElement.captureStream(30);
+  // H.264 は幅と高さが偶数でないと正しく作れないことがあるので、撮影の間は描く大きさを偶数にそろえる（止めたら resize で戻す）
+  const cv = renderer.domElement;
+  if (cv.width % 2 || cv.height % 2) renderer.setDrawingBufferSize(cv.width - (cv.width % 2), cv.height - (cv.height % 2), 1);
+  const stream = cv.captureStream(30),
+    [mime, withAudio] = recMime(mode === "video" && !!SND.ctx);
   // 動画は音も録る（Web Audio の出口を分けて、映像と一緒に）
-  if (mode === "video" && SND.ctx) {
+  if (withAudio) {
     if (!SND.recDest) {
       SND.recDest = SND.ctx.createMediaStreamDestination();
       SND.master.connect(SND.recDest);
     }
     for (const tr of SND.recDest.stream.getAudioTracks()) stream.addTrack(tr);
   }
-  const mime = recMime();
   let mr;
   try {
     mr = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 10e6 } : { videoBitsPerSecond: 10e6 });
@@ -33,6 +40,7 @@ function recStart(mode) {
     try {
       mr = new MediaRecorder(stream);
     } catch (e2) {
+      resize();
       return;
     }
   }
@@ -59,6 +67,7 @@ function recStop() {
   document.body.classList.remove("rec");
   $("rec").classList.remove("on");
   G.pw = 0; // 早回しで進めた時刻を戻す
+  resize(); // 偶数にそろえた描く大きさを戻す
 }
 function recLabel(el) {
   const s = Math.floor(el);
