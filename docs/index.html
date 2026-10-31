@@ -25,19 +25,6 @@ body.far .ico svg{stroke:#1b1b1b}
 #snd{left:16px;top:calc(16px + env(safe-area-inset-top))}
 #save{right:16px;top:64px}
 body:not(.lake) #save,body.far #save{display:none}
-#rec{right:16px;top:112px}
-#rec .d{fill:rgba(255,255,255,.85);stroke:none}
-#rec.on .d{fill:#e2361c;animation:recp 1.2s ease-in-out infinite}
-@keyframes recp{50%{opacity:.35}}
-body:not(.lake) #rec,body.far #rec,body.norec #rec,body.rec #save{display:none}
-#recm{position:fixed;right:64px;top:112px;display:none;gap:8px;align-items:center}
-#recm.on{display:flex}
-#recm div{border:1px solid rgba(255,255,255,.6);border-radius:18px;padding:8px 13px;background:rgba(0,0,0,.28);color:#fff;font-size:12px;letter-spacing:.06em;cursor:pointer;white-space:nowrap;text-align:center;line-height:1.35}
-#recm div span{display:block;font-size:9.5px;opacity:.75;letter-spacing:.04em}
-#rect{position:fixed;right:66px;top:122px;color:#fff;font-size:12px;letter-spacing:.08em;text-shadow:0 1px 6px rgba(0,0,0,.5);display:none}
-body.rec #rect{display:block}
-#shot video{max-width:100%;max-height:100%;box-shadow:0 8px 40px rgba(0,0,0,.4);display:none}
-#shot.vid img{display:none}#shot.vid video{display:block}
 #shot{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.6);display:none;place-items:center;padding:24px;box-sizing:border-box}
 #shot.on{display:grid}
 #shot img{max-width:100%;max-height:100%;box-shadow:0 8px 40px rgba(0,0,0,.4)}
@@ -106,14 +93,11 @@ body.far #rest{display:none}
 </div>
 <div id="snd" class="ico" aria-label="sound"><svg viewBox="0 0 24 24"><path d="M4 10h4l5-4v12l-5-4H4z"/><path class="w" d="M16 9c1.5 1.5 1.5 4.5 0 6M18.5 6.5c3 3 3 8 0 11"/></svg></div>
 <div id="save" class="ico" aria-label="photo"><svg viewBox="0 0 24 24"><path d="M4 8h3.5l1.5-2h6l1.5 2H20v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg></div>
-<div id="rec" class="ico" aria-label="video"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle class="d" cx="12" cy="12" r="3.6"/></svg></div>
-<div id="recm"><div id="recV">動画<span>30秒まで</span></div><div id="recT">早回し<span>一日を約20秒で</span></div></div>
-<div id="rect"></div>
-<div id="shot"><img alt=""><video muted loop playsinline></video></div>
+<div id="shot"><img alt=""></div>
 <div id="rest" aria-label="drift"><svg viewBox="0 0 24 24"><path d="M3 16c3-3 6 3 9 0s6 3 9 0"/><path d="M8 9h9M14 6l3 3-3 3"/></svg></div>
 <div id="hint">ドラッグで見回す・ピンチで寄る<br><span style="font-size:11px;opacity:.8">Drag to look, pinch to zoom</span></div>
 </div>
-<div id="ab">この作品について</div><div id="about"><div class="in"><h2>Floating</h2><p>琵琶湖に、建築を浮かべる。</p><p class="how">見回す：ドラッグ　寄る：ピンチ・ホイール<br>舵：左下の円・矢印キー（離すとまた漂う）<br>行き先：右上の地図でタップ<br>写真：右上のカメラ（いま見ている景色を保存）<br>動画：カメラの下の丸（そのままの動画か、一日を早回しで）<br>映像：赤いブイに近づいてタップ</p><p class="replay" id="replayHint">案内をもう一度見る</p><p class="src">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a><br><a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a> ／ <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></p><p class="cl">閉じる</p></div></div>
+<div id="ab">この作品について</div><div id="about"><div class="in"><h2>Floating</h2><p>琵琶湖に、建築を浮かべる。</p><p class="how">見回す：ドラッグ　寄る：ピンチ・ホイール<br>舵：左下の円・矢印キー（離すとまた漂う）<br>行き先：右上の地図でタップ<br>写真：右上のカメラ（いま見ている景色を保存）<br>映像：赤いブイに近づいてタップ</p><p class="replay" id="replayHint">案内をもう一度見る</p><p class="src">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a><br><a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a> ／ <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></p><p class="cl">閉じる</p></div></div>
 <div id="veil"><div id="ld">湖を描いています<span>Drawing the lake</span></div></div>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
 <script type="module">
@@ -498,8 +482,7 @@ const DAY = 1416, EPOCH = Date.UTC(2026, 0, 1);
 let PH = Q.get("phase"), MO = Q.get("month");
 function clock() {
 const t = G.tFix != null ? G.tFix : (Date.now() - EPOCH) / 1000, d = Math.floor(t / DAY);
-const ph = PH !== null ? +PH : (t % DAY) / DAY;
-return { t, month: MO !== null ? +MO : ((d % 12) + 12) % 12, phase: G.pw ? (ph + G.pw) % 1 : ph };
+return { t, month: MO !== null ? +MO : ((d % 12) + 12) % 12, phase: PH !== null ? +PH : (t % DAY) / DAY };
 }
 const LAT_R = (35.25 * Math.PI) / 180;
 function astro(c) {
@@ -7094,147 +7077,6 @@ DL = d;
 }
 catch (e) { }
 $("shot").onclick = () => $("shot").classList.remove("on");
-const REC = { on: false, mode: null, mr: null, chunks: [], t0: 0 }, REC_MAX = 30, REC_TL = 20;
-const recOk = !!(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream);
-if (!recOk)
-document.body.classList.add("norec");
-function recMime(audio) {
-const ok = (t) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
-if (audio && ok("video/mp4;codecs=avc1.42E01E,mp4a.40.2"))
-return ["video/mp4;codecs=avc1.42E01E,mp4a.40.2", true];
-for (const t of ["video/mp4;codecs=avc1.42E01E", "video/mp4;codecs=avc1", "video/mp4"])
-if (ok(t))
-return [t, false];
-for (const t of ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"])
-if (ok(t))
-return [t, audio];
-return ["", false];
-}
-function recStart(mode) {
-$("recm").classList.remove("on");
-if (!recOk || REC.on || isFar)
-return;
-const cv = renderer.domElement;
-if (cv.width % 2 || cv.height % 2)
-renderer.setDrawingBufferSize(cv.width - (cv.width % 2), cv.height - (cv.height % 2), 1);
-const stream = cv.captureStream(30), [mime, withAudio] = recMime(mode === "video" && !!SND.ctx);
-if (withAudio) {
-if (!SND.recDest) {
-SND.recDest = SND.ctx.createMediaStreamDestination();
-SND.master.connect(SND.recDest);
-}
-for (const tr of SND.recDest.stream.getAudioTracks())
-stream.addTrack(tr);
-}
-let mr;
-try {
-mr = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 10e6 } : { videoBitsPerSecond: 10e6 });
-}
-catch (e) {
-try {
-mr = new MediaRecorder(stream);
-}
-catch (e2) {
-resize();
-return;
-}
-}
-REC.chunks = [];
-mr.ondataavailable = (e) => {
-if (e.data && e.data.size)
-REC.chunks.push(e.data);
-};
-mr.onstop = recSave;
-mr.start(500);
-Object.assign(REC, { on: true, mode, mr, t0: performance.now() });
-G.recOn = true;
-G.pw = 0;
-document.body.classList.add("rec");
-$("rec").classList.add("on");
-recLabel(0);
-}
-function recStop() {
-if (!REC.on)
-return;
-REC.on = false;
-G.recOn = false;
-try {
-REC.mr.stop();
-}
-catch (e) { }
-document.body.classList.remove("rec");
-$("rec").classList.remove("on");
-G.pw = 0;
-resize();
-}
-function recLabel(el) {
-const s = Math.floor(el);
-$("rect").textContent = REC.mode === "video" ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` : `早回し ${Math.min(100, Math.round(G.pw * 100))}%`;
-}
-function recTick(dt) {
-if (!REC.on)
-return;
-if (isFar || document.hidden)
-return recStop();
-const el = (performance.now() - REC.t0) / 1000;
-if (REC.mode === "timelapse") {
-G.pw = Math.min(1, G.pw + dt / REC_TL);
-if (G.pw >= 1)
-return recStop();
-}
-else if (el >= REC_MAX)
-return recStop();
-recLabel(el);
-}
-function recSave() {
-const type = (REC.mr && REC.mr.mimeType) || REC.chunks[0]?.type || "video/webm", bl = new Blob(REC.chunks, { type });
-REC.chunks = [];
-if (!bl.size)
-return;
-const u = URL.createObjectURL(bl), sh = $("shot"), v = sh.querySelector("video");
-if (v.src.startsWith("blob:"))
-URL.revokeObjectURL(v.src);
-v.src = u;
-sh.classList.add("on", "vid");
-v.play().catch(() => { });
-const t = new Date(), p = (n) => String(n).padStart(2, "0"), name = `floating-${REC.mode === "timelapse" ? "timelapse" : "video"}-${t.getFullYear()}${p(t.getMonth() + 1)}${p(t.getDate())}-${p(t.getHours())}${p(t.getMinutes())}${p(t.getSeconds())}.${type.includes("mp4") ? "mp4" : "webm"}`;
-const anchor = () => {
-const a = document.createElement("a");
-a.href = u;
-a.download = name;
-document.body.appendChild(a);
-a.click();
-a.remove();
-};
-if (DL)
-DL.save({ filename: name, data: bl }).catch(anchor);
-else
-anchor();
-}
-$("rec").onclick = (e) => {
-e.stopPropagation();
-if (REC.on)
-recStop();
-else
-$("recm").classList.toggle("on");
-};
-$("recV").onclick = (e) => {
-e.stopPropagation();
-recStart("video");
-};
-$("recT").onclick = (e) => {
-e.stopPropagation();
-recStart("timelapse");
-};
-addEventListener("pointerdown", (e) => {
-if (!e.target.closest || !e.target.closest("#recm,#rec"))
-$("recm").classList.remove("on");
-});
-$("shot").addEventListener("click", () => {
-const v = $("shot").querySelector("video");
-v.pause();
-$("shot").classList.remove("vid");
-});
 function resize() {
 const w = innerWidth, h = innerHeight, d = Math.min(devicePixelRatio, QUALITY.pixelMax) * resScale;
 renderer.setPixelRatio(d);
@@ -10708,7 +10550,7 @@ const dt = Math.min(0.1, (now - last) / 1000);
 last = now;
 fpsN++;
 fpsT += dt;
-if (fpsT > 3 && !G.prof && !G.recOn) {
+if (fpsT > 3 && !G.prof) {
 const f = fpsN / fpsT;
 const old = resScale;
 if (f < 38)
@@ -10725,7 +10567,6 @@ if (prof) {
 renderer.info.autoReset = false;
 renderer.info.reset();
 }
-recTick(dt);
 const c = clock(), W = wind(c), t = now / 1000;
 moveHouse(dt, c, W);
 const boats = boatState(c);

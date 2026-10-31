@@ -7,9 +7,7 @@ function clock() {
   // 確認用に時刻を止められる（G.tFix：?debug のときだけ __scene から設定）
   const t = G.tFix != null ? G.tFix : (Date.now() - EPOCH) / 1000,
     d = Math.floor(t / DAY);
-  // G.pw：早回しの撮影（32b-video.js）で進めた時刻（一日の割合）。月と、t で決まるもの（天気・電車の位置など）は変えない
-  const ph = PH !== null ? +PH : (t % DAY) / DAY;
-  return { t, month: MO !== null ? +MO : ((d % 12) + 12) % 12, phase: G.pw ? (ph + G.pw) % 1 : ph };
+  return { t, month: MO !== null ? +MO : ((d % 12) + 12) % 12, phase: PH !== null ? +PH : (t % DAY) / DAY };
 }
 
 // 太陽と月の位置（天文の計算）：作品の月は「その月の中日」、時刻は作品の一日の中の時刻として、
