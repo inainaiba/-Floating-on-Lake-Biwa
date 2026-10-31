@@ -25,7 +25,7 @@ function vnoise(x, y) {
 }
 const PK = PEAKS.map(([a, b, h, w]) => [...ll(a, b), h, w]);
 // 標高の格子（tools/dem.py）：作品の座標で200m間隔、湖面からの高さ。1マス1バイトで h = top·(v/255)²
-const DEM = __DEM__;
+const DEM = DATA.dem;
 const DEM_D = Uint8Array.from(atob(DEM.d || ""), (c) => c.charCodeAt(0));
 function landH(x, y) {
   const u = Math.max(0, Math.min(DEM.w - 1.001, (x - DEM.x0) / DEM.step)),
@@ -94,7 +94,7 @@ for (let pass = 0; pass < 3; pass++) {
 }
 // 岸近くの細かい地形（tools/near.py → data/near.json）：30m間隔で、200mの標高との差を4ビットで持つ。
 // 高さは「粗い地形の高さ＋差×岸からの効き」。家や木の置き場所（terrainAt）と、カメラのまわりの細かい網目（下の nearPatch）で使う
-const NEAR = __NEAR__;
+const NEAR = DATA.near;
 const nearBlk = new Map();
 {
   if (NEAR && NEAR.idx) {
@@ -485,7 +485,7 @@ const okiZone = (x, y) => {
   return x > a - 300 && x < a + (c - a) * 0.58 && y > (b + d) / 2 - (d - b) * 0.05 && y < d + 300;
 };
 // 島の標高の格子（tools/isles.py → data/isles.json）：20m間隔、湖面からの高さ。小さすぎて標高データに出ない島（多景島）は作り話の丘のまま
-const ISLE_DEM = __ISLES__;
+const ISLE_DEM = DATA.isles;
 function isleGrid(I, x, y) {
   const g = I.g,
     u = Math.max(0, Math.min(g.w - 1.001, (x - g.x0) / g.step)),
