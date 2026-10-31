@@ -44,8 +44,8 @@ G.boats = (() => {
       }
     });
   }
-  // 遠くの舟の航跡：静かな湖面に細く長く残るV字の筋
-  const wakes = (LOOK.show.wakes && G.ambience ? G.ambience.boats : []).map((b) => {
+  // 遠くの舟の航跡：静かな湖面に細く長く残るV字の筋（釣り舟と、南湖のバスボート 44b-bass.js）
+  const wakes = (LOOK.show.wakes ? [...(G.ambience ? G.ambience.boats : []), ...(G.bass ? G.bass.boats : [])] : []).map((b) => {
     const N = 60,
       pos = new Float32Array(N * 3 * 2 * 3),
       col = new Float32Array(N * 3 * 2 * 3);

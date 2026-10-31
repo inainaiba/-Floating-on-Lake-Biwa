@@ -397,6 +397,20 @@
   - 14-water.js：`waveH`
   - 29-controls.js：`gl`、`isFar`、`ptrs`
 
+## 37b-fountain.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`、`placeLog`
+  - 01-settings.js：`S`
+  - 06-inner-lakes.js：`inLake`
+  - 07-depth.js：`shoreSnap`
+  - 10-start.js：`rnd`
+  - 12-renderer.js：`QUALITY`、`camera`、`renderer`、`scene`
+  - 14-water.js：`water`
+  - 19-boats.js：`PORT_SITES`、`ROUTES`
+  - 20-villages-layout.js：`cvTex`
+  - 29-controls.js：`isFar`
+
 ## 38-seasonal-events.js
 - 作る：（なし）
 - 使う：
@@ -540,6 +554,18 @@
   - 16-terrain.js：`VEX`、`reedPts`
   - 17-trees.js：`cardForest`
   - 20-villages-layout.js：`cvTex`、`houses`、`landY`、`paddies`、`terrainAt`
+  - 29-controls.js：`isFar`
+
+## 44b-bass.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`、`mergeStatic`
+  - 01-settings.js：`S`
+  - 03-coords.js：`ll`
+  - 06-inner-lakes.js：`inMain`
+  - 07-depth.js：`depth`
+  - 12-renderer.js：`camera`、`scene`
+  - 14-water.js：`waveH`
   - 29-controls.js：`isFar`
 
 ## 45-boats.js
@@ -710,6 +736,7 @@
 - `G._v3`：53-frame.js
 - `G.afterRain`：49-frame-sky-light.js
 - `G.ambience`：42-ambience.js
+- `G.bass`：44b-bass.js
 - `G.birdman`：38b-birdman.js
 - `G.birds`：43b-birds.js
 - `G.biwako`：24-shore-landmarks.js
@@ -729,6 +756,7 @@
 - `G.eri`：46-shore-life.js
 - `G.exp`：12-renderer.js
 - `G.forest`：17-trees.js
+- `G.fountain`：37b-fountain.js
 - `G.frameWaiters`：53-frame.js
 - `G.gc`：52-frame-render.js
 - `G.glowMat`：18-buildings.js
