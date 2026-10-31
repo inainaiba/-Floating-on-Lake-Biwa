@@ -444,7 +444,7 @@
   - 00-head.js：`G`、`mergeStatic`、`placeLog`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
-  - 06-inner-lakes.js：`inLake`
+  - 06-inner-lakes.js：`inLake`、`inRiver`
   - 07-depth.js：`depth`、`shoreSnap`
   - 10-start.js：`rnd`
   - 12-renderer.js：`camera`、`renderer`、`scene`

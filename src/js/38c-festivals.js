@@ -247,7 +247,7 @@ G.fest = (() => {
       for (let a = 0; a < 6.28 && !best; a += 0.3) {
         const x = sx + Math.cos(a) * 60,
           y = sy + Math.sin(a) * 60;
-        if (!inLake(x, y) && !inLake(x + Math.cos(a) * 20, y + Math.sin(a) * 20)) best = [x, y];
+        if (!inLake(x, y) && !inLake(x + Math.cos(a) * 20, y + Math.sin(a) * 20) && !inRiver(x, y) && !inRiver(x + Math.cos(a) * 20, y + Math.sin(a) * 20)) best = [x, y]; // 陸の川の上にも組まない
       }
       if (best) sites.push({ x: best[0], y: best[1], sx, sy, ig: (i % 5) * 0.004, h: 8 + (i % 4) * 1.5 });
     });
