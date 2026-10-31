@@ -59,10 +59,12 @@ function frame(now) {
   updateBoats(boats, dt, t, night);
   if (FW) FW.update(dt, c, day);
   if (G.buoys) G.buoys.update(t, day < 0.08);
+  if (G.fountain) G.fountain.update(dt, c, day); // びわこ花噴水（37b-fountain.js）
   if (G.EV) G.EV.update(dt, c, day, t, W);
   if (G.ambience) G.ambience.update(dt, t, c, day);
   if (G.moments) G.moments.update(dt, t, c, W);
   if (G.life) G.life.update(dt, t, c, day, wxNow);
+  if (G.bass) G.bass.update(dt, t, c, day); // 南湖のバスボート（44b-bass.js）
   if (G.boats) G.boats.update(dt, t, c, day, wxNow);
   if (G.shore) G.shore.update(dt, t, c, day, wxNow);
   if (G.trains) G.trains.update(c, day); // 湖西線と琵琶湖線の電車（24b-trains.js）
