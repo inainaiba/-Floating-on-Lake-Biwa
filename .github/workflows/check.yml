@@ -1,16 +1,29 @@
-# 自動確認：GitHub に記録するたびに、組み立て・簡易確認・全体点検を走らせる。
+# 自動確認：main に作品の中身（描画のコード・データ・組み立て・確認の道具）が入ったときに、組み立て・簡易確認・全体点検を走らせる。
 # 失敗したら、記録の一覧（Actions）に赤い印が付く。比較画像は「確認の結果」として残る。
+# Actions の使用時間を節約するため：説明や確認の基準の画像だけの変更では走らせない／続けて記録したときは前の確認を取り消す／
+# 道具（Playwright の Chromium）は前回のものを使い回す。手で走らせることもできる（workflow_dispatch）
 name: 確認
 
 on:
   push:
     branches: [main]
+    paths:
+      - "src/**"
+      - "data/**"
+      - "build.py"
+      - "docs/index.html"
+      - "tools/check.py"
+      - "tools/audit.py"
   workflow_dispatch:
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -22,10 +35,16 @@ jobs:
         with:
           node-version: "22"
 
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-1.63.0-chromium
+
       - name: 道具を入れる
         run: |
           pip install playwright==1.63.0 pillow openpyxl
-          python -m playwright install --with-deps chromium
+          python -m playwright install-deps chromium
+          python -m playwright install chromium
 
       - name: 組み立て（文法の確認・部品の名前の重なりの確認を含む）
         run: python build.py
