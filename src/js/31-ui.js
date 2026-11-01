@@ -60,7 +60,7 @@ $("about").onclick = (e) => {
 $("title").onclick = () => {
   {
     const ok = starts.filter(([x, y]) => !inReeds(x, y) && inMain(x, y) && depth(x, y) > 1.2);
-    const s2 = ok[Math.floor((DBG_START ? R0() : Math.random()) * ok.length)]; // 確認用（?debug）では毎回同じ所（撮り比べのため）
+    const s2 = ok[Math.floor((DBG_START ? R0() : TRUE_RANDOM()) * ok.length)]; // 確認用（?debug）では毎回同じ所（撮り比べのため）
     if (s2) {
       B.x = s2[0];
       B.y = s2[1];

@@ -293,3 +293,4 @@ G.boats = (() => {
   }
   return { update, tabune, ship };
 })();
+onFrame(90, (f) => G.boats.update(f.dt, f.t, f.c, f.day, f.wxNow)); // 毎フレームの更新（田舟・航跡・遊覧船・シジミ舟（釣り舟とバスボートの位置を使うので、その後）。順番は 00-head.js の onFrame）

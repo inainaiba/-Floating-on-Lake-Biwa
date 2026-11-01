@@ -16,6 +16,8 @@ on:
       - "tools/audit.py"
       - "tools/acpack.py"
       - "tools/datacheck.mjs"
+      - "tools/test.py"
+      - "tools/test.mjs"
   workflow_dispatch:
 
 concurrency:
@@ -48,6 +50,9 @@ jobs:
           npm install --no-save esbuild@0.24.2 three@0.160.0
           python -m playwright install-deps chromium
           python -m playwright install chromium
+
+      - name: 速いテスト（データの詰め方と読み戻し、多角形の判定。画面を描かずに数秒）
+        run: python tools/test.py
 
       - name: 組み立て（文法の確認・部品の名前の重なりの確認を含む）
         run: python build.py

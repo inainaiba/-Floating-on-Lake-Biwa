@@ -579,3 +579,4 @@ G.birds = (() => {
   }
   return { update, SITE, MESH, get flocks() { return flocks; }, get fixed() { return fixed; } }; // MESH・flocks は確認用
 })();
+onFrame(180, (f) => G.birds.update(f.dt, f.t, f.c, f.day, f.W, f.wxNow)); // 毎フレームの更新（水鳥と空の鳥。順番は 00-head.js の onFrame）

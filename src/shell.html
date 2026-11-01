@@ -114,6 +114,19 @@ body.far #rest{display:none}
 <script>
 // 読み込みの進み具合：組み立て（build.py）が、部品の間に await __ld(進み具合) を入れる。
 // 線を伸ばしてから、画面に描かれるのを待って次へ（隠れたタブでも止まらないよう、時間でも先へ進む）
+// 描けないとき（WebGL が使えない・読み込みの途中で誤り・描画の中断）：湖の絵の幕に、短い説明と「もう一度読み込む」を出す
+window.__fail = (ja, en) => {
+  const v = document.getElementById("veil"),
+    ld = document.getElementById("ld");
+  if (!v || !ld || window.__failed) return;
+  window.__failed = true;
+  v.style.opacity = 1;
+  v.style.pointerEvents = "auto";
+  ld.style.animation = "none";
+  ld.innerHTML = ja + "<span>" + en + '</span><a href="" style="display:inline-block;margin-top:22px;font-size:12px;letter-spacing:.2em;color:#fff;border:1px solid rgba(255,255,255,.6);padding:8px 18px;border-radius:20px;text-decoration:none">もう一度読み込む</a>';
+};
+addEventListener("error", (e) => window.__ready || window.__fail("うまく描けませんでした", "Something went wrong while drawing the lake"));
+addEventListener("unhandledrejection", (e) => window.__ready || window.__fail("うまく描けませんでした", "Something went wrong while drawing the lake"));
 window.__ld = (f) => {
   const b = document.getElementById("ldb");
   if (b) b.style.transform = "scaleX(" + Math.max(0.02, f) + ")";

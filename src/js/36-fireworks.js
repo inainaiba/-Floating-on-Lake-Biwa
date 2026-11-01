@@ -536,4 +536,5 @@ FW = (() => {
   }
   return { update, BAR, pts, geo, pending, glows, ev, self };
 })();
+onFrame(10, (f) => FW && FW.update(f.dt, f.c, f.day)); // 毎フレームの更新（花火。順番は 00-head.js の onFrame）
 G.FW = FW;

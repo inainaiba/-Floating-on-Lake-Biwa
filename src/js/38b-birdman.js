@@ -145,3 +145,4 @@ G.birdman = (() => {
   }
   return { update, g };
 })();
+onFrame(150, (f) => G.birdman.update(f.dt, f.t, f.c)); // 毎フレームの更新（鳥人間コンテスト。順番は 00-head.js の onFrame）

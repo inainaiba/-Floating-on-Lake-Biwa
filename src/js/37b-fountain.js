@@ -230,3 +230,4 @@ void main(){
   }
   return { update, at: C, th, g };
 })();
+onFrame(30, (f) => G.fountain.update(f.dt, f.c, f.day)); // 毎フレームの更新（びわこ花噴水。順番は 00-head.js の onFrame）

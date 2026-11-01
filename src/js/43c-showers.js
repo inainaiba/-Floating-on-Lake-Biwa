@@ -290,3 +290,4 @@ float a=uA*e*(.22+.12*pit+.08*nzN(vP*6.+uT*.4));if(a<.003)discard;gl_FragColor=v
   }
   return { update, cells };
 })();
+onFrame(170, (f) => G.showers.update(f.dt, f.t, f.c, f.day, f.wxNow)); // 毎フレームの更新（遠くのにわか雨と雷。順番は 00-head.js の onFrame）

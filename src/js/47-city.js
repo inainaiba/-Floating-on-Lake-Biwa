@@ -255,3 +255,4 @@ vMapUv=cu_;vEmissiveMapUv=cu_;`,
     },
   };
 })();
+onFrame(130, (f) => G.city.update(f.day)); // 毎フレームの更新（南湖の街の夜の窓。順番は 00-head.js の onFrame）

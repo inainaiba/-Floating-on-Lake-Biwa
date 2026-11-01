@@ -557,3 +557,4 @@ G.meisho = (() => {
     },
   };
 })();
+onFrame(120, (f) => G.meisho.update(f.day)); // 毎フレームの更新（名所の夜の灯り。順番は 00-head.js の onFrame）
