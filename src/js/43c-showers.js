@@ -258,7 +258,7 @@ float a=uA*e*(.22+.12*pit+.08*nzN(vP*6.+uT*.4));if(a<.003)discard;gl_FragColor=v
         const busy = (c.month === 6 || c.month === 7 ? 1.6 : 1) * (c.phase > 0.68 ? 1.5 : 1);
         cc.next = t + (4 + Math.random() * 12) / busy;
         if (cc.next - t < 30) {
-          cc.fl = 1;
+          cc.fl = RM ? 0.35 : 1; // 動きを抑えるときは、稲光を弱く
           const dm = d / S, // 実寸の隔たり（m）
             big = q.bolt > 0.35 && Math.random() < 0.45;
           if (big && d < 6000) {
@@ -276,7 +276,7 @@ float a=uA*e*(.22+.12*pit+.08*nzN(vP*6.+uT*.4));if(a<.003)discard;gl_FragColor=v
     bRef.visible = false;
     if (bolt.visible) {
       boltT -= dt;
-      bolt.material.opacity = boltT > 0 ? (0.6 + 0.4 * Math.sin(boltT * 70)) * Math.min(1, boltT * 6) : 0;
+      bolt.material.opacity = boltT > 0 ? (RM ? 0.35 : 0.6 + 0.4 * Math.sin(boltT * 70)) * Math.min(1, boltT * 6) : 0; // 動きを抑えるときは、ちらつかせない
       if (bWater && boltT > 0) {
         const dd = Math.hypot(cp.x - bx_, cp.z - bz_);
         bRef.visible = true;
@@ -288,6 +288,20 @@ float a=uA*e*(.22+.12*pit+.08*nzN(vP*6.+uT*.4));if(a<.003)discard;gl_FragColor=v
       if (boltT <= 0) bolt.visible = false;
     }
   }
+  // 全体地図：いま立っている雨雲（中心の位置。流れる分も含めて）
+  mapMark((c) => {
+    if (!MONTHS.includes(c.month)) return [];
+    const wx = weather(c);
+    if (wx.rain >= 0.3 || wx.snow >= 0.1) return []; // 湖じゅうが雨の日は出ない（update と同じ）
+    const dn = Math.floor(c.t / DAY),
+      out = [];
+    for (let k = 0; k < NC; k++) {
+      const q = cell(dn, k);
+      if (!q || c.phase < q.p0 || c.phase > q.p0 + q.dur) continue;
+      out.push({ x: q.x + q.dx * q.v * (c.phase - q.p0), y: q.y + q.dy * q.v * (c.phase - q.p0), ja: "にわか雨", en: "Passing shower" });
+    }
+    return out;
+  });
   return { update, cells };
 })();
 onFrame(170, (f) => G.showers.update(f.dt, f.t, f.c, f.day, f.wxNow)); // 毎フレームの更新（遠くのにわか雨と雷。順番は 00-head.js の onFrame）

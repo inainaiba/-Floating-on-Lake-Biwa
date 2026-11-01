@@ -17,7 +17,7 @@ renderer.domElement.addEventListener("webglcontextlost", (e) => {
 });
 const MOBILE_ = matchMedia("(pointer:coarse)").matches;
 // 画質：端末に応じた3段階（?q=high|mid|low で固定もできる）。表示中もフレームの速さで解像度を自動調整
-const QQ = Q.get("q");
+const QQ = Q.get("q") || (CFG.q !== "auto" ? CFG.q : null); // URL の指定、なければ設定の画面で選んだ画質
 const QUAL =
   QQ ||
   (navigator.deviceMemory && navigator.deviceMemory <= 2 ? "low" : null) || // メモリの少ない端末は、はじめから低い画質で
