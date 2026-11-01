@@ -230,6 +230,16 @@
   - 12-renderer.js：`scene`
   - 20-villages-layout.js：`TOWNS`、`houses`、`landY`
 
+## 22c-village-smoke.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`、`onFrame`
+  - 01-settings.js：`S`
+  - 12-renderer.js：`scene`
+  - 16-terrain.js：`VEX`
+  - 20-villages-layout.js：`bHash`、`cvTex`、`houses`
+  - 29-controls.js（後ろの部品・要注意）：`isFar`
+
 ## 23-paddies.js
 - 作る：`PADDY`、`ghI`、`paddyI`、`paddyM`、`paddySeason`、`paddyWet`
 - 使う：
@@ -867,6 +877,7 @@
 - `G.shore`：46-shore-life.js
 - `G.showers`：43c-showers.js
 - `G.simT`：53-frame.js
+- `G.smoke`：22c-village-smoke.js
 - `G.snapNow`：32-photo.js
 - `G.stationLamps`：24-shore-landmarks.js
 - `G.street`：21-villages-walls-roofs.js

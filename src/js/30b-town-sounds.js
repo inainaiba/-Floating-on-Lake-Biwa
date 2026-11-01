@@ -4,9 +4,13 @@
    ・学校のチャイム：朝・昼・午後に、岸の集落の学校から「キーンコーンカーンコーン」
    ・漁船の発動機：夜明けから朝のうちに、沖へ出る漁船の「トントントン」という低い音が遠くを横切る
    ・風鈴：夏、岸の集落の近くで、風が吹くと軒先の風鈴が鳴る
+   ・新聞配達のバイク：夜明け前（4時半〜5時半）、集落の道を小さなバイクが止まっては走る音が遠くを移っていく
+   ・豆腐屋のラッパ：夕方（4時〜5時半）、「トーフー」と2つの音のラッパが、少しずつ場所を変えて聞こえる
+   ・夏祭りの太鼓：7・8月の宵（7時〜9時）、遠くの集落から太鼓の拍子が風にのって届く
+   ・火の用心：冬（12〜2月）の夜（8時〜10時）、拍子木の「カチ、カチ」が通りを移っていく（声は入れない）
    どれも岸（集落）に近いほど大きく、沖では聞こえない。霧や雨の日はこもる */
 {
-  const T = { n: {}, gray: 0, lastH: null, nearV: 0, nextChk: 0, nextBoat: 0, nextBell: 0, xing: null, village: null };
+  const T = { n: {}, gray: 0, lastH: null, nearV: 0, nextChk: 0, nextBoat: 0, nextBell: 0, nextLife: 0, xing: null, village: null };
   // いちばん近い集落の家（実寸）と、そこまでの隔たり（2秒ごとに数え直す）
   function nearestVillage() {
     const cx = camera.position.x / S,
@@ -170,6 +174,122 @@
       o.stop(st + 0.16);
     }
   }
+
+  // ---- 時刻で重なる暮らしの音（2026年11月の追加）----
+  // 新聞配達のバイク：小さなエンジン（のこぎり波）が、走っては止まり、また走る。左右がゆっくり移る
+  function paperBike(vx, vz, near) {
+    T.n.bike = (T.n.bike || 0) + 1;
+    const ac = SND.ctx,
+      t0 = ac.currentTime + 0.1,
+      dur = 30,
+      dest = out(vx, vz, 0.05 * near, 900, 0.4),
+      o = ac.createOscillator(),
+      g = ac.createGain(),
+      p = ac.createStereoPanner();
+    o.type = "sawtooth";
+    p.pan.setValueAtTime(-0.6 + Math.random() * 0.4, t0);
+    p.pan.linearRampToValueAtTime(0.2 + Math.random() * 0.4, t0 + dur);
+    g.gain.setValueAtTime(0, t0);
+    let t = t0;
+    while (t < t0 + dur - 4) {
+      const run = 2 + Math.random() * 3,
+        stop = 1.5 + Math.random() * 2.5;
+      o.frequency.setValueAtTime(48, t);
+      o.frequency.linearRampToValueAtTime(95 + Math.random() * 20, t + 0.8);
+      o.frequency.linearRampToValueAtTime(80, t + run);
+      o.frequency.linearRampToValueAtTime(38, t + run + 0.6);
+      g.gain.linearRampToValueAtTime(1, t + 0.3);
+      g.gain.setValueAtTime(1, t + run);
+      g.gain.linearRampToValueAtTime(0.25, t + run + 0.6); // 止まってアイドリング（郵便受けに入れている間）
+      t += run + stop;
+    }
+    g.gain.linearRampToValueAtTime(0, t + 1.5);
+    o.connect(g).connect(p).connect(dest);
+    o.start(t0);
+    o.stop(t + 1.6);
+  }
+  // 豆腐屋のラッパ：リードの鳴る2つの音「トー（高）フー（低）」を、間をおいて2回
+  function tofuHorn(x, z, vol) {
+    T.n.tofu = (T.n.tofu || 0) + 1;
+    const ac = SND.ctx,
+      t0 = ac.currentTime + 0.2,
+      dest = out(x, z, vol, 1800, 0.7);
+    for (const [st, f, d] of [
+      [0, 659, 0.9],
+      [0.95, 587, 1.3],
+      [3.6, 659, 0.9],
+      [4.55, 587, 1.5],
+    ]) {
+      const o = ac.createOscillator(),
+        o2 = ac.createOscillator(),
+        g = ac.createGain(),
+        bp = ac.createBiquadFilter();
+      o.type = "sawtooth";
+      o2.type = "square";
+      o.frequency.value = f;
+      o2.frequency.value = f * 1.004;
+      bp.type = "bandpass";
+      bp.frequency.value = f * 2;
+      bp.Q.value = 1.2;
+      g.gain.setValueAtTime(0, t0 + st);
+      g.gain.linearRampToValueAtTime(0.06, t0 + st + 0.08);
+      g.gain.setValueAtTime(0.06, t0 + st + d - 0.15);
+      g.gain.linearRampToValueAtTime(0, t0 + st + d);
+      o.connect(bp);
+      o2.connect(bp);
+      bp.connect(g).connect(dest);
+      for (const q of [o, o2]) q.start(t0 + st), q.stop(t0 + st + d + 0.05);
+    }
+  }
+  // 太鼓の一打：低い膜の音（すぐ下がる高さ）と、ばちの当たる短いノイズ
+  function drum(st, vol, dest, big) {
+    const ac = SND.ctx,
+      o = ac.createOscillator(),
+      g = ac.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(big ? 92 : 120, st);
+    o.frequency.exponentialRampToValueAtTime(big ? 52 : 70, st + 0.35);
+    g.gain.setValueAtTime(0, st);
+    g.gain.linearRampToValueAtTime(vol, st + 0.006);
+    g.gain.exponentialRampToValueAtTime(1e-4, st + (big ? 1.1 : 0.6));
+    o.connect(g).connect(dest);
+    o.start(st);
+    o.stop(st + 1.2);
+  }
+  // 夏祭りの太鼓：「ドン、ドン、ドドン」の拍子を数回。遠くから風にのって
+  function festivalDrums(x, z, vol) {
+    T.n.drum = (T.n.drum || 0) + 1;
+    const ac = SND.ctx,
+      t0 = ac.currentTime + 0.2,
+      dest = out(x, z, vol, 700, 0.9),
+      pat = [0, 0.62, 1.24, 1.55, 2.48, 3.1, 3.72, 4.03],
+      reps = 3 + Math.floor(Math.random() * 3);
+    for (let r = 0; r < reps; r++) for (const [k, b] of pat.entries()) drum(t0 + r * 4.96 + b, k % 4 === 0 ? 0.5 : 0.32, dest, k % 4 === 0);
+  }
+  // 拍子木：硬い木の「カチ」（高い帯域の短い音）を2つ。間をおいて数回、少しずつ遠ざかる
+  function clappers(x, z, vol) {
+    T.n.clap = (T.n.clap || 0) + 1;
+    const ac = SND.ctx,
+      t0 = ac.currentTime + 0.2;
+    for (let r = 0; r < 4; r++) {
+      const dest = out(x + r * 25, z, vol * (1 - r * 0.18), 4000, 0.8);
+      for (const dt of [0, 0.28]) {
+        const st = t0 + r * 6 + dt;
+        for (const f of [1850, 2900]) {
+          const o = ac.createOscillator(),
+            g = ac.createGain();
+          o.type = "triangle";
+          o.frequency.value = f * (1 + (Math.random() - 0.5) * 0.02);
+          g.gain.setValueAtTime(0, st);
+          g.gain.linearRampToValueAtTime(f < 2000 ? 0.25 : 0.12, st + 0.002);
+          g.gain.exponentialRampToValueAtTime(1e-4, st + 0.09);
+          o.connect(g).connect(dest);
+          o.start(st);
+          o.stop(st + 0.1);
+        }
+      }
+    }
+  }
   // 時刻 h0 を、前のフレームから今のフレームの間にまたいだか（一日の終わりをまたぐ場合も）
   const crossed = (h0, a, b) => (a <= b ? a < h0 && h0 <= b : h0 > a || h0 <= b);
 
@@ -211,6 +331,17 @@
     if (h > 4.5 && h < 9 && now > T.nextBoat && !rainy) {
       T.nextBoat = now + 50 + Math.random() * 90;
       if (Math.random() < (c.month <= 1 ? 0.5 : 0.85)) fishingBoat(near);
+    }
+    // 時刻で重なる暮らしの音：集落の近くで、ときどき（それぞれ決まった時間帯の中で）
+    if (near > 0.15 && now > T.nextLife) {
+      T.nextLife = now + 35 + Math.random() * 60;
+      const m = c.month,
+        ox = vx + (Math.random() - 0.5) * 120,
+        oz = vz + (Math.random() - 0.5) * 120;
+      if (h > 4.5 && h < 5.6 && Math.random() < 0.7) paperBike(ox, oz, near);
+      else if (h > 16 && h < 17.5 && !rainy && Math.random() < 0.45) tofuHorn(ox, oz, 0.5 * near);
+      else if ((m === 6 || m === 7) && h > 19 && h < 21 && !rainy && Math.random() < 0.6) festivalDrums(ox, oz, 0.55 * near);
+      else if ((m >= 11 || m <= 1) && h > 20 && h < 22 && Math.random() < 0.55) clappers(ox, oz, 0.3 * near);
     }
     // 風鈴：夏（6〜8月）、昼から宵、集落の近くで風があるとき
     if (c.month >= 5 && c.month <= 7 && h > 9 && h < 22 && near > 0.35 && now > T.nextBell && !rainy) {
