@@ -5,9 +5,12 @@
 - データの詰め方（tools/acpack.py）と読み戻し（src/js/00a-data.js）：詰め方ごとに、作ったでたらめなデータを詰めて戻し、元と同じか
   （CRC32 で照らし合わせる）。わざと壊したものは見つけられるか
 - 点が多角形の中かの判定（src/js/05-lake.js）：tools/test.mjs
+- シェーダーの角ばった区画：湖面や地面の色を、世界の座標を大きな区画（1区画 2 以上）に切った乱数で
+  そのまま変えていないか。区画の境目がくっきりした直線になり、高い視点で三角形や平行四辺形の模様に見える
+  （2026年11月、湖面の風の筋がこれで角ばっていた）。意図した区画（畑など）は /*区画OK：理由*/ を付ける
 使うのは Python の標準の部品と node だけ
 """
-import base64, json, random, struct, subprocess, sys, tempfile, zlib
+import base64, json, random, re, struct, subprocess, sys, tempfile, zlib
 from pathlib import Path
 
 r = Path(__file__).resolve().parent.parent
@@ -78,6 +81,36 @@ def main():
     print(res.stdout.strip() or res.stderr.strip())
     if res.returncode:
         sys.exit(1)
+    bc = blocky_cells()
+    print('シェーダーの角ばった区画：' + ('なし' if not bc else f'{len(bc)} か所'))
+    for b in bc:
+        print('  ', b)
+    if bc:
+        sys.exit(1)
+
+
+def blocky_cells():
+    """シェーダーの floor(世界の座標*k) で、k < 0.5（1区画が2以上）のものを探す。/*区画OK…*/ が付いたものは除く"""
+    bad = []
+    for f in sorted((r / 'src/js').glob('*.js')):
+        for i, line in enumerate(f.read_text().splitlines(), 1):
+            for m in re.finditer(r'floor\(', line):
+                j, d = m.end(), 0
+                while j < len(line):
+                    if line[j] == '(':
+                        d += 1
+                    elif line[j] == ')':
+                        if d == 0:
+                            break
+                        d -= 1
+                    j += 1
+                inner = line[m.end():j]
+                if '区画OK' in inner or not re.search(r'\b(vP0?|vXZ|vWp|wp)\b', inner):
+                    continue
+                ks = [float(x) for x in re.findall(r'\*\s*(\d*\.\d+|\d+)(?![\d.])', inner)]
+                if ks and min(ks) < 0.5:
+                    bad.append(f'{f.name}:{i}  floor({inner[:60]})')
+    return bad
 
 
 if __name__ == '__main__':

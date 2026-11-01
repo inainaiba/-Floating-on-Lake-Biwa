@@ -206,7 +206,7 @@ diffuseColor.rgb*=.78+.5*smoothstep(.0,.6,1.-slope)*.25+.12;
 `;
 // 岩肌（急な斜面）
 const TERR_FS_ROCK = `// 岩肌（急な斜面）
-{float rn=fract(sin(dot(floor(vXZ*.08),vec2(5.3,1.9)))*91.);
+{float rn=nzN(vXZ*.08);
 vec3 rock=mix(vec3(.38,.37,.34),vec3(.55,.53,.49),rn)*(.85+.3*fract(sin(dot(floor(vXZ*.7),vec2(3.1,8.7)))*61.));
 diffuseColor.rgb=mix(diffuseColor.rgb,rock,smoothstep(.42,.75,slope)*(.45+.4*rn)*smoothstep(10.,40.,vH));
 }diffuseColor.rgb*=.5+.75*clamp(dot(nrmE,normalize(vec3(.55,.6,.4))),0.,1.);
@@ -218,7 +218,7 @@ diffuseColor.rgb+=vec3(.08,.04,.0)*uLow*smoothstep(20.,120.,vH);
 `;
 // 浜（砂・礫・岩）と水際の濡れた帯
 const TERR_FS_SHORE = `// 浜（砂・礫・岩）と水際の濡れた帯
-float beach=1.-smoothstep(.85,1.0+.25*fract(sin(dot(floor(vXZ*.05),vec2(2.,9.)))*77.),vH);
+float beach=1.-smoothstep(.85,1.0+.25*nzN(vXZ*.05),vH);
 diffuseColor.rgb*=1.-.25*(1.-smoothstep(.62,.8,vH));
 diffuseColor.rgb*=1.-.28*smoothstep(1.05,.75,vH)*smoothstep(.45,.7,vH);
 {vec2 bq=vXZ*.0035,bi=floor(bq),bf=fract(bq);
@@ -233,7 +233,7 @@ diffuseColor.rgb=mix(diffuseColor.rgb,bc,beach*.88);
 pf=pf*pf*(3.-2.*pf);
 float ha=fract(sin(dot(pi,vec2(17.1,31.7)))*4375.5),hb=fract(sin(dot(pi+vec2(1,0),vec2(17.1,31.7)))*4375.5),hc=fract(sin(dot(pi+vec2(0,1),vec2(17.1,31.7)))*4375.5),hd=fract(sin(dot(pi+1.,vec2(17.1,31.7)))*4375.5);
 float pn=mix(mix(ha,hb,pf.x),mix(hc,hd,pf.x),pf.y);
-float pn2=fract(sin(dot(floor(vXZ*.2),vec2(7.3,11.9)))*1531.7);
+float pn2=fract(sin(dot(floor(vXZ*.2/*区画OK：畑の区画ごとの色*/),vec2(7.3,11.9)))*1531.7);
 vec3 low=mix(vec3(.36,.45,.25),vec3(.5,.47,.32),pn);
 {vec2 fq=vXZ*.25;
 float fl=step(.08,fract(fq.x))*step(.08,fract(fq.y));

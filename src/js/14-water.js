@@ -194,7 +194,7 @@ float env=exp(-pow((dd-r)/(1.2+tr.z*.35),2.))*exp(-tr.z*.22)*tr.w;
 g+=d/(dd+1e-3)*cos(ph)*env*.55;
 wf+=exp(-dd*dd/(.5+tr.z*.9))*exp(-tr.z*.28)*tr.w*.55;
 }
- float bk=.55+.9*fract(sin(dot(floor(vP0.xz*.004),vec2(3.3,7.9)))*91.)*.5+.45*sin(vP0.x*.0031+sin(vP0.z*.0023)*2.)*.5;
+ float bk=.55+.9*nzN(vP0.xz*.004)*.5+.45*sin(vP0.x*.0031+sin(vP0.z*.0023)*2.)*.5;
 g*=bk;
 vec3 N=normalize(n*vec3(1.-uCalm*.5,1.,1.-uCalm*.5)+vec3(-g.x,0.,-g.y)*(1.+uFoam)*(1.-uCalm*.45)*(1.-.6*smoothstep(.0,-.2,uSun.y)));
 N=normalize(mix(N,vec3(0.,1.,0.),smoothstep(150.,900.,dc)*.85));
@@ -221,7 +221,7 @@ float cpw;{vec2 wd=normalize(uWd+1e-4);vec2 q=vP0.xz*.0016-wd*uT2*.014;cpw=smoot
 float ws=(1.-uCalm)*smoothstep(.45,.75,nzF4(vec2(wp.x*.006-uT2*.05,wp.y*.03)))*smoothstep(.2,.8,sin(wp.y*.045+sin(wp.x*.004)*3.)*.5+.5);
 body*=1.-ws*.22;
 }{float sb=smoothstep(4.,.4,dep);
-vec3 bed=mix(${v3(PALETTE.lakeBedSand)},${v3(PALETTE.lakeBedLight)},fract(sin(dot(floor(vP0.xz*.08),vec2(4.7,1.9)))*77.)*.6);
+vec3 bed=mix(${v3(PALETTE.lakeBedSand)},${v3(PALETTE.lakeBedLight)},nzN(vP0.xz*.08)*.6);
 body=mix(body,bed,sb*.5);
 {vec2 cq=vP0.xz*.9;
 float ca=abs(sin(cq.x+sin(cq.y*1.3+uT2*.9)*1.6+uT2*.6)*sin(cq.y*1.1+sin(cq.x*1.4-uT2*.7)*1.5-uT2*.5));
@@ -243,7 +243,7 @@ float msp=(.25+.75*(1.-abs(uMp2-.5)*2.))*(pow(mr,300.)*1.4+pow(mr,40.)*.12*step(
 float gh=fract(sin(dot(floor(vP0.xz*6.),vec2(4.1,7.3)))*99.);
 float glit=step(.72,gh)*smoothstep(.45,.1,length(fract(vP0.xz*6.)-.5))*pow(.5+.5*sin(uT2*(2.+gh*3.)+gh*40.),4.)*pow(rs,14.)*5.5*smoothstep(900.,10.,dc)+step(.9,fract(sin(dot(floor(vP0.xz*1.5),vec2(7.7,3.1)))*91.))*pow(.5+.5*sin(uT2*3.+gh*20.),6.)*pow(rs,40.)*3.*smoothstep(2500.,200.,dc);
 float sp=glit+msp+pow(rs,900.)*2.*smoothstep(500.,30.,dc)*(.6+.8*fract(sin(dot(floor(vP0.xz*3.),vec2(4.1,7.3))+uT2*2.)*99.))+pow(rs,60.)*.6*smoothstep(.35,0.,uSun.y)+pow(rs,60.)*.22+pow(rs,8.)*.05
-+pow(rs,250.)*smoothstep(700.,3000.,dc)*1.6*step(.55,fract(sin(dot(floor(vP0.xz*.35),vec2(4.1,7.3))+floor(uT2*3.))*99.))*clamp(uSun.y*4.,0.,1.);
++pow(rs,250.)*smoothstep(700.,3000.,dc)*1.6*step(.55,fract(sin(dot(floor(vP0.xz*.35/*区画OK：遠くのきらめき。画面では点*/),vec2(4.1,7.3))+floor(uT2*3.))*99.))*clamp(uSun.y*4.,0.,1.);
 vec3 skyR=mix(uSky*1.12,uSky*.78,pow(clamp(R.y,0.,1.),.5))+vec3(1.,.6,.35)*exp(-max(R.y,0.)*12.)*smoothstep(.05,-.15,uSun.y)*.3+vec3(.8,.85,1.)*step(.996,fract(sin(dot(floor(R.xz/(R.y+.25)*300.),vec2(12.9,78.2)))*43758.5))*smoothstep(.05,-.15,uSun.y)*smoothstep(.05,.25,R.y)*.6+vec3(.02,.03,.05)*smoothstep(.05,-.1,uSun.y);
 float lowR=smoothstep(.09,.0,R.y);
 skyR+=vec3(.25,.16,.06)*lowR*smoothstep(.0,-.15,uSun.y)*.25*(.5+.5*sin(vP.x*.9+sin(vP.z*.3)*3.));
@@ -276,7 +276,7 @@ float swn=sin(dot(vP0.xz,vec2(.6,.8))*.9-uT*1.4+sin(vP0.x*.21)*2.)*.5+.5;
 float fn=.5+.5*sin(vP0.x*.9+sin(vP0.z*.7)*2.+uT*.7);
 float shoreF=(.35+1.6*smoothstep(.0,.25,texture2D(uDepth,uv-normalize(uWd+1e-4)*25./uBox.zw).r*255./6.-dep)*(1.-uCalm))*smoothstep(.15,0.,dep)*smoothstep(.75,1.,swn)*(.4+.6*fn)*.7*(.35+uFoam*.6)*smoothstep(700.,30.,dc);
 foam+=shoreF+smoothstep(.22,.04,dep)*smoothstep(.0,.04,dep)*.12*(.6+.4*sin(uT2*1.2+vP0.x*.4));
-foam+=(1.-uCalm)*smoothstep(.3,1.,1.-uCalm)*step(.985,fract(sin(dot(floor(vec2(dot(vP0.xz,uWd)*.05-uT2*.08,dot(vP0.xz,vec2(-uWd.y,uWd.x))*.012)),vec2(4.3,9.1)))*733.))*smoothstep(250.,1200.,dc)*smoothstep(6000.,2500.,dc)*.7;
+foam+=(1.-uCalm)*smoothstep(.3,1.,1.-uCalm)*step(.985,fract(sin(dot(floor(vec2(dot(vP0.xz,uWd)*.05-uT2*.08,dot(vP0.xz,vec2(-uWd.y,uWd.x))*.012)/*区画OK：区画の中を柔らかい楕円にする*/),vec2(4.3,9.1)))*733.))*smoothstep(.5,.15,length(fract(vec2(dot(vP0.xz,uWd)*.05-uT2*.08,dot(vP0.xz,vec2(-uWd.y,uWd.x))*.012))-.5))*smoothstep(250.,1200.,dc)*smoothstep(6000.,2500.,dc)*.7;
 // 水際の浅い所：境目が直線にならないよう、ゆらぎを足してなだらかに
 float depS=max(0.,dep+(nzF4(vP0.xz*.025+1.7)-.5)*.4);
 body=mix(body,vec3(.48,.56,.42),smoothstep(.8,0.,depS)*.3);

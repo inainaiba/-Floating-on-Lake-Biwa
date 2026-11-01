@@ -99,6 +99,9 @@ def main():
         print('■ ページのエラー')
         for e in sorted(set(errs)):
             print('  ', e)
+    # 最後に結果を1行で（出力の末尾だけを見ても失敗に気づけるように）
+    print('■ 結果：' + ('問題なし' if not (bad_total or errs or heavy) else
+          f'失敗（はみ出し {bad_total}・重さの超過 {len(heavy)}・ページのエラー {len(set(errs))}）'))
     # はみ出しや置き場所の誤り、ページの誤りがあれば失敗にする（自動確認で止めるため）
     if bad_total or errs or heavy:
         sys.exit(1)
