@@ -1,5 +1,7 @@
 /* ---------- 湖に浮かぶ建築（2026年11月）：水上子ども図書館・水上映画館・水上音楽堂 ----------
-   人の姿は出さず、置かれた物と灯りと音で、そこで過ごす誰かの気配を見せる。どれも岸の近くに係留され、波にゆっくり揺れる
+   人の姿は出さず、置かれた物と灯りと音で、そこで過ごす誰かの気配を見せる。
+   3つとも、決まった岸に着いて使われる時と、湖を漂って次の岸へ移る時がある（共有時計で決まり、見る人みな同じ）。
+   岸に着いている間だけ灯りが灯り、音がし、映画館は幕を張る。漂う間は灯りを落として、岸沿いの沖をゆっくり進む
    ・水上子ども図書館（近江舞子の浜）：ヨシ葺きの大きな八角屋根の、壁のない読書の間。本棚・丸い卓・座布団・ハンモック、
      屋根から岸の柱へ渡した三角旗、夕方は吊り灯籠が灯る。近づくと、ページをめくる音と風鈴
    ・水上映画館（長浜の岸）：岸に白い幕を張り、湖に浮かぶ映写小屋から光の筋が届く。幕の前の水面に、浮かぶ座布団の席が並ぶ。
@@ -72,9 +74,11 @@
   };
   // 夜に灯る材質（灯籠・窓・舞台の灯り）：日暮れに灯る
   const lit = [];
+  let CUR = null; // いま作っている建築（灯りの持ち主）
   const glowMat = (c, k = 2) => {
     const m = new THREE.MeshBasicMaterial({ color: 0x3a3630 });
     m.userData.on = new THREE.Color(c).multiplyScalar(k);
+    m.userData.owner = CUR;
     lit.push(m);
     return m;
   };
@@ -94,17 +98,96 @@
     add(g, rail, M.post, 0, 1.75, 0, 0, Math.PI / 2);
   }
   const halls = [];
-  function moor(g, sp, extraY = 0) {
-    mergeStatic(g); // 部品を材質ごとに1つの形にまとめて、描く回数を減らす（00-head.js）
-    g.position.set(sp.x * S, extraY, sp.y * S);
-    g.rotation.y = -sp.a + Math.PI / 2;
-    scene.add(g);
-    halls.push({ g, ph: R() * 6.28, x: sp.x * S, z: sp.y * S, y0: extraY });
-    placeLog("湖に浮かぶ建築", "water", [[sp.x, sp.y]]);
+  // 岸沿いの沖の道：岸の線（outer）を、湖の側へ約500m離してなぞる。A の岸から B の岸まで、近い向きに
+  const NO = outer.length - 1;
+  const nearIdx = (x, y) => {
+    let bi = 0,
+      bd = 1e18;
+    for (let i = 0; i < NO; i++) {
+      const d = (outer[i][0] - x) ** 2 + (outer[i][1] - y) ** 2;
+      if (d < bd) (bd = d), (bi = i);
+    }
+    return bi;
+  };
+  function coastPath(A, B) {
+    const ia = nearIdx(A.sx, A.sy),
+      ib = nearIdx(B.sx, B.sy),
+      fw = (ib - ia + NO) % NO,
+      dir = fw <= NO / 2 ? 1 : -1,
+      n = dir > 0 ? fw : NO - fw,
+      pts = [[A.x, A.y]];
+    let last = null;
+    for (let k = 0; k <= n; k++) {
+      const i = (ia + dir * k + NO) % NO,
+        j = (i + 1) % NO,
+        [x0, y0] = outer[i],
+        [x1, y1] = outer[j],
+        L = Math.hypot(x1 - x0, y1 - y0) || 1;
+      if (last && Math.hypot(x0 - last[0], y0 - last[1]) < 250 && k < n) continue;
+      last = [x0, y0];
+      let nx = -(y1 - y0) / L,
+        ny = (x1 - x0) / L;
+      if (!inLake(x0 + nx * 60, y0 + ny * 60)) (nx = -nx), (ny = -ny);
+      let d = 500;
+      while (d > 80 && !inLake(x0 + nx * d, y0 + ny * d)) d *= 0.7;
+      if (inLake(x0 + nx * d, y0 + ny * d)) pts.push([x0 + nx * d, y0 + ny * d]);
+    }
+    pts.push([B.x, B.y]);
+    const cum = [0];
+    for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    return { pts, cum, len: cum[cum.length - 1] };
   }
-
+  const STAY = DAY * 1.0, // 岸に着いている長さ（作品の一日）
+    MOVE = DAY * 0.6; // 次の岸へ移る長さ
+  function moor(g, sites, extraY = 0) {
+    mergeStatic(g); // 部品を材質ごとに1つの形にまとめて、描く回数を減らす（00-head.js）
+    scene.add(g);
+    const legs = sites.map((A, i) => coastPath(A, sites[(i + 1) % sites.length]));
+    const H = { g, ph: R() * 6.28, sites, legs, off: R() * (STAY + MOVE) * sites.length, y0: extraY, x: sites[0].x * S, z: sites[0].y * S, moored: true, site: 0, use: 1 };
+    halls.push(H);
+    placeLog("湖に浮かぶ建築の着く所", "water", sites.map((q) => [q.x, q.y]));
+    placeLog("湖に浮かぶ建築の漂う道", "water", legs.flatMap((l) => l.pts));
+    return H;
+  }
+  const rotFor = (ang) => Math.PI / 2 - ang; // 建築の前（+Z）を ang の向きへ
+  const lerpA = (a, b, u) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * u;
+  // 共有時計から、いまの位置・向き・岸に着いているか
+  function place(H, ct) {
+    const per = STAY + MOVE,
+      n = H.sites.length,
+      tt = (((ct + H.off) % (per * n)) + per * n) % (per * n),
+      k = Math.floor(tt / per),
+      r = tt - k * per;
+    if (r < STAY) {
+      const q = H.sites[k];
+      H.moored = true;
+      H.site = k;
+      H.px = q.x;
+      H.py = q.y;
+      H.rot = rotFor(q.a);
+      H.use = Math.min(1, r / (DAY * 0.05), (STAY - r) / (DAY * 0.05)); // 着いてしばらくして灯り、離れる前に消える
+      return;
+    }
+    const L = H.legs[k],
+      u0 = (r - STAY) / MOVE,
+      u = u0 * u0 * (3 - 2 * u0),
+      d = u * L.len;
+    let i = 1;
+    while (i < L.cum.length - 1 && L.cum[i] < d) i++;
+    const f = (d - L.cum[i - 1]) / (L.cum[i] - L.cum[i - 1] || 1),
+      [x0, y0] = L.pts[i - 1],
+      [x1, y1] = L.pts[i];
+    H.moored = false;
+    H.use = 0;
+    H.px = x0 + (x1 - x0) * f;
+    H.py = y0 + (y1 - y0) * f;
+    const hd = rotFor(Math.atan2(y1 - y0, x1 - x0));
+    H.rot = lerpA(lerpA(rotFor(H.sites[k].a), hd, Math.min(1, u0 / 0.12)), rotFor(H.sites[(k + 1) % n].a), Math.max(0, (u0 - 0.88) / 0.12));
+  }
   // ---------- 1. 水上子ども図書館 ----------
-  const lib = spot(135.9755, 35.2575, 110); // 近江舞子の浜の沖（白砂と松並木を背に）
+  // 着く岸：近江舞子の浜（白砂と松並木）→ 萩の浜 → 和邇の浜
+  const libSites = [spot(135.9755, 35.2575, 110), spot(136.062, 35.335, 110), spot(135.952, 35.195, 110)];
+  CUR = "lib";
   {
     const g = new THREE.Group(),
       Rr = 9;
@@ -179,18 +262,19 @@
     }
     // つないだ小舟
     add(g, box(4, 0.6, 1.4), lam(0x7a9ab0), 0, 0.3, Rr + 2, 0.15);
-    moor(g, lib);
+    var libH = moor(g, libSites);
   }
 
   // ---------- 2. 水上映画館 ----------
-  const cin = spot(136.258, 35.392, 160);
+  // 着く岸：長浜 → 米原の磯 → 彦根の松原（幕は着いた岸にだけ張る）
+  const cinSites = [spot(136.258, 35.392, 160), spot(136.272, 35.335, 160), spot(136.243, 35.283, 160)];
+  CUR = "cin";
+  let placeScreen = null;
   const screenU = { uT: { value: 0 }, uOn: { value: 0 } };
   let beam = null;
   {
     // 岸の幕：2本の柱に白い大きな幕（16m×9m）。幕の面は湖の映写小屋へ向ける
-    const sg = new THREE.Group(),
-      sx = cin.sx + Math.cos(cin.a) * 6,
-      sy = cin.sy + Math.cos(cin.a) * 0 + Math.sin(cin.a) * 6;
+    const sg = new THREE.Group();
     const scrM = new THREE.ShaderMaterial({
       uniforms: screenU,
       side: THREE.DoubleSide,
@@ -218,10 +302,9 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
       add(sg, box(0.9, 0.12, 0.9), lam(0x9a6b44), x, 0.75, 6, 0);
       add(sg, box(0.9, 0.9, 0.1), lam(0x9a6b44), x, 1.2, 6.45, 0);
     }
-    sg.position.set(sx * S, landY(sx, sy), sy * S);
-    sg.rotation.y = Math.PI / 2 - cin.a; // 幕の表（と椅子）を湖へ向ける
+    mergeStatic(sg);
     scene.add(sg);
-    placeLog("水上映画館の幕", "shore", [[sx, sy]]);
+    placeLog("水上映画館の幕", "shore", cinSites.map((q) => [q.sx - Math.cos(q.a) * 8, q.sy - Math.sin(q.a) * 8]));
     // 湖の映写小屋：小さな浮き小屋。屋根の上に丸い映写の窓
     const g = new THREE.Group();
     pontoon(g, 4.2, 6, 0.5);
@@ -229,39 +312,57 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     add(g, box(5, 0.25, 4.2), M.dark, 0, 4.0, 0, 0, 0, 0.08);
     const lens = glowMat(0xfff1d0, 3);
     add(g, new THREE.CylinderGeometry(0.35, 0.35, 0.4, 12), lens, 0, 2.8, -1.85, 0, Math.PI / 2); // 岸の幕のほうへ
-    moor(g, cin);
-    // 光の筋：映写窓から幕まで（夜の上映中だけ）。加算の淡い円錐
-    const L = Math.hypot(cin.x - sx, cin.y - sy) * S;
+    var cinH = moor(g, cinSites);
+    // 光の筋：映写窓から幕まで（夜の上映中だけ）。加算の淡い円錐。長さ1の形を、着いた岸ごとに伸ばして向ける
     beam = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.3, 5.5, L, 16, 1, true).translate(0, -L / 2, 0).rotateX(-Math.PI / 2), // 映写窓で細く、幕で広い
+      new THREE.CylinderGeometry(0.3, 5.5, 1, 16, 1, true).translate(0, -0.5, 0).rotateX(-Math.PI / 2), // 映写窓で細く、幕で広い
       new THREE.MeshBasicMaterial({ color: 0xfff0d0, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }),
     );
-    beam.position.set(cin.x * S, 2.8, cin.y * S);
-    beam.lookAt(sx * S, landY(sx, sy) + 7.5, sy * S);
     beam.userData.noRefl = true;
     scene.add(beam);
     // 幕の前の水面：浮かぶ座布団の席（3列）
     const seatG = new THREE.CylinderGeometry(0.9, 0.9, 0.35, 10),
       seats = new THREE.InstancedMesh(seatG, lam(0xffffff), 21),
       Mx = new THREE.Matrix4(),
-      c = new THREE.Color();
-    let n = 0;
-    for (let r = 0; r < 3; r++)
-      for (let k = 0; k < 7; k++) {
-        const t = 0.35 + r * 0.12,
-          px = cin.x + (sx - cin.x) * t + Math.cos(cin.a + Math.PI / 2) * (k - 3) * 4.5 + (R() - 0.5),
-          py = cin.y + (sy - cin.y) * t + Math.sin(cin.a + Math.PI / 2) * (k - 3) * 4.5 + (R() - 0.5);
-        if (!inLake(px, py)) continue;
-        Mx.makeTranslation(px * S, 0.25, py * S);
-        seats.setMatrixAt(n, Mx);
-        seats.setColorAt(n++, c.set([0xd8634f, 0xe9c25a, 0x5b8fc4, 0xe9e2cf][(r + k) % 4]));
-      }
-    seats.count = n;
+      c = new THREE.Color(),
+      cols = [0xd8634f, 0xe9c25a, 0x5b8fc4, 0xe9e2cf];
+    seats.userData.noChunk = true; // 岸を移るので区画に分けない
     scene.add(seats);
+    // 着いた岸に、幕・光の筋・座布団の席を置く
+    placeScreen = (q) => {
+      const sx = q.sx - Math.cos(q.a) * 8,
+        sy = q.sy - Math.sin(q.a) * 8,
+        gy = landY(sx, sy);
+      sg.position.set(sx * S, gy, sy * S);
+      sg.rotation.y = Math.PI / 2 - q.a; // 幕の表（と椅子）を湖へ向ける
+      beam.position.set(q.x * S, 2.8, q.y * S);
+      beam.scale.set(1, 1, Math.hypot(q.x - sx, q.y - sy) * S);
+      beam.lookAt(sx * S, gy + 7.5, sy * S);
+      let n = 0;
+      for (let r = 0; r < 3; r++)
+        for (let k = 0; k < 7; k++) {
+          const t = 0.35 + r * 0.12,
+            px = q.x + (sx - q.x) * t + Math.cos(q.a + Math.PI / 2) * (k - 3) * 4.5,
+            py = q.y + (sy - q.y) * t + Math.sin(q.a + Math.PI / 2) * (k - 3) * 4.5;
+          if (!inLake(px, py)) continue;
+          Mx.makeTranslation(px * S, 0.25, py * S);
+          seats.setMatrixAt(n, Mx);
+          seats.setColorAt(n++, c.set(cols[(r + k) % 4]));
+        }
+      seats.count = n;
+      seats.instanceMatrix.needsUpdate = true;
+      if (seats.instanceColor) seats.instanceColor.needsUpdate = true;
+      seats.computeBoundingSphere();
+    };
+    placeScreen(cinSites[0]);
+    G.cinParts = { sg, seats };
   }
 
+
   // ---------- 3. 水上音楽堂 ----------
-  const mus = spot(136.1335, 35.4795, 120);
+  // 着く岸：菅浦の入江 → 海津の浜 → 月出の入江
+  const musSites = [spot(136.1335, 35.4795, 120), spot(136.072, 35.462, 120), spot(136.165, 35.468, 120)];
+  CUR = "mus";
   {
     const g = new THREE.Group();
     pontoon(g, 8, 6);
@@ -309,10 +410,11 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
         r = 11 + R() * 5;
       add(g, box(0.6, 0.6, 0.6), lantM, Math.cos(a) * r, 0.45, Math.sin(a) * r, R());
     }
-    moor(g, mus);
+    var musH = moor(g, musSites);
   }
 
-  G.halls = { lib, cin, mus }; // 確認用（実寸の位置と沖の向き）
+  G.halls = { lib: libH, cin: cinH, mus: musH }; // 確認用（いまの位置・岸に着いているか）
+  let scrSite = -1;
   // 毎フレーム：波にゆっくり揺れ、日暮れに灯り、夏の夜は上映、近づくと音
   const OFF = new THREE.Color(0x3a3630);
   let nextPage = 0,
@@ -325,14 +427,23 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
       lt = Math.min(1, Math.max(0, (0.22 - f.day) / 0.12)),
       late = h < 5 || h > 22.8 ? 0.15 : 1; // 夜更けは灯りを落とす
     for (const H of halls) {
-      if (Math.abs(H.x - camera.position.x) > 3000 || Math.abs(H.z - camera.position.z) > 3000) continue;
+      place(H, c.t);
+      H.x = H.px * S;
+      H.z = H.py * S;
+      H.g.position.x = H.x;
+      H.g.position.z = H.z;
+      H.g.rotation.y = H.rot;
       H.g.position.y = H.y0 + water.position.y + Math.sin(t * 0.7 + H.ph) * 0.12;
       H.g.rotation.z = Math.sin(t * 0.5 + H.ph) * 0.012 * (RM ? 0.3 : 1);
       H.g.rotation.x = Math.sin(t * 0.43 + H.ph * 2) * 0.01 * (RM ? 0.3 : 1);
     }
-    for (const m of lit) m.color.lerpColors(OFF, m.userData.on, lt * late);
+    const useOf = { lib: libH.use, cin: cinH.use, mus: musH.use };
+    for (const m of lit) m.color.lerpColors(OFF, m.userData.on, lt * late * (0.2 + 0.8 * useOf[m.userData.owner])); // 漂う間は灯りを落とす
+    // 映画館の幕：着いた岸にだけ張る
+    if (cinH.moored && cinH.site !== scrSite) placeScreen(cinH.sites[(scrSite = cinH.site)]);
+    G.cinParts.sg.visible = G.cinParts.seats.visible = cinH.moored;
     // 上映：夏（6〜9月）の夜、19時半〜22時半
-    const show = c.month >= 5 && c.month <= 8 && h > 19.5 && h < 22.5 ? Math.min(1, (h - 19.5) / 0.15, (22.5 - h) / 0.15) * lt : 0;
+    const show = (c.month >= 5 && c.month <= 8 && h > 19.5 && h < 22.5 ? Math.min(1, (h - 19.5) / 0.15, (22.5 - h) / 0.15) * lt : 0) * cinH.use;
     screenU.uT.value = t;
     screenU.uOn.value = show;
     if (beam) {
@@ -342,10 +453,13 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     // 近くの音
     if (!SND.ctx || !SND.on || isFar || (SND.quiet || 0) > 0.3) return;
     const now = SND.ctx.currentTime,
-      dOf = (p) => Math.hypot(p.x * S - camera.position.x, p.y * S - camera.position.z);
-    const dl = dOf(lib),
-      dm = dOf(mus),
-      dc = dOf(cin);
+      dOf = (H) => (H.use > 0.5 ? Math.hypot(H.x - camera.position.x, H.z - camera.position.z) : 1e9); // 音は岸に着いて使われている間だけ
+    const dl = dOf(libH),
+      dm = dOf(musH),
+      dc = dOf(cinH),
+      lib = { x: libH.px, y: libH.py },
+      mus = { x: musH.px, y: musH.py },
+      cin = { x: cinH.px, y: cinH.py };
     // 図書館：ページをめくる音（昼〜夕方）
     if (dl < 120 && h > 9 && h < 19 && now > nextPage) {
       nextPage = now + 4 + Math.random() * 9;
