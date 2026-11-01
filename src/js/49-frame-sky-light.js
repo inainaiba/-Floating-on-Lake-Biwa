@@ -137,7 +137,11 @@ function updateSkyLight(dt, t, c, W) {
       // 町の灯りのにじみ：日が沈むと灯る
       if (G.towns) {
         const nt = Math.min(1, Math.max(0, (0.02 - (G.sunY || 0)) / 0.12));
-        G.towns.mat.uniforms.uOp.value = nt * (1 - wxNow.gray * 0.35);
+        // 夜更け（0時〜4時）は町の灯りも半分ほどに減り、星と水面のかすかな照り返しだけの静かな時間になる
+        const hr = c.phase * 24,
+          deep = hr < 12 ? Math.max(0, Math.min(1, (hr + 1) / 1.5, (5 - hr) / 1.2)) : Math.max(0, Math.min(1, (hr - 23) / 1.5));
+        G.deepNight = deep;
+        G.towns.mat.uniforms.uOp.value = nt * (1 - wxNow.gray * 0.35) * (1 - 0.55 * deep);
         G.towns.mat.uniforms.uScale.value = renderer.domElement.height / 2;
         G.towns.pts.visible = nt > 0.01;
       }
@@ -155,9 +159,9 @@ function updateSkyLight(dt, t, c, W) {
       : 0;
   const mornH = Math.max(0, 1 - Math.abs(c.phase - 0.34) / 0.08);
   const airQ = SEASON.airClarity[c.month];
-  scene.fog.near = wxNow.fog[0] * (1 - mist * 0.8) * (1 - mornH * 0.2) * airQ;
+  scene.fog.near = wxNow.fog[0] * (1 - mist * 0.5) * (1 - mornH * 0.2) * airQ;
   scene.fog.far = wxNow.fog[1] * (day < 0.05 && wxNow.fog[1] > 3000 ? 1.8 : 1) * airQ;
-  scene.fog.far *= (1 - mist * 0.6) * (1 - mornH * 0.1);
+  scene.fog.far *= (1 - mist * 0.35) * (1 - mornH * 0.1);
   {
     // 雨上がり：雨のあと10分ほどは空気が澄んで、遠くまでくっきり見える
     if (wxNow.rain > 0.3) G.afterRain = 1;
@@ -321,7 +325,11 @@ function updateSkyLight(dt, t, c, W) {
   windows.visible = day < 0.34; // 窓ごとに灯る暗さが違う（22-village-lights-roads.js の aLit）
   winU.uDay.value = day;
   winU.uHour.value = c.phase * 24;
-  if (G.street) G.street.visible = night || day < 0.1;
+  if (G.street) {
+    G.street.visible = night || day < 0.1;
+    G.street.material.opacity = 1 - 0.5 * (G.deepNight || 0); // 夜更けは道の灯りも控えめに
+    G.street.material.transparent = true;
+  }
   windows.material.opacity = day < 0.05 ? 0.95 : 0.6;
   if (paddySeason._m !== c.month) {
     if (G.grass)

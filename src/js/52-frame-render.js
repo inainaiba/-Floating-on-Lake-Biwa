@@ -40,13 +40,15 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
           uDay: { value: 1 },
           uMorn: { value: 0 },
           uMoonL: { value: 1 },
+          uVeil: { value: 0 },
+          uDeep: { value: 0 },
         },
         depthTest: false,
         depthWrite: false,
         vertexShader: `varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy,0.,1.);}`,
         fragmentShader: `uniform sampler2D tD;uniform sampler2D tBl;uniform sampler2D tBl2;uniform float uAsp;uniform vec3 uSunS;uniform float uBlue;
 
-uniform float uWarm,uDay,uMorn,uTm,uMoonL;
+uniform float uWarm,uDay,uMorn,uTm,uMoonL,uVeil,uDeep;
 varying vec2 vU;
    vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);
 }
@@ -101,6 +103,10 @@ c=mix(c,vec3(.86,.9,.88),uMorn*.45*smoothstep(.55,.95,vU.y));
     c=mix(c,shC*(ls*1.5+.05),sh*.035);
     c*=mix(vec3(1.),mix(vec3(1.04,1.01,.95),vec3(1.08,.98,.86),uWarm),smoothstep(.5,1.,ls)*.07);
     c=max(c,shC*.01);}
+    // 雲が日をかすめる：画面全体がわずかに沈んで青み、また明るむ（光の色の小さな揺らぎ）
+    c*=mix(vec3(1.),vec3(.93,.95,.99),uVeil);
+    // 夜更け：全体をわずかに暗く、静かに
+    c*=1.-.12*uDeep;
     float v=distance(vU,vec2(.5));
 c=mix(c,c*1.04+.03,smoothstep(.3,.75,v)*uDay*.6);
 {float gr=fract(sin(dot(floor(vU*vec2(1920.,1080.)),vec2(12.9898,78.233))+uTm*7.13)*43758.5453)-.5;
@@ -277,6 +283,15 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
     u.uBlue.value = G.morning ? Math.max(0, 1 - Math.abs((G.sunY || 0) + 0.13) / 0.11) * (1 - wxNow.gray * 0.5) : 0;
   }
   G.gq.material.uniforms.uMoonL.value = G.moonLit;
+  G.gq.material.uniforms.uDeep.value = G.deepNight || 0;
+  {
+    // 雲が日をかすめる揺らぎ：時計（見る人みな同じ）から、ゆっくりした不規則な重なりで。晴れた昼ほど、雲の多い日ほどよく起きる
+    const tt = c.t,
+      n = 0.5 + 0.5 * Math.sin(tt * 0.031 + Math.sin(tt * 0.0117) * 2.3) * Math.sin(tt * 0.0193 + 1.7),
+      pass = Math.max(0, (n - 0.55) / 0.45),
+      cl = Math.min(1, 0.25 + (skyU.uCu.value || 0) + (skyU.uCloud.value || 0) * 0.6);
+    G.gq.material.uniforms.uVeil.value = pass * pass * cl * Math.min(1, day * 3) * (1 - wxNow.gray);
+  }
   G.gq.material.uniforms.uTm.value = (performance.now() / 1000) % 100;
   G.gq.material.uniforms.uDay.value = Math.min(1, day * 2.5) * (1 - wxNow.dark);
   G.gq.material.uniforms.uMorn.value = Math.max(0, 1 - Math.abs(c.phase - 0.34) / 0.08) * (1 - wxNow.gray * 0.5);

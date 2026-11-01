@@ -81,7 +81,7 @@ void main(){float a=texture2D(uMap,gl_PointCoord).a*vA;if(a<.003)discard;gl_Frag
       if (Math.hypot(pos[i * 3] - cx, pos[i * 3 + 2] - cz) > 650) place(i, cx, cz, true);
     }
     g.attributes.position.needsUpdate = true;
-    U.uA.value = 0.11 * a;
+    U.uA.value = 0.065 * a;
     U.uCol.value.copy(dawnC).lerp(dayC, Math.min(1, f.day * 2));
   });
 }
