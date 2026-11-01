@@ -117,7 +117,7 @@
   - 12-renderer.js：`scene`
 
 ## 16-terrain.js
-- 作る：`DEM`、`DEM_D`、`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_DEM`、`ISLE_H`、`MIST_U`、`NEAR`、`NEAR_U`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`SNOW`、`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_NIGHT`、`TERR_FS_ROCK`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleGrid`、`isleH`、`isleShape`、`landContours`、`landH`、`nearAt`、`nearBlk`、`nearRes`、`okiZone`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`tdx`、`tdy`、`terr`、`terrB`、`terrColor`、`terrGeo`、`terrGeo_`、`terrGrid`、`terrH`、`terrMat`、`terrShape`、`terrShapeB`、`tx0`、`ty0`、`vnoise`
+- 作る：`DEM`、`DEM_D`、`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_DEM`、`ISLE_H`、`MIST_U`、`NEAR`、`NEAR_U`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`REED_CUT`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`SNOW`、`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_NIGHT`、`TERR_FS_ROCK`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleGrid`、`isleH`、`isleShape`、`landContours`、`landH`、`nearAt`、`nearBlk`、`nearRes`、`okiZone`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`tdx`、`tdy`、`terr`、`terrB`、`terrColor`、`terrGeo`、`terrGeo_`、`terrGrid`、`terrH`、`terrMat`、`terrShape`、`terrShapeB`、`tx0`、`ty0`、`vnoise`
 - 使う：
   - 00-head.js：`G`、`GLSL_NOISE`
   - 00a-data.js：`DATA`
@@ -152,7 +152,7 @@
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
 ## 19-boats.js
-- 作る：`FISH`、`MinHeap`、`P`、`PN`、`PORT`、`PORT_LL`、`PORT_SITES`、`REED_YEAR`、`ROUTES`、`ROUTE_OFF`、`WAKE_N`、`WP`、`W_SENSE`、`astar`、`avoid`、`boatMeshes`、`boatState`、`clearLine`、`fishPorts`、`flash`、`makeBoat`、`nearestIn`、`nextFlash`、`pPos`、`portLamps`、`precipGeo`、`rainMesh`、`routePos`、`sPos`、`smB`、`smP`、`smoke`、`smokeGeo`、`snowGeo`、`snowMesh`、`updateBoats`、`updatePrecip`、`wake`、`wakeBob`、`wakeI`、`wakeP`
+- 作る：`FISH`、`MinHeap`、`P`、`PN`、`PORT`、`PORT_LL`、`PORT_SITES`、`ROUTES`、`ROUTE_OFF`、`WAKE_N`、`WP`、`W_SENSE`、`astar`、`avoid`、`boatMeshes`、`boatState`、`clearLine`、`fishPorts`、`flash`、`makeBoat`、`nearestIn`、`nextFlash`、`pPos`、`portLamps`、`precipGeo`、`rainMesh`、`routePos`、`sPos`、`snowGeo`、`snowMesh`、`updateBoats`、`updatePrecip`、`wake`、`wakeBob`、`wakeI`、`wakeP`
 - 使う：
   - 00-head.js：`mergeStatic`、`placeLog`
   - 01-settings.js：`LAKE`、`S`
@@ -160,11 +160,9 @@
   - 04-clock.js：`DAY`
   - 06-inner-lakes.js：`inLake`、`minX`、`minY`
   - 07-depth.js：`CELL`、`GH`、`GW`、`depth`、`depthG`、`shoreSnap`
-  - 10-start.js：`rnd`
   - 11-state.js：`B`
   - 12-renderer.js：`camera`、`scene`
   - 14-water.js：`waveH`
-  - 16-terrain.js：`REED_SITES`
   - 18-buildings.js：`house`
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
@@ -460,9 +458,10 @@
   - 06-inner-lakes.js：`inLake`
   - 10-start.js：`rnd`
   - 12-renderer.js：`camera`、`scene`
-  - 16-terrain.js：`reedPts`
+  - 16-terrain.js：`REED_SITES`、`reedPts`、`reedU`
   - 20-villages-layout.js：`landY`
   - 25-harbors.js：`lumpy`
+  - 30-audio.js：`SND`、`nburst`
 
 ## 38b-birdman.js
 - 作る：（なし）
@@ -624,6 +623,19 @@
   - 29-controls.js：`isFar`
   - 30-audio.js：`thunder`
 
+## 43d-reed-uses.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`onFrame`、`placeLog`
+  - 01-settings.js：`S`
+  - 05-lake.js：`outer`
+  - 06-inner-lakes.js：`inLake`、`inRiver`
+  - 07-depth.js：`distShore`
+  - 10-start.js：`rndFor`
+  - 12-renderer.js：`QUALITY`、`scene`
+  - 16-terrain.js：`REED_SITES`、`VEX`
+  - 20-villages-layout.js：`bHash`、`cvTex`、`houses`、`landY`
+
 ## 44-life.js
 - 作る：（なし）
 - 使う：
@@ -720,9 +732,9 @@
   - 12-renderer.js：`camera`、`renderer`、`scene`
   - 13-sky-dome.js：`hemi`、`skyDome`、`skyU`、`sun`
   - 14-water.js：`setWaves`、`water`、`waterU`、`waves`
-  - 16-terrain.js：`FOREST_TINT`、`INNER_Y`、`REED_MONTH`、`REED_TEX`、`SNOW`、`innerReeds`、`reedU`、`reeds`、`terrMat`
+  - 16-terrain.js：`FOREST_TINT`、`INNER_Y`、`REED_CUT`、`REED_MONTH`、`REED_TEX`、`SNOW`、`innerReeds`、`reedU`、`reeds`、`terrMat`
   - 18-buildings.js：`CUST`、`LIGHT_COLORS`、`glassMats`、`house`、`wetU`
-  - 19-boats.js：`W_SENSE`、`flash`、`nextFlash`、`portLamps`、`smB`、`smoke`、`smokeGeo`、`updatePrecip`
+  - 19-boats.js：`W_SENSE`、`flash`、`nextFlash`、`portLamps`、`updatePrecip`
   - 20-villages-layout.js：`roofM`、`roofSnowU`
   - 22-village-lights-roads.js：`winU`、`windows`
   - 23-paddies.js：`paddySeason`

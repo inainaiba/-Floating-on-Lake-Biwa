@@ -197,10 +197,13 @@ function updateSkyLight(dt, t, c, W) {
   // ヨシの一年
   {
     const rk = REED_MONTH[c.month];
-    reedU.uCut.value = rk === "cut" || rk === "burnt" ? 1 : 0;
-    reedU.tAlt.value = REED_TEX[rk === "burnt" ? "cut" : "winter"];
+    // 1・2月は刈り取りが少しずつ進み（刈り跡は短い株）、3月はヨシ焼き（焼け跡の円は 38-seasonal-events.js が広げる）
+    reedU.uCutT.value = REED_CUT[c.month];
+    reedU.uBurnOn.value = rk === "burnt" ? 1 : 0;
+    reedU.tAlt.value = REED_TEX.winter;
+    reedU.uGold.value = rk === "autumn" || rk === "winter" ? 1 : rk === "summer" ? 0.35 : 0;
     for (const r of [reeds, innerReeds]) {
-      r.material.map = REED_TEX[rk];
+      r.material.map = REED_TEX[REED_CUT[c.month] > 0 ? "cut" : rk];
       r.position.y = r === reeds ? lvl * 1.2 : INNER_Y * 0;
     }
     reedU.uT.value = t;
@@ -221,17 +224,6 @@ function updateSkyLight(dt, t, c, W) {
       }
     }
     reedU.uW.value.set(W.x * 0.09, W.y * 0.09);
-    smoke.visible = c.month === 2 && day > 0.2;
-    if (smoke.visible) {
-      const p = smokeGeo.attributes.position.array;
-      smB.forEach(([x, z, o], i) => {
-        const k = (t * 1.5 + o) % 40;
-        p[i * 3] = x + k * W.x * 0.4;
-        p[i * 3 + 1] = k;
-        p[i * 3 + 2] = z + k * W.y * 0.4;
-      });
-      smokeGeo.attributes.position.needsUpdate = true;
-    }
   }
   waterU.uSky.value.copy(sky);
   waterU.uFogC.value.copy(skyU.uHor.value);
