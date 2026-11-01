@@ -5,6 +5,16 @@
      格子 g（標高・水深）／岸近くの細かい地形 n4／道の線 st／家 tw／地図記号 lu。元のバイト列の CRC32 で読み戻しを確かめる
    ・$p：deflate（小さなデータ）。並べ方を変えてから圧縮してある。並べ方：raw そのまま／delta 前のバイトとの差／
      p{k} k バイトごとの組を、バイトの位置ごとの列に分ける／pd{k} 列に分けてから差／2d 左と上と左上から予測した値との差 ---------- */
+// 読み戻しの確かめ（CRC32）。違えばコンソールに誤りとして出す（tools/check.py と、組み立ての tools/datacheck.mjs が拾う）
+function crcCheck(o, want, what) {
+  if (want === undefined) return;
+  let cr = -1;
+  for (let i = 0; i < o.length; i++) {
+    cr ^= o[i];
+    for (let k = 0; k < 8; k++) cr = (cr >>> 1) ^ (0xedb88320 & -(cr & 1));
+  }
+  if ((cr ^ -1) >>> 0 !== want) console.error("[data] 読み戻しが元と違います：" + what);
+}
 const b64 = (o) => {
   let s = "";
   for (let i = 0; i < o.length; i += 32768) s += String.fromCharCode.apply(null, o.subarray(i, i + 32768));
@@ -53,6 +63,7 @@ function unpackPL(p) {
     }
     out.push(poly);
   }
+  crcCheck(new TextEncoder().encode(JSON.stringify(out)), p.c32, "形");
   return out;
 }
 function unpackAC(p) {
@@ -206,13 +217,7 @@ function unpackAC(p) {
       pk = k;
     }
   }
-  // 読み戻しの確かめ（CRC32）。違えばコンソールに誤りとして出す（tools/check.py が拾う）
-  let cr = -1;
-  for (let i = 0; i < o.length; i++) {
-    cr ^= o[i];
-    for (let k = 0; k < 8; k++) cr = (cr >>> 1) ^ (0xedb88320 & -(cr & 1));
-  }
-  if ((cr ^ -1) >>> 0 !== p.c32) console.error("[data] 読み戻しが元と違います：" + m);
+  crcCheck(o, p.c32, m);
   return b64(o);
 }
 async function unpackBlob(p) {
@@ -244,6 +249,7 @@ async function unpackBlob(p) {
     for (let j = 0; j < k; j++) for (let r = 0; r < nr; r++) o[r * k + j] = b[j * nr + r];
     o.set(b.subarray(nr * k), nr * k);
   }
+  crcCheck(o, p.c32, "deflate " + t);
   return b64(o);
 }
 async function unpackData(v) {

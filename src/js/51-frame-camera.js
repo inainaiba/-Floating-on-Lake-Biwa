@@ -1,6 +1,13 @@
 /* ---------- 毎フレーム④：カメラ（水平を保って建物を追う） ---------- */
 function updateCamera(dt, t, hx, hz) {
   idleLook(dt);
+  // 鑑賞：ゆっくり回りながら、低い目線と少し高い目線、近くと遠くを、何分もかけて行き来する
+  if (G.watch && STATE === "lake" && !isFar) {
+    const s = (performance.now() - G.watch) / 1000;
+    yawT += dt * 0.022;
+    pitch += (0.1 + 0.12 * Math.sin(s * 0.021) - pitch) * Math.min(1, dt * 0.3);
+    distT = 80 + 55 * (0.5 + 0.5 * Math.sin(s * 0.013 + 1));
+  }
   // カメラ：水平を保って建物を追う
   if (
     STATE === "lake" &&

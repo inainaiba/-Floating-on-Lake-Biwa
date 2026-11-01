@@ -181,11 +181,13 @@ if (G.wakeMesh) G.wakeMesh.userData.noChunk = true; // 航跡は毎フレーム�
     }
   });
   const rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType });
+  // compileAsync：GPU が並行してシェーダーを用意できるときは、それを待つ間も画面が止まらない（読み込み中の線が動く）
   try {
     renderer.setRenderTarget(rt);
-    renderer.compile(scene, camera);
+    await renderer.compileAsync(scene, camera);
+    renderer.setRenderTarget(rt);
     renderer.clippingPlanes = [new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)];
-    renderer.compile(scene, camera);
+    await renderer.compileAsync(scene, camera);
   } catch (e) {
     console.warn(e);
   }

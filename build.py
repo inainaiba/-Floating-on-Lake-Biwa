@@ -9,7 +9,7 @@
     作品の中で元の文字列に戻す（src/js/00a-data.js）。詰めた結果は tools/.ac_cache/ に取っておく（同じデータなら詰め直さない）
   ・three.js（使う部分だけ）と作品のコードを1つにまとめて縮める（esbuild：npm install --no-save esbuild@0.24.2 three@0.160.0）
 """
-import base64, hashlib, math, pathlib, json, re, sys, zlib
+import base64, hashlib, math, os, pathlib, json, re, sys, zlib
 from openpyxl import load_workbook
 
 r = pathlib.Path(__file__).parent
@@ -101,7 +101,7 @@ def pack(s, t, w=0):
     b = base64.b64decode(s)
     x = b if t == 'raw' else _delta(b) if t == 'delta' else _pred2d(b, w) if t == '2d' else _med(b, w) if t == 'med' else _planes(b, int(t[2:] if t[1] == 'd' else t[1:]), t[1] == 'd')
     c = zlib.compressobj(9, zlib.DEFLATED, -15)
-    out = {'$p': base64.b64encode(c.compress(x) + c.flush()).decode(), 't': t}
+    out = {'$p': base64.b64encode(c.compress(x) + c.flush()).decode(), 't': t, 'c32': zlib.crc32(b) & 0xFFFFFFFF}
     if t in ('2d', 'med'):
         out['w'] = w
     return out
@@ -235,7 +235,7 @@ def data():
         q['d'] = pack(q['d'], 'delta')
     # 湖岸線・島・川の形（多角形の列）。湖岸線の残り（港・橋・河口）は __LAKE__ のまま
     L2 = L('lake')
-    pl = lambda polys: {'$j': base64.b64encode(acpack.enc_pl(polys)).decode()}
+    pl = lambda polys: {'$j': base64.b64encode(acpack.enc_pl(polys)).decode(), 'c32': zlib.crc32(json.dumps(polys, separators=(',', ':')).encode()) & 0xFFFFFFFF}
     shape = {'outer': pl([[L2['outer']]]), 'islands': pl([L2['islands']]), 'rivers': pl(L('rivers'))}
     return {'dem': dem, 'depth': depth, 'near': near, 'towns': towns, 'landuse': lu, 'isles': isles, 'shape': shape}
 
@@ -272,7 +272,8 @@ def bundle(script):
     src = r / 'tools/.bundle-in.mjs'
     src.write_text(script)
     try:
-        res = subprocess.run([str(exe), str(src), '--bundle', '--format=esm', '--minify', '--target=es2022', '--charset=utf8',
+        mini = ['--minify-syntax', '--minify-whitespace'] if os.environ.get('PROFILE') else ['--minify']  # 計測用は関数の名前を残す
+        res = subprocess.run([str(exe), str(src), '--bundle', '--format=esm', *mini, '--target=es2022', '--charset=utf8',
                               '--legal-comments=inline', '--log-level=error'], capture_output=True, text=True)
     finally:
         src.unlink()
@@ -299,18 +300,32 @@ def build():
     js = []
     for i, p in enumerate(parts):
         js.append(glsl_comments(p.read_text()))
+        if os.environ.get('PROFILE'):  # 計測用（PROFILE=1 python3 build.py）：部品ごとの終わりに印。tools/.profile.html へ書き、公開ファイルは変えない
+            js.append(f'performance.mark({p.name!r});')
         if i % step == step - 1 and i < len(parts) - 1:
             js.append(f'if (window.__ld) await window.__ld({(i + 1) / len(parts):.2f});')
     script = bundle('\n'.join(js))
     html = (r / 'src/shell.html').read_text().replace('__SCRIPT__', script)
     B = buoys()
+    D = data()
+    # 詰めたデータを、作品と同じ読み戻しで元に戻せるか確かめる（node があれば。CRC32 で照らし合わせる）
+    import shutil as _sh, subprocess as _sp
+    if _sh.which('node'):
+        tmp = r / 'tools/.data-check.json'
+        tmp.write_text(json.dumps(D))
+        res = _sp.run(['node', str(r / 'tools/datacheck.mjs'), str(tmp)], capture_output=True, text=True)
+        tmp.unlink()
+        print(res.stdout.strip())
+        if res.returncode:
+            print(res.stderr[-800:])
+            raise SystemExit('詰めたデータが元に戻らないため、組み立てを中止しました')
     # 湖岸線などのうち、作品で使わないもの（OpenStreetMap の川の線・灯台）は埋め込まない
     lake = json.loads((r / 'data/lake.json').read_text())
     for k in ('rivers', 'lights', 'outer', 'islands'):  # 湖岸線と島の形は DATA.shape へ（算術符号で詰める）
         lake.pop(k, None)
     html = (html.replace('__LAKE__', json.dumps(lake, ensure_ascii=False, separators=(',', ':')))
                 .replace('__RAIL__', (r / 'data/rail.json').read_text())
-                .replace('__DATA__', json.dumps(data(), separators=(',', ':')))
+                .replace('__DATA__', json.dumps(D, separators=(',', ':')))
                 .replace('__BUOYS__', json.dumps(B, ensure_ascii=False)))
     # 文法の確認：node があれば、組み立てたコードを読み込めるか確かめる（壊れたまま公開しないため）
     import subprocess, shutil, tempfile
@@ -321,6 +336,10 @@ def build():
         if res.returncode:
             print(res.stderr.split('SyntaxError')[0][-400:] + 'SyntaxError' + res.stderr.split('SyntaxError')[-1][:200])
             raise SystemExit('コードに文法の誤りがあるため、組み立てを中止しました')
+    if os.environ.get('PROFILE'):
+        (r / 'tools/.profile.html').write_text(html)
+        print('built tools/.profile.html（計測用）')
+        return
     (r / 'docs/index.html').write_text(html)
     print(f'built docs/index.html  部品 {len(parts)} 個 / ブイ {len(B)} 個')
 
