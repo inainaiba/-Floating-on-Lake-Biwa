@@ -9,7 +9,7 @@
     作品の中で元の文字列に戻す（src/js/00a-data.js）。詰めた結果は tools/.ac_cache/ に取っておく（同じデータなら詰め直さない）
   ・three.js（使う部分だけ）と作品のコードを1つにまとめて縮める（esbuild：npm install --no-save esbuild@0.24.2 three@0.160.0）
 """
-import base64, hashlib, pathlib, json, re, sys, zlib
+import base64, hashlib, math, pathlib, json, re, sys, zlib
 from openpyxl import load_workbook
 
 r = pathlib.Path(__file__).parent
@@ -140,28 +140,61 @@ DEM_FAR = 7000  # 湖岸からこれより遠い山は、標高の目を200m→4
 
 def dem_far(dem, lake):
     """湖から遠い山の奥だけ、標高の格子を一つおきにし、間を補間した値に置き換える（base64 で返す）。
-    補間した値は予測とほぼ一致するので、算術符号でほとんど場所を取らない。遠くの稜線はなめらかにつながり、近くの山肌と湖岸はそのまま"""
-    import numpy as np
-    import shapely
-    from shapely.geometry import Polygon
-    w, h = dem['w'], len(base64.b64decode(dem['d'])) // dem['w']
-    g = np.frombuffer(base64.b64decode(dem['d']), dtype=np.uint8).reshape(h, w).astype(np.int32)
-    xs, ys = np.meshgrid(dem['x0'] + np.arange(w) * dem['step'], dem['y0'] + np.arange(h) * dem['step'])
-    far = shapely.distance(Polygon(lake['outer']), shapely.points(xs.ravel(), ys.ravel())).reshape(h, w) > DEM_FAR
-    o = g.copy()
+    補間した値は予測とほぼ一致するので、算術符号でほとんど場所を取らない。遠くの稜線はなめらかにつながり、近くの山肌と湖岸はそのまま。
+    （numpy や shapely を使わずに書く：組み立ては Python だけで動くように）"""
+    raw = base64.b64decode(dem['d'])
+    w, st = dem['w'], dem['step']
+    h = len(raw) // w
+    g = [list(raw[j * w:(j + 1) * w]) for j in range(h)]
+    # 湖の格子：行ごとに湖岸線と交わる所を求めて、内側を塗る
+    P = lake['outer']
+    inl = [[False] * w for _ in range(h)]
+    for j in range(h):
+        y = dem['y0'] + j * st
+        xs = []
+        for k in range(len(P)):
+            (x1, y1), (x2, y2) = P[k], P[(k + 1) % len(P)]
+            if (y1 > y) != (y2 > y):
+                xs.append(x1 + (y - y1) * (x2 - x1) / (y2 - y1))
+        xs.sort()
+        for a_, b_ in zip(xs[0::2], xs[1::2]):
+            for i in range(max(0, math.ceil((a_ - dem['x0']) / st)), min(w, math.floor((b_ - dem['x0']) / st) + 1)):
+                inl[j][i] = True
+    # 湖からの隔たり（格子の上の、斜めも数える近似の距離。2回のなめで求める）
+    INF = 1e9
+    dd = [[0.0 if inl[j][i] else INF for i in range(w)] for j in range(h)]
+    r2 = st * math.sqrt(2)
     for j in range(h):
         for i in range(w):
-            if not far[j, i] or (i % 2 == 0 and j % 2 == 0):
+            v = dd[j][i]
+            if i: v = min(v, dd[j][i - 1] + st)
+            if j:
+                v = min(v, dd[j - 1][i] + st)
+                if i: v = min(v, dd[j - 1][i - 1] + r2)
+                if i + 1 < w: v = min(v, dd[j - 1][i + 1] + r2)
+            dd[j][i] = v
+    for j in range(h - 1, -1, -1):
+        for i in range(w - 1, -1, -1):
+            v = dd[j][i]
+            if i + 1 < w: v = min(v, dd[j][i + 1] + st)
+            if j + 1 < h:
+                v = min(v, dd[j + 1][i] + st)
+                if i + 1 < w: v = min(v, dd[j + 1][i + 1] + r2)
+                if i: v = min(v, dd[j + 1][i - 1] + r2)
+            dd[j][i] = v
+    o = [row[:] for row in g]
+    G = lambda j, i: g[min(max(j, 0), h - 1)][min(max(i, 0), w - 1)]
+    for j in range(h):
+        for i in range(w):
+            if dd[j][i] <= DEM_FAR or (i % 2 == 0 and j % 2 == 0):
                 continue
-            L_, R_ = g[j, max(i - 1, 0)], g[j, min(i + 1, w - 1)]
-            U_, D_ = g[max(j - 1, 0), i], g[min(j + 1, h - 1), i]
             if i % 2 and j % 2 == 0:
-                o[j, i] = (L_ + R_ + 1) // 2
+                o[j][i] = (G(j, i - 1) + G(j, i + 1) + 1) // 2
             elif j % 2 and i % 2 == 0:
-                o[j, i] = (U_ + D_ + 1) // 2
+                o[j][i] = (G(j - 1, i) + G(j + 1, i) + 1) // 2
             else:
-                o[j, i] = (g[max(j - 1, 0), max(i - 1, 0)] + g[max(j - 1, 0), min(i + 1, w - 1)] + g[min(j + 1, h - 1), max(i - 1, 0)] + g[min(j + 1, h - 1), min(i + 1, w - 1)] + 2) // 4
-    return base64.b64encode(o.astype(np.uint8).tobytes()).decode()
+                o[j][i] = (G(j - 1, i - 1) + G(j - 1, i + 1) + G(j + 1, i - 1) + G(j + 1, i + 1) + 2) // 4
+    return base64.b64encode(bytes(v for row in o for v in row)).decode()
 
 
 def data():
