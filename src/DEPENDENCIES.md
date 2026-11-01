@@ -815,6 +815,9 @@
 - `G.birds`：43b-birds.js
 - `G.biwako`：24-shore-landmarks.js
 - `G.bkinds`：21b-building-kinds.js
+- `G.bl2Q`：52-frame-render.js
+- `G.bl2RT`：52-frame-render.js
+- `G.bl2S`：52-frame-render.js
 - `G.blQ`：52-frame-render.js
 - `G.blRT`：52-frame-render.js
 - `G.blS`：52-frame-render.js
