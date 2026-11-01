@@ -218,7 +218,7 @@ body=mix(body,body*vec3(.7,.76,.82)+vec3(.04,.045,.05),uLead*.9);
 // 風の通り道：さざ波の立った暗い帯が風下へ流れる（静かな日ほど目立つ）
 float cpw;{vec2 wd=normalize(uWd+1e-4);vec2 q=vP0.xz*.0016-wd*uT2*.014;cpw=smoothstep(.45,.85,(sin(q.x*3.1+sin(q.y*2.3)*1.4)*sin(q.y*2.7+sin(q.x*1.9)*1.3))*.5+.5)*(.35+.65*uCalm);body*=1.-cpw*.16;}
 {vec2 wd=normalize(uWd+1e-4),wp=vec2(dot(vP0.xz,wd),dot(vP0.xz,vec2(-wd.y,wd.x)));
-float ws=(1.-uCalm)*smoothstep(.45,.75,fract(sin(dot(floor(vec2(wp.x*.006-uT2*.05,wp.y*.03)),vec2(5.1,3.7)))*91.))*smoothstep(.2,.8,sin(wp.y*.045+sin(wp.x*.004)*3.)*.5+.5);
+float ws=(1.-uCalm)*smoothstep(.45,.75,nzF4(vec2(wp.x*.006-uT2*.05,wp.y*.03)))*smoothstep(.2,.8,sin(wp.y*.045+sin(wp.x*.004)*3.)*.5+.5);
 body*=1.-ws*.22;
 }{float sb=smoothstep(4.,.4,dep);
 vec3 bed=mix(${v3(PALETTE.lakeBedSand)},${v3(PALETTE.lakeBedLight)},fract(sin(dot(floor(vP0.xz*.08),vec2(4.7,1.9)))*77.)*.6);
@@ -247,7 +247,7 @@ float sp=glit+msp+pow(rs,900.)*2.*smoothstep(500.,30.,dc)*(.6+.8*fract(sin(dot(f
 vec3 skyR=mix(uSky*1.12,uSky*.78,pow(clamp(R.y,0.,1.),.5))+vec3(1.,.6,.35)*exp(-max(R.y,0.)*12.)*smoothstep(.05,-.15,uSun.y)*.3+vec3(.8,.85,1.)*step(.996,fract(sin(dot(floor(R.xz/(R.y+.25)*300.),vec2(12.9,78.2)))*43758.5))*smoothstep(.05,-.15,uSun.y)*smoothstep(.05,.25,R.y)*.6+vec3(.02,.03,.05)*smoothstep(.05,-.1,uSun.y);
 float lowR=smoothstep(.09,.0,R.y);
 skyR+=vec3(.25,.16,.06)*lowR*smoothstep(.0,-.15,uSun.y)*.25*(.5+.5*sin(vP.x*.9+sin(vP.z*.3)*3.));
-skyR*=1.+.1*(fract(sin(dot(floor((vP.xz+R.xz*200.)*.01),vec2(1.7,9.2)))*43.)-.5)*(1.-lowR);`;
+skyR*=1.+.1*(nzF4((vP.xz+R.xz*200.)*.01)-.5)*(1.-lowR);`;
 // 建物のまわり
 const W_FS_HOUSE = `// ── 建物のまわり：喫水の陰、波の斜面の陰影、建物の影、水際の泡 ──
 float ub=length(vP.xz-uHouse.xy);
