@@ -664,6 +664,20 @@
   - 14-water.js：`waveH`
   - 29-controls.js：`isFar`
 
+## 44c-floating-halls.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`、`onFrame`、`placeLog`
+  - 01-settings.js：`RM`、`S`
+  - 06-inner-lakes.js：`inLake`
+  - 07-depth.js：`depth`、`shoreSnap`
+  - 10-start.js：`rndFor`
+  - 12-renderer.js：`camera`、`scene`
+  - 14-water.js：`water`
+  - 20-villages-layout.js：`cvTex`、`landY`
+  - 29-controls.js：`isFar`
+  - 30-audio.js：`SND`、`nburst`、`panV`
+
 ## 45-boats.js
 - 作る：（なし）
 - 使う：
@@ -868,6 +882,7 @@
 - `G.grass`：21-villages-walls-roofs.js
 - `G.groundH`：53-frame.js
 - `G.gs`：52-frame-render.js
+- `G.halls`：44c-floating-halls.js
 - `G.harb`：25-harbors.js
 - `G.innerMeshes`：16-terrain.js
 - `G.isl`：41-islands.js
