@@ -19,7 +19,12 @@
     }
     return { x: sx + Math.cos(a) * off, y: sy + Math.sin(a) * off, sx, sy, a };
   }
-  const lam = (c, o = {}) => new THREE.MeshLambertMaterial({ color: c, ...o });
+  const LAMS = new Map(),
+    lam = (c, o) => {
+      if (o) return new THREE.MeshLambertMaterial({ color: c, ...o });
+      if (!LAMS.has(c)) LAMS.set(c, new THREE.MeshLambertMaterial({ color: c })); // 同じ色は材質を共有（まとめて描ける）
+      return LAMS.get(c);
+    };
   const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
   const add = (g, geo, m, x, y, z, ry = 0, rx = 0, rz = 0) => {
     const o = new THREE.Mesh(geo, m);
@@ -90,6 +95,7 @@
   }
   const halls = [];
   function moor(g, sp, extraY = 0) {
+    mergeStatic(g); // 部品を材質ごとに1つの形にまとめて、描く回数を減らす（00-head.js）
     g.position.set(sp.x * S, extraY, sp.y * S);
     g.rotation.y = -sp.a + Math.PI / 2;
     scene.add(g);
@@ -160,13 +166,14 @@
     }
     // 床に落ちる灯り（夜、床がほの明るい）
     add(g, new THREE.CircleGeometry(6, 24), glowMat(0x553a1c, 1), 0, 0.87, 0, 0, -Math.PI / 2);
-    // 三角旗：屋根の軒から旗竿へ（色とりどり）
+    // 三角旗：屋根の軒から旗竿へ（色とりどり。材質は色ごとに共有）
+    const FLAG = [0xd8634f, 0xe9c25a, 0x5b8fc4, 0x7fae6a, 0xf2efe6].map((c) => new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide }));
     add(g, new THREE.CylinderGeometry(0.1, 0.12, 6, 6), M.post, 11.5, 3.3, 0);
     for (let k = 0; k < 9; k++) {
       const u = k / 8,
         x = 6 + u * 5.5,
         y = 4.4 + Math.sin(u * Math.PI) * -0.8 + u * 1.5;
-      const f = new THREE.Mesh(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-0.25, 0, 0), new THREE.Vector3(0.25, 0, 0), new THREE.Vector3(0, -0.6, 0)]), new THREE.MeshBasicMaterial({ color: [0xd8634f, 0xe9c25a, 0x5b8fc4, 0x7fae6a, 0xf2efe6][k % 5], side: THREE.DoubleSide }));
+      const f = new THREE.Mesh(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-0.25, 0, 0), new THREE.Vector3(0.25, 0, 0), new THREE.Vector3(0, -0.6, 0)]), FLAG[k % 5]);
       f.position.set(x, y, 0);
       g.add(f);
     }

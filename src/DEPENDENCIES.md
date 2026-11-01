@@ -667,7 +667,7 @@
 ## 44c-floating-halls.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`onFrame`、`placeLog`
+  - 00-head.js：`G`、`mergeStatic`、`onFrame`、`placeLog`
   - 01-settings.js：`RM`、`S`
   - 06-inner-lakes.js：`inLake`
   - 07-depth.js：`depth`、`shoreSnap`
