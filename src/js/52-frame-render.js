@@ -31,6 +31,7 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
         uniforms: {
           tD: { value: null },
           tBl: { value: null },
+          tBl2: { value: null },
           uAsp: { value: 1.6 },
           uSunS: { value: new THREE.Vector3(0, 0, 0) },
           uBlue: { value: 0 },
@@ -43,16 +44,27 @@ function renderFrame(c, W, wxNow, day, sunAngle) {
         depthTest: false,
         depthWrite: false,
         vertexShader: `varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy,0.,1.);}`,
-        fragmentShader: `uniform sampler2D tD;uniform sampler2D tBl;uniform float uAsp;uniform vec3 uSunS;uniform float uBlue;
+        fragmentShader: `uniform sampler2D tD;uniform sampler2D tBl;uniform sampler2D tBl2;uniform float uAsp;uniform vec3 uSunS;uniform float uBlue;
 
 uniform float uWarm,uDay,uMorn,uTm,uMoonL;
 varying vec2 vU;
    vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);
 }
-   void main(){vec3 c0=texture2D(tD,vU).rgb;
+float bh(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}
+float bn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(bh(i),bh(i+vec2(1,0)),f.x),mix(bh(i+vec2(0,1)),bh(i+1.),f.x),f.y);}
+   void main(){
+// 輪郭をほどく：画面を筆の流れのような向きの場に沿って、少しずつずらした色を重ねる。
+// 輪郭がにじんで隣の色と溶け合う。画面の上（遠景）ほど強く、下（手前）は控えめ。場はゆっくり漂うだけで、ちらつかない
+vec2 q=vU*vec2(uAsp,1.);
+float fa=(bn(q*9.+uTm*.004)*.7+bn(q*23.-uTm*.003)*.3)*6.2832;
+vec2 dir=vec2(cos(fa),sin(fa))*vec2(1./uAsp,1.)*(.0016+.0026*smoothstep(.15,.75,vU.y));
+vec2 jt=(vec2(bn(q*61.),bn(q*61.+7.3))-.5)*.0012;
+vec3 c0=texture2D(tD,vU+jt).rgb*.34+texture2D(tD,vU+dir+jt).rgb*.24+texture2D(tD,vU-dir).rgb*.24+texture2D(tD,vU+dir*2.2-jt).rgb*.18;
 vec3 c=aces(c0*1.15);
-vec3 bl=texture2D(tBl,vU).rgb; // 明るい所のにじみ（半分の解像度で先に計算したもの）
-c+=bl*vec3(.15,.14,.13);
+vec3 bl=texture2D(tBl,vU).rgb,bl2=texture2D(tBl2,vU).rgb; // 明るい所のにじみ：近いにじみ（半分の解像度）と、広く空気ごと光るにじみ（8分の1の解像度）
+vec3 glowT=mix(vec3(1.,.96,.9),vec3(1.,.84,.64),uWarm); // にじみの色：朝夕は金色に
+float gk=mix(1.,.3,uDay*(1.-uWarm)); // 昼の明るい空まで光らせない（朝夕・夜に強く）
+c+=bl*vec3(.2,.19,.18)*glowT*(.6+.4*gk)+bl2*.24*glowT*gk;
 // 太陽を向いたときのレンズの光のにじみ（ごく控えめに）
 if(uSunS.z>.01){vec2 d=(vU-uSunS.xy)*vec2(uAsp,1.);float r=length(d);c+=vec3(1.,.93,.82)*(exp(-r*r*18.)*.05+exp(-r*5.)*.018)*uSunS.z;vec2 gp=vec2(1.)-uSunS.xy;float g2=length((vU-mix(uSunS.xy,gp,.7))*vec2(uAsp,1.));c+=vec3(.7,.85,1.)*smoothstep(.06,.04,g2)*smoothstep(.02,.04,g2)*.008*uSunS.z;}
 c=pow(c,vec3(1./2.2));
@@ -82,6 +94,13 @@ c=mix(c,vec3(.86,.9,.88),uMorn*.45*smoothstep(.55,.95,vU.y));
 }
     // 夜明け前の青：空と湖の境目が消える、青一色の時間
     {float lb=dot(c,vec3(.299,.587,.114));c=mix(c,vec3(.5,.68,1.)*(lb*1.15+.04),uBlue*.55);}
+    // 影を色で塗る：暗い所を黒ではなく、空の色（昼は青、朝夕は紫、夜は藍）で満たす。明るい所はわずかに暖かく。真っ黒は残さない
+    {float ls=dot(c,vec3(.299,.587,.114));
+    vec3 shC=mix(mix(vec3(.30,.38,.62),vec3(.42,.30,.58),uWarm),vec3(.16,.19,.36),ngt);
+    float sh=1.-smoothstep(.04,.5,ls);
+    c=mix(c,shC*(ls*1.5+.05),sh*.36);
+    c*=mix(vec3(1.),mix(vec3(1.04,1.01,.95),vec3(1.08,.98,.86),uWarm),smoothstep(.5,1.,ls)*.6);
+    c=max(c,shC*.07);}
     float v=distance(vU,vec2(.5));
 c=mix(c,c*1.04+.03,smoothstep(.3,.75,v)*uDay*.6);
 {float gr=fract(sin(dot(floor(vU*vec2(1920.,1080.)),vec2(12.9898,78.233))+uTm*7.13)*43758.5453)-.5;
@@ -107,12 +126,30 @@ vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}
 void main(){vec3 bl=vec3(0.);
 for(int i=0;i<16;i++){float a=float(i)*2.399,r=.003+.0032*float(i);
 vec3 s=aces(texture2D(tD,vU+vec2(cos(a),sin(a))*r*vec2(1.,1.6)).rgb*1.15);
-bl+=max(s-.55,0.)*(1.-float(i)/20.);}
+bl+=max(s-.52,0.)*(1.-float(i)/20.);}
 gl_FragColor=vec4(bl,1.);}`,
       }),
     );
     G.blS = new THREE.Scene();
     G.blS.add(G.blQ);
+    // 広いにじみ：近いにじみをさらに8分の1の解像度で大きく広げる（明るい所が周りの空気ごと光る）
+    G.bl2RT = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+    G.bl2Q = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 2),
+      new THREE.ShaderMaterial({
+        uniforms: { tB: { value: null } },
+        depthTest: false,
+        depthWrite: false,
+        vertexShader: `varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy,0.,1.);}`,
+        fragmentShader: `uniform sampler2D tB;varying vec2 vU;
+void main(){vec3 b=vec3(0.);float w=0.;
+for(int i=0;i<24;i++){float a=float(i)*2.399,r=.01+.0075*float(i),k=1.-float(i)/28.;
+b+=texture2D(tB,vU+vec2(cos(a),sin(a))*r*vec2(1.,1.6)).rgb*k;w+=k;}
+gl_FragColor=vec4(b/w*1.6,1.);}`,
+      }),
+    );
+    G.bl2S = new THREE.Scene();
+    G.bl2S.add(G.bl2Q);
     G.gc = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   }
   {
@@ -216,9 +253,18 @@ gl_FragColor=vec4(bl,1.);}`,
     renderer.toneMapping = THREE.NoToneMapping;
     renderer.setRenderTarget(G.blRT);
     renderer.render(G.blS, G.gc);
+    {
+      const w2 = Math.max(1, renderer.domElement.width >> 3),
+        h2 = Math.max(1, renderer.domElement.height >> 3);
+      if (G.bl2RT.width !== w2 || G.bl2RT.height !== h2) G.bl2RT.setSize(w2, h2);
+      G.bl2Q.material.uniforms.tB.value = G.blRT.texture;
+      renderer.setRenderTarget(G.bl2RT);
+      renderer.render(G.bl2S, G.gc);
+    }
     renderer.setRenderTarget(null);
     renderer.toneMapping = tm;
     G.gq.material.uniforms.tBl.value = G.blRT.texture;
+    G.gq.material.uniforms.tBl2.value = G.bl2RT.texture;
   }
   {
     const u = G.gq.material.uniforms;
