@@ -239,7 +239,7 @@ G.life = (() => {
           const off = 12 + Math.pow(R(), 0.8) * 70,
             x = x1 + ((x2 - x1) * s) / L + nx * off + (R() - 0.5) * 14,
             y = y1 + ((y2 - y1) * s) / L + ny * off + (R() - 0.5) * 14;
-          if (inLake(x, y) || inInner(x, y)) continue;
+          if (inLake(x, y) || inInner(x, y) || inRiver(x, y)) continue;
           // 大きさ：若い松から大きな老木まで
           P.push([x, y, landY(x, y), R() < 0.2 ? 0.6 + R() * 0.3 : 0.85 + R() * 0.75, R()]);
         }
