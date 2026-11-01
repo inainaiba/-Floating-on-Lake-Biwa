@@ -312,7 +312,8 @@ function drawFar(boats = [], wxNow = null, W = null) {
     fx.font = 12 * dpr + 'px "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif';
     fx.textBaseline = "middle";
     fx.lineJoin = "round";
-    const seen = [];
+    const seen = [],
+      placed = [];
     for (const fn of MAP_MARKS)
       for (const it of fn(c)) {
         const ex = X(it.x),
@@ -329,12 +330,19 @@ function drawFar(boats = [], wxNow = null, W = null) {
         // 同じ名前が近くに並ぶとき（左義長の浜など）は、名前は一つだけ
         if (seen.some(([n, x, y]) => n === it.ja && Math.hypot(x - ex, y - ey) < 120 * dpr)) continue;
         seen.push([it.ja, ex, ey]);
-        const label = (en ? it.en : it.ja) + (en ? " · now" : "（いま）");
+        const label = (en ? it.en : it.ja) + (en ? " · now" : "（いま）"),
+          lw = fx.measureText(label).width,
+          lh = 15 * dpr;
+        // 近くの名前と重なるときは、一行ずつ下へずらす
+        let ly = ey - 9 * dpr;
+        const lx = ex + 9 * dpr;
+        while (placed.some(([x, y, w]) => lx < x + w && x < lx + lw && Math.abs(y - ly) < lh)) ly += lh;
+        placed.push([lx, ly, lw]);
         fx.lineWidth = 4 * dpr;
         fx.strokeStyle = "#f6f5f0";
-        fx.strokeText(label, ex + 9 * dpr, ey - 9 * dpr);
+        fx.strokeText(label, lx, ly);
         fx.fillStyle = "#14595c";
-        fx.fillText(label, ex + 9 * dpr, ey - 9 * dpr);
+        fx.fillText(label, lx, ly);
       }
     fx.restore();
   }
