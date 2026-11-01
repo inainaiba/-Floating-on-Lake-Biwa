@@ -92,7 +92,7 @@ G.moments = (() => {
   bI.visible = false;
   scene.add(bI);
 
-  // 夕方の鐘：一日に一度、日暮れのころ、湖岸の寺々から響く（三井の晩鐘・長命寺・竹生島の宝厳寺）。
+  // 夕方の鐘（朝6時ごろにも近くの寺から）：一日に一度、日暮れのころ、湖岸の寺々から響く（三井の晩鐘・長命寺・竹生島の宝厳寺）。
   // 寺の場所から、離れている分だけ小さく、こもって、遅れて届く（音の速さ。遠い寺ほど後から）。12月の夜更けは除夜の鐘
   const TEMPLES = [
     [135.8536, 35.0135], // 三井寺（園城寺）
@@ -100,6 +100,7 @@ G.moments = (() => {
     [136.1433, 35.4214], // 竹生島の宝厳寺
   ].map(([lo, la]) => ll(lo, la));
   let lastBell = -1,
+    lastBellM = -1,
     nextJoya = 0;
   function strike(st, vol, lpF, out) {
     const ac = SND.ctx;
@@ -167,6 +168,11 @@ G.moments = (() => {
     if (c.phase > 0.735 && c.phase < 0.75 && dayNo !== lastBell && !isFar) {
       lastBell = dayNo;
       bell(3, false);
+    }
+    // 朝の鐘：夜明けの6時ごろ、いちばん近い寺から（明け六つ）
+    if (c.phase > 0.25 && c.phase < 0.262 && dayNo !== lastBellM && !isFar) {
+      lastBellM = dayNo;
+      bell(2, true);
     }
     // 除夜の鐘：12月の夜更け（23時半〜0時半）、いちばん近い寺から、ゆっくり一つずつ
     if (c.month === 11 && (c.phase > 0.98 || c.phase < 0.02) && !isFar && t > nextJoya) {

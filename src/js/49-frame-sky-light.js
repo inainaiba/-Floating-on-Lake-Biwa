@@ -326,7 +326,9 @@ function updateSkyLight(dt, t, c, W) {
     G.torii.L.intensity = day < 0.08 ? 60 : 0;
     G.torii.red.emissive.set(day < 0.08 ? 0x3a0e06 : 0);
   }
-  windows.visible = night || day < 0.18;
+  windows.visible = day < 0.34; // 窓ごとに灯る暗さが違う（22-village-lights-roads.js の aLit）
+  winU.uDay.value = day;
+  winU.uHour.value = c.phase * 24;
   if (G.street) G.street.visible = night || day < 0.1;
   windows.material.opacity = day < 0.05 ? 0.95 : 0.6;
   if (paddySeason._m !== c.month) {

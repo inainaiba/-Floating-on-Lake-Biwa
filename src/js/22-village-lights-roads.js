@@ -1,18 +1,39 @@
 // 夜の窓の灯り
+// 灯りの暮らし：窓ごとに「灯る暗さ」「消える時刻」「朝に灯る時刻」を持たせ、一斉ではなく一つずつ灯って一つずつ消える。
+// 一階（台所・居間）は暗くなりはじめに早く灯って、夜10時ごろから消えていく。二階は遅く灯って、夜更けまで残る。
+// 玄関の灯りなど、ひと晩じゅう点いている窓も少し。冬の朝は、早起きの台所が日の出前に灯る
 const winGeo = new THREE.BufferGeometry(),
-  wp = [];
+  wp = [],
+  wUp = [];
 /*窓は家の正面に*/ for (const h of houses)
   if ((((h.x * 7 + h.y * 3) % 10) + 10) % 10 < 8) {
     const fx = -Math.sin(h.rot),
-      fz = Math.cos(h.rot);
-    for (const o of [-0.25, 0.2])
+      fz = Math.cos(h.rot),
+      up = h.h > 5 && (h.x | 0) % 2 ? 1 : 0;
+    for (const o of [-0.25, 0.2]) {
       wp.push(
         h.x * S + Math.cos(h.rot) * h.w * o + fx * h.d * 0.51,
-        0.6 + h.ground * S * VEX + 1.6 + (h.h > 5 ? 2.6 * ((h.x | 0) % 2) : 0),
+        0.6 + h.ground * S * VEX + 1.6 + up * 2.6,
         h.y * S + Math.sin(h.rot) * h.w * o + fz * h.d * 0.51,
       );
+      wUp.push(up);
+    }
   }
 winGeo.setAttribute("position", new THREE.Float32BufferAttribute(wp, 3));
+{
+  // aLit：x＝灯る暗さ（昼の明るさがこれより下がると灯る）、y＝消える時刻（時。24を超えると翌日の夜中）、z＝朝に灯る時刻（灯らない窓は99）
+  const n = wp.length / 3,
+    a = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const up = wUp[i],
+      allNight = Math.random() < 0.07;
+    a[i * 3] = up ? 0.06 + Math.random() * 0.12 : 0.16 + Math.random() * 0.16;
+    a[i * 3 + 1] = allNight ? 40 : up ? 22.3 + Math.pow(Math.random(), 0.8) * 3.6 : 20.8 + Math.random() * 2.8;
+    a[i * 3 + 2] = allNight ? 0 : !up && Math.random() < 0.35 ? 4.6 + Math.random() * 1.9 : 99;
+  }
+  winGeo.setAttribute("aLit", new THREE.Float32BufferAttribute(a, 3));
+}
+const winU = { uHour: { value: 20 }, uDay: { value: 0 } };
 {
   const n = wp.length / 3,
     cl = new Float32Array(n * 3);
@@ -39,6 +60,19 @@ const windows = new THREE.Points(
     opacity: 0.9,
   }),
 );
+windows.material.onBeforeCompile = (sh) => {
+  sh.uniforms.uHour = winU.uHour;
+  sh.uniforms.uDay = winU.uDay;
+  sh.vertexShader = sh.vertexShader
+    .replace("#include <common>", "#include <common>\nattribute vec3 aLit;uniform float uHour;uniform float uDay;")
+    .replace(
+      "#include <color_vertex>",
+      // 夕方〜夜：暗くなったら灯り、消える時刻まで。夜中（0〜12時）は前の晩の続き。朝：決まった時刻から明るくなるまで
+      "#include <color_vertex>\nfloat dark=step(uDay,aLit.x);float h=uHour;float eve=h>=12.?step(h,aLit.y):step(h+24.,aLit.y);float morn=h<12.?step(aLit.z,h):0.;float on=dark*max(eve,morn);vColor*=on;",
+    )
+    .replace("gl_PointSize = size;", "gl_PointSize = size*on;");
+};
+windows.material.customProgramCacheKey = () => "village-windows";
 scene.add(windows);
 // 岸沿いの道
 {

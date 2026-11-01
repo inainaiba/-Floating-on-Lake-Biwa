@@ -212,7 +212,7 @@
   - 20-villages-layout.js：`bHash`、`cvTex`、`houses`
 
 ## 22-village-lights-roads.js
-- 作る：`winGeo`、`windows`、`wp`
+- 作る：`wUp`、`winGeo`、`winU`、`windows`、`wp`
 - 使う：
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inLake`、`inRiver`
@@ -342,6 +342,16 @@
   - 12-renderer.js：`camera`
   - 19-boats.js：`PORT_SITES`、`boatMeshes`
   - 29-controls.js：`isFar`、`yaw`
+
+## 30b-town-sounds.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`、`onFrame`
+  - 01-settings.js：`S`
+  - 12-renderer.js：`camera`
+  - 20-villages-layout.js：`houses`
+  - 29-controls.js：`isFar`、`yaw`
+  - 30-audio.js：`SND`、`panV`
 
 ## 31-ui.js
 - 作る：`$`、`MAT_ICONS`、`dots`、`hex`、`mats`、`pick`、`replayWanted`、`restBtn`、`runHints`、`showName`
@@ -692,7 +702,7 @@
   - 18-buildings.js：`CUST`、`LIGHT_COLORS`、`glassMats`、`house`、`wetU`
   - 19-boats.js：`W_SENSE`、`flash`、`nextFlash`、`portLamps`、`smB`、`smoke`、`smokeGeo`、`updatePrecip`
   - 20-villages-layout.js：`roofM`、`roofSnowU`
-  - 22-village-lights-roads.js：`windows`
+  - 22-village-lights-roads.js：`winU`、`windows`
   - 23-paddies.js：`paddySeason`
   - 24-shore-landmarks.js：`treeSeason`
   - 27-sky-day.js：`skyAt`
@@ -864,6 +874,7 @@
 - `G.tFix`：53-frame.js
 - `G.thTx`：18-buildings.js
 - `G.torii`：35-torii.js
+- `G.townSnd`：30b-town-sounds.js
 - `G.towns`：22b-town-glow.js
 - `G.trT`：50-frame-float.js
 - `G.trainNear`：24b-trains.js
