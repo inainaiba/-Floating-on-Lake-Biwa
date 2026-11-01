@@ -166,9 +166,10 @@ function cardTreeMat(kind, v, near, far) {
     sh.uniforms.uT = reedU.uT;
     sh.uniforms.uW = reedU.uW;
     sh.uniforms.uSunD = reedU.uSunD;
+    sh.uniforms.uNear = NEAR_U; // 細かい地形の網目の範囲（16-terrain.js）
     // 木の板の明暗：日の向きに向いた板ほど明るく（vCL）、樹冠の上は明るく下は暗く（下の map の縦の位置で）
     sh.vertexShader = sh.vertexShader
-      .replace("#include <common>", "#include <common>\nuniform float uT;uniform vec2 uW;uniform vec3 uSunD;varying float vCL;")
+      .replace("#include <common>", "#include <common>\nuniform float uT;uniform vec2 uW;uniform vec3 uSunD;uniform vec4 uNear;attribute float aGdy;varying float vCL;")
       .replace(
         "#include <begin_vertex>",
         "#include <begin_vertex>\nvec4 tw=modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.);float td=length(cameraPosition.xz-tw.xz);transformed*=1.-smoothstep(" +
@@ -176,6 +177,7 @@ function cardTreeMat(kind, v, near, far) {
           "," +
           far.toFixed(1) +
           ",td);float hh=position.y/10.;transformed.xz+=uW*.25*hh*hh*sin(uT*1.1+tw.x*.2+tw.z*.17);" +
+          "float inN=uNear.w*step(max(abs(tw.x-uNear.x),abs(tw.z-uNear.y)),uNear.z);transformed.y+=aGdy*(1.-inN)/max(length(instanceMatrix[1].xyz),1e-3);" +
           "vec3 nW=normalize(mat3(modelMatrix*instanceMatrix)*normal);float sl_=clamp(uSunD.y*3.,0.,1.);vCL=.95+.6*abs(dot(normalize(nW.xz+1e-4),normalize(uSunD.xz+1e-4)))*sl_+.1*sl_;",
       );
     sh.fragmentShader = sh.fragmentShader
@@ -202,7 +204,19 @@ function cardForest(kind, list, hgt, wid, near, far, shadow, tint) {
       byChunk.get(k).push(p);
     }
     for (const sel of byChunk.values()) {
-    const I = new THREE.InstancedMesh(geo, mat, sel.length),
+    // 粗い地形との高さの差（細かい地形の上に置いた木）：カメラのまわりの細かい網目の外では、地面が粗い地形で描かれるので、
+    // その分だけ木を下げる（下げないと遠くの尾根で木が宙に浮く）。形は区画ごとに、頂点の配列を共有して1つずつ持つ
+    const g2 = new THREE.BufferGeometry();
+    g2.index = geo.index;
+    for (const k in geo.attributes) g2.setAttribute(k, geo.attributes[k]);
+    g2.setAttribute(
+      "aGdy",
+      new THREE.InstancedBufferAttribute(
+        Float32Array.from(sel, ([x, y, gy]) => (nearAt(x, y) === null ? 0 : 0.6 + Math.max(0, terrGrid(x, y)) * S * VEX - gy)),
+        1,
+      ),
+    );
+    const I = new THREE.InstancedMesh(g2, mat, sel.length),
       M = new THREE.Matrix4(),
       c = new THREE.Color();
     sel.forEach(([x, y, gy, s, r], i) => {

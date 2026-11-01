@@ -57,14 +57,14 @@ float bn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(bh(i)
 // 輪郭がにじんで隣の色と溶け合う。画面の上（遠景）ほど強く、下（手前）は控えめ。場はゆっくり漂うだけで、ちらつかない
 vec2 q=vU*vec2(uAsp,1.);
 float fa=(bn(q*9.+uTm*.004)*.7+bn(q*23.-uTm*.003)*.3)*6.2832;
-vec2 dir=vec2(cos(fa),sin(fa))*vec2(1./uAsp,1.)*(.0004+.0007*smoothstep(.15,.75,vU.y));
-vec2 jt=(vec2(bn(q*61.),bn(q*61.+7.3))-.5)*.0003;
-vec3 c0=texture2D(tD,vU+jt).rgb*.58+texture2D(tD,vU+dir+jt).rgb*.16+texture2D(tD,vU-dir).rgb*.16+texture2D(tD,vU+dir*2.2-jt).rgb*.1;
+vec2 dir=vec2(cos(fa),sin(fa))*vec2(1./uAsp,1.)*(.00015+.00025*smoothstep(.15,.75,vU.y));
+vec2 jt=(vec2(bn(q*61.),bn(q*61.+7.3))-.5)*.0001;
+vec3 c0=texture2D(tD,vU+jt).rgb*.76+texture2D(tD,vU+dir+jt).rgb*.09+texture2D(tD,vU-dir).rgb*.09+texture2D(tD,vU+dir*2.2-jt).rgb*.06;
 vec3 c=aces(c0*1.15);
 vec3 bl=texture2D(tBl,vU).rgb,bl2=texture2D(tBl2,vU).rgb; // 明るい所のにじみ：近いにじみ（半分の解像度）と、広く空気ごと光るにじみ（8分の1の解像度）
-vec3 glowT=mix(vec3(1.,.97,.93),vec3(1.,.9,.76),uWarm); // にじみの色：朝夕は金色に
+vec3 glowT=mix(vec3(1.,.98,.95),vec3(1.,.95,.86),uWarm); // にじみの色：朝夕は金色に
 float gk=mix(1.,.3,uDay*(1.-uWarm)); // 昼の明るい空まで光らせない（朝夕・夜に強く）
-c+=bl*vec3(.16,.15,.14)*glowT*(.8+.2*gk)+bl2*.06*glowT*gk;
+c+=bl*vec3(.15,.14,.13)*glowT+bl2*.02*glowT*gk;
 // 太陽を向いたときのレンズの光のにじみ（ごく控えめに）
 if(uSunS.z>.01){vec2 d=(vU-uSunS.xy)*vec2(uAsp,1.);float r=length(d);c+=vec3(1.,.93,.82)*(exp(-r*r*18.)*.05+exp(-r*5.)*.018)*uSunS.z;vec2 gp=vec2(1.)-uSunS.xy;float g2=length((vU-mix(uSunS.xy,gp,.7))*vec2(uAsp,1.));c+=vec3(.7,.85,1.)*smoothstep(.06,.04,g2)*smoothstep(.02,.04,g2)*.008*uSunS.z;}
 c=pow(c,vec3(1./2.2));
@@ -98,9 +98,9 @@ c=mix(c,vec3(.86,.9,.88),uMorn*.45*smoothstep(.55,.95,vU.y));
     {float ls=dot(c,vec3(.299,.587,.114));
     vec3 shC=mix(mix(vec3(.30,.38,.62),vec3(.42,.30,.58),uWarm),vec3(.16,.19,.36),ngt);
     float sh=1.-smoothstep(.04,.5,ls);
-    c=mix(c,shC*(ls*1.5+.05),sh*.1);
-    c*=mix(vec3(1.),mix(vec3(1.04,1.01,.95),vec3(1.08,.98,.86),uWarm),smoothstep(.5,1.,ls)*.2);
-    c=max(c,shC*.025);}
+    c=mix(c,shC*(ls*1.5+.05),sh*.035);
+    c*=mix(vec3(1.),mix(vec3(1.04,1.01,.95),vec3(1.08,.98,.86),uWarm),smoothstep(.5,1.,ls)*.07);
+    c=max(c,shC*.01);}
     float v=distance(vU,vec2(.5));
 c=mix(c,c*1.04+.03,smoothstep(.3,.75,v)*uDay*.6);
 {float gr=fract(sin(dot(floor(vU*vec2(1920.,1080.)),vec2(12.9898,78.233))+uTm*7.13)*43758.5453)-.5;

@@ -139,7 +139,7 @@
   - 06-inner-lakes.js：`inRiver`
   - 10-start.js：`rnd`
   - 12-renderer.js：`scene`
-  - 16-terrain.js：`reedU`
+  - 16-terrain.js：`NEAR_U`、`VEX`、`nearAt`、`reedU`、`terrGrid`
 
 ## 18-buildings.js
 - 作る：`BODY_COLORS`、`BP`、`BUILDINGS`、`CUST`、`LIGHT_COLORS`、`MAT`、`WOODTX`、`bbox`、`box`、`buildHouse`、`gable`、`glassMats`、`glowBox`、`house`、`hullShape`、`inReeds`、`posts`、`reedMask`、`ring`、`ringPts`、`rod`、`wetPatch`、`wetU`
