@@ -231,14 +231,19 @@ G.life = (() => {
       let nx = -(y2 - y1) / L,
         ny = (x2 - x1) / L;
       if (inLake(x1 + nx * 30, y1 + ny * 30)) (nx = -nx), (ny = -ny);
-      for (let s = 0; s < L; s += 9)
-        for (let k = 0; k < 2; k++) {
-          const off = 14 + R() * 45,
-            x = x1 + ((x2 - x1) * s) / L + nx * off + (R() - 0.5) * 8,
-            y = y1 + ((y2 - y1) * s) / L + ny * off + (R() - 0.5) * 8;
+      // 間隔・岸からの奥行き・大きさにばらつきを持たせ、ところどころ途切れさせる（同じ幹が等間隔に並ぶと、柵のように見えるため）
+      for (let s = R() * 8; s < L; s += 9 + R() * 9) {
+        if (R() < 0.16) continue; // 松の途切れた浜
+        const n = R() < 0.3 ? 3 : 2;
+        for (let k = 0; k < n; k++) {
+          const off = 12 + Math.pow(R(), 0.8) * 70,
+            x = x1 + ((x2 - x1) * s) / L + nx * off + (R() - 0.5) * 14,
+            y = y1 + ((y2 - y1) * s) / L + ny * off + (R() - 0.5) * 14;
           if (inLake(x, y) || inInner(x, y)) continue;
-          P.push([x, y, landY(x, y), 0.9 + R() * 0.5, R()]);
+          // 大きさ：若い松から大きな老木まで
+          P.push([x, y, landY(x, y), R() < 0.2 ? 0.6 + R() * 0.3 : 0.85 + R() * 0.75, R()]);
         }
+      }
     }
     if (P.length) cardForest("pine", P, 11, 7, 60, 3500, QUALITY.treeShadow);
     placeLog("松並木", "land", P);

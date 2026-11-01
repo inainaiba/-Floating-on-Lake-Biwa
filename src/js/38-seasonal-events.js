@@ -72,6 +72,11 @@ G.EV = (() => {
     opacity: 0,
     fog: false,
   });
+  // すぐ近くの蛍が、ぼやけた大きな玉にならないように：画面の上の大きさに上限を設け、近すぎるものは薄くする
+  fmat.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace("#include <fog_vertex>", "#include <fog_vertex>\ngl_PointSize=min(gl_PointSize,9.);vNearF=smoothstep(4.,14.,-mvPosition.z);").replace("void main() {", "varying float vNearF;\nvoid main() {");
+    sh.fragmentShader = sh.fragmentShader.replace("void main() {", "varying float vNearF;\nvoid main() {").replace("#include <premultiplied_alpha_fragment>", "gl_FragColor.rgb*=vNearF;\n#include <premultiplied_alpha_fragment>");
+  };
   const ffl = new THREE.Points(fgeo, fmat);
   ffl.visible = false;
   ffl.frustumCulled = false;
