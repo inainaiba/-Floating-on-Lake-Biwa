@@ -543,7 +543,7 @@
   - 18-buildings.js：`gable`
 
 ## 42-ambience.js
-- 作る：`idleLook`
+- 作る：`IDLE`、`idleLook`
 - 使う：
   - 00-head.js：`G`、`mergeStatic`、`onFrame`
   - 01-settings.js：`RM`、`S`
@@ -554,7 +554,7 @@
   - 12-renderer.js：`QUALITY`、`camera`、`scene`
   - 14-water.js：`waveH`
   - 20-villages-layout.js：`landY`、`paddies`
-  - 29-controls.js：`isFar`、`yawT`
+  - 29-controls.js：`distT`、`isFar`、`pitch`、`yawT`
 
 ## 42b-mist.js
 - 作る：（なし）
@@ -775,7 +775,7 @@
   - 01-settings.js：`S`
   - 11-state.js：`camX`、`camZ`
   - 12-renderer.js：`QUALITY`、`camera`、`renderer`、`scene`
-  - 13-sky-dome.js：`skyDome`、`sun`
+  - 13-sky-dome.js：`skyDome`、`skyU`、`sun`
   - 14-water.js：`water`、`waterU`
   - 18-buildings.js：`house`
 
@@ -853,6 +853,7 @@
 - `G.chunks`：00-head.js
 - `G.city`：47-city.js
 - `G.dbg`：53-frame.js
+- `G.deepNight`：49-frame-sky-light.js
 - `G.dotTex`：00-head.js
 - `G.eri`：46-shore-life.js
 - `G.exp`：12-renderer.js

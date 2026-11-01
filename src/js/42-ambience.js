@@ -108,8 +108,25 @@ onFrame(50, (f) => G.ambience.update(f.dt, f.t, f.c, f.day)); // 毎フレーム
   for (const ev of ["pointerdown", "keydown", "wheel"]) addEventListener(ev, touch, { passive: true });
   touch();
 }
+// 気ままな視線：40秒ほど操作がないと、カメラがゆっくり見渡しながら、水面すれすれに下りたり、
+// 空を仰いだり、少し離れて遠くの山を眺めたりする。決まった順番はなく、数分かけてうつろう。触れたら、その視線のまま手に戻す
+const IDLE = { k: 0, p0: null, d0: null };
 function idleLook(dt) {
-  if (STATE !== "lake" || isFar) return;
+  if (STATE !== "lake" || isFar || G.watch) return;
   const idle = (performance.now() - (G.lastInput || 0)) / 1000;
-  if (idle > 40) yawT += dt * (RM ? 0.015 : 0.035) * Math.min(1, (idle - 40) / 10);
+  if (idle < 40) {
+    IDLE.k = 0;
+    IDLE.p0 = null;
+    return;
+  }
+  if (IDLE.p0 === null) (IDLE.p0 = pitch), (IDLE.d0 = distT);
+  IDLE.k = Math.min(1, (idle - 40) / 20); // 20秒かけて、ゆっくり入る
+  const s = idle * (RM ? 0.5 : 1),
+    n = (a, b) => Math.sin(s * a + b) * 0.6 + Math.sin(s * a * 2.31 + b * 1.7) * 0.4; // ゆるい揺らぎ（周期の違う波の重ね）
+  yawT += dt * (RM ? 0.012 : 0.028) * IDLE.k * (0.6 + 0.6 * n(0.011, 2));
+  // 目線：-0.12（空を仰ぐ）〜0.28（少し見下ろす）。低い所にいる時間を長く
+  const pT = 0.06 + 0.13 * n(0.0093, 0.4) + 0.05 * n(0.021, 3.1);
+  pitch += (IDLE.p0 + (pT - IDLE.p0) * IDLE.k - pitch) * Math.min(1, dt * 0.25);
+  // 距離：家のそば（水面すれすれ）から、少し離れて遠景を眺めるまで
+  distT = IDLE.d0 + (Math.max(30, 70 + 50 * n(0.0071, 1.3)) - IDLE.d0) * IDLE.k;
 }
