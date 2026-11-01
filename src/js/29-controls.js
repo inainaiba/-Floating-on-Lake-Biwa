@@ -10,7 +10,6 @@ let pinch0 = 0;
 const setFar = (v) => {
   isFar = v;
   document.body.classList.toggle("far", v);
-  if (!v && G.hidePick) G.hidePick(); // 地図を閉じたら、行き先の吹き出しも消す
 };
 document.getElementById("view").onclick = () => {
   setFar(!isFar);
@@ -165,57 +164,13 @@ gl.addEventListener("pointercancel", up);
     setFar(false);
     dist = 200;
   });
-  // 地図をタップしたら、すぐには向かわず、行き先の名前と「ここへ向かう」を出して確かめる
-  const pick = document.createElement("div");
-  pick.id = "mpick";
-  pick.style.cssText =
-    "position:fixed;z-index:8;display:none;transform:translate(-50%,calc(-100% - 14px));background:#f6f5f0;color:#1b1b1b;border:1px solid rgba(27,27,27,.25);border-radius:6px;padding:8px 10px 6px;font:12px/1.6 'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.15);white-space:nowrap";
-  document.body.appendChild(pick);
-  const hidePick = () => {
-    pick.style.display = "none";
-    G.mapPick = null;
-  };
-  // 行き先のいちばん近い名所・港・集落の名前（3km 以内）
-  const placeName = (x, y) => {
-    let best = null,
-      bd = 3000;
-    for (const m of MEISHO) {
-      const d = Math.hypot(m.ax - x, m.ay - y);
-      if (d < bd) (bd = d), (best = m.name);
-    }
-    for (const q of LAKE.ports) {
-      const d = Math.hypot(q[0] - x, q[1] - y);
-      if (q[2] && d < bd) (bd = d), (best = q[2]);
-    }
-    return best;
-  };
+  // 地図をタップした所へ向かう
   far.addEventListener("click", (e) => {
     if (!far._map || moved > 8) return;
     const [ox, oy, sc] = far._map,
-      d = far._dpr,
-      x = (e.clientX * d - ox) / sc,
-      y = (e.clientY * d - oy) / sc,
-      en = CFG.lang === "en",
-      nm = placeName(x, y),
-      water = inLake(x, y);
-    G.mapPick = [x, y];
-    pick.innerHTML =
-      `<div style="opacity:.75;font-size:11px">${nm ? (en ? "near " : "") + nm + (en ? "" : " の近く") : en ? "on the lake" : "湖の上"}${water ? "" : en ? " (on land: you will stop at the shore)" : "（陸の上：岸で止まります）"}</div>` +
-      `<span data-a="go" style="display:inline-block;margin-top:4px;padding:3px 12px;border-radius:12px;background:#1b1b1b;color:#f6f5f0;cursor:pointer">${en ? "Sail here" : "ここへ向かう"}</span>` +
-      `<span data-a="no" style="display:inline-block;margin:4px 0 0 8px;padding:3px 8px;cursor:pointer;opacity:.6">${en ? "Cancel" : "やめる"}</span>`;
-    pick.style.left = e.clientX + "px";
-    pick.style.top = e.clientY + "px";
-    pick.style.display = "block";
+      d = far._dpr;
+    B.goal = [(e.clientX * d - ox) / sc, (e.clientY * d - oy) / sc];
   });
-  pick.addEventListener("click", (e) => {
-    const a = e.target.dataset.a;
-    if (a === "go" && G.mapPick) B.goal = G.mapPick;
-    if (a) hidePick();
-  });
-  // 地図を動かしたり拡大したりしたら、吹き出しは消す（タップした所からずれるため）
-  far.addEventListener("pointermove", () => moved > 8 && pick.style.display === "block" && hidePick());
-  far.addEventListener("wheel", () => pick.style.display === "block" && hidePick());
-  G.hidePick = hidePick;
 }
 const keys = {};
 addEventListener("keydown", (e) => {

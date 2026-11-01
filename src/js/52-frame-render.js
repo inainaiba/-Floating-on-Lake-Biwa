@@ -157,7 +157,7 @@ gl_FragColor=vec4(bl,1.);}`,
     if (!G.noRefl) {
       G.noRefl = [];
       scene.traverse((o) => {
-        if (o.isPoints) return G.noRefl.push(o);
+        if (o.isPoints || o.userData.noRefl) return G.noRefl.push(o); // noRefl：水面に貼りつく帯（航跡など）。映り込みに描くと暗い帯になる
         if (!o.isInstancedMesh) return;
         if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
         if (o.geometry.boundingSphere.radius < 1.3) G.noRefl.push(o);

@@ -346,16 +346,6 @@ function drawFar(boats = [], wxNow = null, W = null) {
       }
     fx.restore();
   }
-  // 行き先の候補（地図をタップした所。29-controls.js の確かめの吹き出しが出ている間）
-  if (G.mapPick) {
-    fx.strokeStyle = "#1b1b1b";
-    fx.lineWidth = 1.4 * dpr;
-    fx.setLineDash([3 * dpr, 2 * dpr]);
-    fx.beginPath();
-    fx.arc(X(G.mapPick[0]), Y(G.mapPick[1]), 7 * dpr, 0, 7);
-    fx.stroke();
-    fx.setLineDash([]);
-  }
   fx.strokeStyle = "#d9542b";
   fx.lineWidth = 1.8 * dpr;
   fx.beginPath();
