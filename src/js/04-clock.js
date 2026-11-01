@@ -7,7 +7,10 @@ function clock() {
   // 確認用に時刻を止められる（G.tFix：?debug のときだけ __scene から設定）
   const t = G.tFix != null ? G.tFix : (Date.now() - EPOCH) / 1000,
     d = Math.floor(t / DAY);
-  return { t, month: MO !== null ? +MO : ((d % 12) + 12) % 12, phase: PH !== null ? +PH : (t % DAY) / DAY };
+  // 光の時間を長く味わう：朝夕（6時・18時ごろ）は時計がゆっくり、真昼と真夜中は少し速く進む（一日の長さは同じ）
+  const raw = (((t % DAY) + DAY) % DAY) / DAY,
+    ph = raw + (0.35 * Math.sin(4 * Math.PI * raw)) / (4 * Math.PI);
+  return { t, month: MO !== null ? +MO : ((d % 12) + 12) % 12, phase: PH !== null ? +PH : ph };
 }
 
 // 太陽と月の位置（天文の計算）：作品の月は「その月の中日」、時刻は作品の一日の中の時刻として、
