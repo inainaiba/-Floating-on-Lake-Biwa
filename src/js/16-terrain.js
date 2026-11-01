@@ -184,8 +184,8 @@ const terrGeo = new THREE.PlaneGeometry((TW - 1) * tdx * S, (TH - 1) * tdy * S, 
 }
 /* 山肌の色（地形のフラグメントに差し込む）：処理の順に区切った部品。上から順につながる。 */
 // 傾きによる明暗
-const TERR_FS_SLOPE = `// カメラのまわりの細かい網目（nearPatch）がある所では、粗い地形を描かない（vNear：0 粗い地形・1 細かい網目・2 島）
-if(vNear<.5&&uNear.w>.5&&abs(vXZ.x-uNear.x)<uNear.z&&abs(vXZ.y-uNear.y)<uNear.z)discard;
+const TERR_FS_SLOPE = `// カメラのまわりの細かい網目（nearPatch）がある所では、粗い地形は下に沈めて描く（vNear：0 粗い地形・1 細かい網目・2 島）
+// （粗い地形は頂点の計算で網目の下へ沈めてあるので、ここでは切り抜かない）
 // ── 山肌の色の重なり ──
 // 傾き → 岩肌 → 低地と浜 → 田の区画 → 森（杉林・樹冠・新緑と深緑）→ 紅葉 → 冬枯れと雪 → 霞・雲の影・山の縁の光
 vec3 nrm=normalize(cross(dFdx(vec3(vXZ.x,vH,vXZ.y)),dFdy(vec3(vXZ.x,vH,vXZ.y))));
@@ -313,6 +313,8 @@ diffuseColor.rgb+=vec3(1.,.55,.3)*face*low*smoothstep(40.,180.,vH)*.35;
 }// 遠い山ほど、白いかすみではなく暗い青灰の影に沈む
 diffuseColor.rgb=mix(diffuseColor.rgb,mix(uHaze*1.1,uHaze*vec3(.5,.56,.68),smoothstep(${glf(LOOK.farDarkFrom)},${glf(LOOK.farDarkTo)},dc_)),clamp(hz,0.,1.)*${glf(LOOK.hazeAmount)});
 diffuseColor.rgb*=1.+.12*hz;
+// 空気の層：谷や山すそ（低い所）ほど霞がたまり、尾根が一枚ずつ浮かぶ。朝の霧の日は濃く
+{float vf=(1.-smoothstep(8.,90.,vH))*smoothstep(40.,350.,dc_)*(.08+.3*uMist);diffuseColor.rgb=mix(diffuseColor.rgb,uHaze*1.18,clamp(vf,0.,1.));}
 }`;
 // 夜の山並み（霧をかけた後の色に重ねる。夜は光が弱く、色を変えても暗さに埋もれるため）：
 // 月に向いた斜面に青白い光の縁、遠い稜線ほど夜空の地平の色に近づけて、重なる山を見分けられるように
@@ -322,6 +324,7 @@ const TERR_FS_NIGHT = `if(uNt>0.){float dn_=length(cameraPosition.xz-vXZ);vec2 m
  gl_FragColor.rgb+=vec3(.1,.12,.17)*fm*uMoonL*uNt*(1.-smoothstep(500.,5000.,dn_));
  gl_FragColor.rgb=mix(gl_FragColor.rgb,hz_,uNt*smoothstep(200.,3500.,dn_)*.72);}`; // 作品の1単位は実寸5m（約1kmから17km先で地平の色へ）
 const NEAR_U = { value: new THREE.Vector4(0, 0, 0, 0) }; // 細かい網目の中心 x, z・半分の幅（作品の単位）・使うか
+const MIST_U = { value: 0 }; // 朝の霧の濃さ（42b-mist.js が毎フレーム決める）。谷にたまる霞に使う
 const terrMat = new THREE.MeshLambertMaterial({ vertexColors: true });
 terrMat.onBeforeCompile = (sh) => {
   sh.uniforms.uHaze = { value: new THREE.Color(0x9fb4c8) };
@@ -335,6 +338,7 @@ terrMat.onBeforeCompile = (sh) => {
   sh.uniforms.uSunT = { value: new THREE.Vector3(0, 1, 0) };
   sh.uniforms.uMoonT = { value: new THREE.Vector3(0, 1, 0) };
   sh.uniforms.uNear = NEAR_U;
+  sh.uniforms.uMist = MIST_U;
   sh.uniforms.uMoonL = { value: 0 };
   sh.uniforms.uNt = { value: 0 };
   sh.uniforms.uSL = { value: 0 };
@@ -342,15 +346,18 @@ terrMat.onBeforeCompile = (sh) => {
   sh.uniforms.uAut = { value: 0 };
   terrMat.userData.sh = sh;
   sh.vertexShader = sh.vertexShader
-    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;attribute float aCv;varying float vCv;varying vec3 vWN;attribute float aNear;varying float vNear;")
+    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;attribute float aCv;varying float vCv;varying vec3 vWN;attribute float aNear;varying float vNear;uniform vec4 uNear;")
     .replace(
       "#include <begin_vertex>",
-      "#include <begin_vertex>\nvH=position.y;vXZ=(modelMatrix*vec4(position,1.)).xz;vCv=aCv;vWN=normal;vNear=aNear;",
+      "#include <begin_vertex>\nvH=position.y;vXZ=(modelMatrix*vec4(position,1.)).xz;vCv=aCv;vWN=normal;vNear=aNear;" +
+        // 細かい網目の中の粗い地形は、切り抜かずに下へ沈める（切り抜くと、網目の縁の向こうの山を下から覗くことになり、
+        // 空が透けて山の切れ端が宙に浮いて見えた）。網目の縁をまたぐ三角形は下り坂の壁になって、細かい地形の下に隠れる
+        "if(aNear<.5&&uNear.w>.5&&abs(vXZ.x-uNear.x)<uNear.z&&abs(vXZ.y-uNear.y)<uNear.z)transformed.y-=80.;",
     );
   sh.fragmentShader = sh.fragmentShader
     .replace(
       "#include <common>",
-      "#include <common>\n" + GLSL_NOISE + "\nvarying float vH;varying vec2 vXZ;varying float vCv;varying vec3 vWN;varying float vNear;uniform vec4 uNear;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;uniform vec3 uMoonT;uniform float uMoonL;uniform float uNt;",
+      "#include <common>\n" + GLSL_NOISE + "\nvarying float vH;varying vec2 vXZ;varying float vCv;varying vec3 vWN;varying float vNear;uniform vec4 uNear;uniform float uMist;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;uniform vec3 uMoonT;uniform float uMoonL;uniform float uNt;",
     )
     .replace(
       "#include <color_fragment>",

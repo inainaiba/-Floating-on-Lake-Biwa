@@ -443,11 +443,20 @@ function audioUpdate(dt, c, W, boats, nearReed) {
   SND.master.gain.setTargetAtTime(SND.on ? 0.9 * CFG.vol : 0, now, 0.4); // 音量は設定の画面から（31b-settings.js）
   if (!SND.on) return;
   const ws = Math.min(1, W.s / 8);
+  // 音の余白：数分おきに、40秒〜1分半ほど、風・鳥・暮らしの音が引いて、波の音だけの静けさになる（ゆっくり出入りする）
+  {
+    if (!SND.qEnd) (SND.qStart = now + 150), (SND.qEnd = SND.qStart + 60);
+    if (now > SND.qEnd + 6) {
+      SND.qStart = now + 160 + Math.random() * 220;
+      SND.qEnd = SND.qStart + 40 + Math.random() * 50;
+    }
+    SND.quiet = Math.max(0, Math.min(1, (now - SND.qStart) / 6, (SND.qEnd - now) / 6));
+  }
   {
     const gust =
       0.5 + 0.5 * Math.sin(now * 0.13) * Math.sin(now * 0.071 + 1) + 0.25 * Math.sin(now * 0.29 + 2);
     SND.windG.gain.setTargetAtTime(
-      ((isFar ? 0.03 : 0.012) + ws * ws * (isFar ? 0.08 : 0.05)) * (0.35 + 0.65 * Math.max(0, gust)),
+      ((isFar ? 0.03 : 0.012) + ws * ws * (isFar ? 0.08 : 0.05)) * (0.35 + 0.65 * Math.max(0, gust)) * (1 - 0.6 * SND.quiet),
       now,
       3,
     );
@@ -617,6 +626,7 @@ function audioUpdate(dt, c, W, boats, nearReed) {
     }
   }
   // 水鳥：冬に多く、夜は少ない。岸やヨシの近くでよく鳴く
+  if (SND.quiet > 0.3 && now > SND.nextBird) SND.nextBird = now + 3; // 静けさの間は鳥も鳴かない
   if (!isFar && now > SND.nextBird) {
     const winter = SEASON.waterbirds[c.month],
       night = c.phase < 0.22 || c.phase > 0.82;

@@ -68,6 +68,7 @@
 - 作る：`GYRE`、`WIND`、`flow`、`gyres`、`outlet`、`reedFree0`、`wind`
 - 使う：
   - 03-coords.js：`ll`
+  - 04-clock.js：`DAY`
   - 06-inner-lakes.js：`bridgeY`
   - 08-weather.js：`weather`
 
@@ -116,7 +117,7 @@
   - 12-renderer.js：`scene`
 
 ## 16-terrain.js
-- 作る：`DEM`、`DEM_D`、`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_DEM`、`ISLE_H`、`NEAR`、`NEAR_U`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`SNOW`、`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_NIGHT`、`TERR_FS_ROCK`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleGrid`、`isleH`、`isleShape`、`landContours`、`landH`、`nearAt`、`nearBlk`、`nearRes`、`okiZone`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`tdx`、`tdy`、`terr`、`terrB`、`terrColor`、`terrGeo`、`terrGeo_`、`terrGrid`、`terrH`、`terrMat`、`terrShape`、`terrShapeB`、`tx0`、`ty0`、`vnoise`
+- 作る：`DEM`、`DEM_D`、`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_DEM`、`ISLE_H`、`MIST_U`、`NEAR`、`NEAR_U`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`SNOW`、`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_NIGHT`、`TERR_FS_ROCK`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleGrid`、`isleH`、`isleShape`、`landContours`、`landH`、`nearAt`、`nearBlk`、`nearRes`、`okiZone`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`tdx`、`tdy`、`terr`、`terrB`、`terrColor`、`terrGeo`、`terrGeo_`、`terrGrid`、`terrH`、`terrMat`、`terrShape`、`terrShapeB`、`tx0`、`ty0`、`vnoise`
 - 使う：
   - 00-head.js：`G`、`GLSL_NOISE`
   - 00a-data.js：`DATA`
@@ -555,6 +556,17 @@
   - 14-water.js：`waveH`
   - 20-villages-layout.js：`landY`、`paddies`
   - 29-controls.js：`isFar`、`yawT`
+
+## 42b-mist.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`onFrame`
+  - 01-settings.js：`S`
+  - 06-inner-lakes.js：`inLake`
+  - 12-renderer.js：`camera`、`scene`
+  - 16-terrain.js：`MIST_U`
+  - 20-villages-layout.js：`cvTex`
+  - 29-controls.js：`isFar`
 
 ## 43-moments.js
 - 作る：（なし）

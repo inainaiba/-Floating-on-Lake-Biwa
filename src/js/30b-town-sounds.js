@@ -328,12 +328,13 @@
     }
     T.lastH = h;
     // 漁船の発動機：夜明けから朝（4時半〜9時）。冬はやや少ない
-    if (h > 4.5 && h < 9 && now > T.nextBoat && !rainy) {
+    const hush = (SND.quiet || 0) > 0.3; // 音の余白（30-audio.js）の間は、ときどき鳴る音を控える
+    if (h > 4.5 && h < 9 && now > T.nextBoat && !rainy && !hush) {
       T.nextBoat = now + 50 + Math.random() * 90;
       if (Math.random() < (c.month <= 1 ? 0.5 : 0.85)) fishingBoat(near);
     }
     // 時刻で重なる暮らしの音：集落の近くで、ときどき（それぞれ決まった時間帯の中で）
-    if (near > 0.15 && now > T.nextLife) {
+    if (near > 0.15 && now > T.nextLife && !hush) {
       T.nextLife = now + 35 + Math.random() * 60;
       const m = c.month,
         ox = vx + (Math.random() - 0.5) * 120,
@@ -344,7 +345,7 @@
       else if ((m >= 11 || m <= 1) && h > 20 && h < 22 && Math.random() < 0.55) clappers(ox, oz, 0.3 * near);
     }
     // 風鈴：夏（6〜8月）、昼から宵、集落の近くで風があるとき
-    if (c.month >= 5 && c.month <= 7 && h > 9 && h < 22 && near > 0.35 && now > T.nextBell && !rainy) {
+    if (c.month >= 5 && c.month <= 7 && h > 9 && h < 22 && near > 0.35 && now > T.nextBell && !rainy && !hush) {
       const ws = Math.min(1, f.W.s / 6);
       T.nextBell = now + (2 + Math.random() * 7) / (0.2 + ws);
       if (ws > 0.08) {

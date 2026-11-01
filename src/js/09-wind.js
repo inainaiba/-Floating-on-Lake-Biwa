@@ -16,11 +16,16 @@ const WIND = [
 const GYRE = [0.35, 0.3, 0.4, 0.6, 0.9, 1, 1, 1, 0.9, 0.7, 0.5, 0.4];
 function wind(c) {
   const wxNow = weather(c);
-  const calmT =
-    Math.max(
-      Math.max(0, 1 - Math.abs(c.phase - 0.27) / 0.07),
-      Math.max(0, 1 - Math.abs(c.phase - 0.78) / 0.07),
-    ) * 0.75;
+  // 凪の時間：朝と夕方は風が落ち、湖面が鏡のようになって山が映る（約2時間。日によって深さが違う）。
+  // なめらかに凪いで、なめらかに風が戻る（戻るとき、さざ波の帯が風下へ渡っていく：14-water.js）
+  const bump = (p0) => {
+      const u = Math.min(1, Math.abs(c.phase - p0) / 0.095);
+      return 0.5 + 0.5 * Math.cos(Math.PI * u);
+    },
+    dn = Math.floor(c.t / DAY),
+    rr = (((Math.sin(dn * 12.9898) * 43758.5453) % 1) + 1) % 1,
+    deep = 0.8 + 0.15 * rr,
+    calmT = Math.max(bump(0.265), bump(0.775)) * deep;
   const hiraHakko = c.month === 2 ? Math.max(0, 1 - Math.abs(c.phase - 0.6) / 0.07) : 0;
   const [d0, s1] = WIND[c.month],
     d = d0 * (1 - hiraHakko) + 300 * hiraHakko,
