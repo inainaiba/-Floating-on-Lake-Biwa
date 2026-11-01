@@ -44,6 +44,50 @@ G.bass = (() => {
     }
     return new THREE.CanvasTexture(c);
   })();
+  const sprayGeo = (() => {
+    const a = new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0),
+      b = a.clone().rotateY(Math.PI / 2),
+      geo = new THREE.BufferGeometry();
+    for (const k of ["position", "normal", "uv"]) geo.setAttribute(k, new THREE.Float32BufferAttribute([...a.toNonIndexed().attributes[k].array, ...b.toNonIndexed().attributes[k].array], k === "uv" ? 2 : 3));
+    return geo;
+  })();
+  // 部品（いろいろな材質のメッシュ）を、頂点の色を持つ1つのメッシュにまとめる。窓のガラスは不透明の濃い色に
+  const colMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0.1 });
+  function mergeColored(root) {
+    root.updateMatrixWorld(true);
+    const inv = root.matrixWorld.clone().invert(),
+      P = [],
+      N = [],
+      C = [],
+      M4 = new THREE.Matrix4(),
+      N3 = new THREE.Matrix3(),
+      v = new THREE.Vector3(),
+      olds = [];
+    root.traverse((o) => {
+      if (!o.isMesh || o === root) return;
+      olds.push(o);
+      const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry,
+        pa = g.attributes.position,
+        na = g.attributes.normal,
+        col = o.material.color,
+        em = o.material.emissive || { r: 0, g: 0, b: 0 };
+      M4.multiplyMatrices(inv, o.matrixWorld);
+      N3.getNormalMatrix(M4);
+      for (let i = 0; i < pa.count; i++) {
+        v.fromBufferAttribute(pa, i).applyMatrix4(M4);
+        P.push(v.x, v.y, v.z);
+        v.fromBufferAttribute(na, i).applyMatrix3(N3).normalize();
+        N.push(v.x, v.y, v.z);
+        C.push(Math.min(1, col.r + em.r), Math.min(1, col.g + em.g), Math.min(1, col.b + em.b));
+      }
+    });
+    for (const o of olds) o.parent.remove(o);
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(P, 3));
+    geo.setAttribute("normal", new THREE.Float32BufferAttribute(N, 3));
+    geo.setAttribute("color", new THREE.Float32BufferAttribute(C, 3));
+    root.add(new THREE.Mesh(geo, colMat));
+  }
   const mkBoat = (i) => {
     const g = new THREE.Group(),
       body = new THREE.Group(), // 走るとき舳先を持ち上げる部分
@@ -74,16 +118,13 @@ G.bass = (() => {
     add(new THREE.BoxGeometry(0.3, 0.06, 0.35), whiteM, -L / 2 - 0.25, 1.42, 0);
     // 舳先の小さなモーター（エレキ）の柄
     add(new THREE.CylinderGeometry(0.03, 0.03, 0.9, 5), blackM, L / 2 - 0.4, 0.95, 0.25);
-    mergeStatic(body);
+    mergeColored(body); // 部品を色ごとに1つの形にまとめ、ボート1そうを描画1回に（以前は材質ごとに5回）
     g.add(body);
     // 船尾のしぶき：縦に交差する2枚の板。走る速さに応じて見える
     const spM = new THREE.MeshBasicMaterial({ map: sprayTx, transparent: true, depthWrite: false, opacity: 0, color: 0xf4f8fa }),
       spray = new THREE.Group();
-    for (const r of [0, Math.PI / 2]) {
-      const p = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0), spM);
-      p.rotation.y = r;
-      spray.add(p);
-    }
+    // 交差する2枚の板を1つの形に（描画1回）
+    spray.add(new THREE.Mesh(sprayGeo, spM));
     spray.position.set(-L / 2 - 1.8, 0, 0);
     g.add(spray);
     g.visible = false;

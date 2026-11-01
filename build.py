@@ -206,7 +206,14 @@ def build():
             print('エラー：', e)
         raise SystemExit('部品の名前が重なっています（src/DEPENDENCIES.md 参照）')
     parts = sorted((r / 'src/js').glob('*.js'))
-    script = bundle('\n'.join(glsl_comments(p.read_text()) for p in parts))
+    # 読み込みの進み具合：重い部品のあと（およそ8か所）で一息つき、読み込み中の線を伸ばす（src/shell.html の __ld）
+    step = max(1, len(parts) // 8)
+    js = []
+    for i, p in enumerate(parts):
+        js.append(glsl_comments(p.read_text()))
+        if i % step == step - 1 and i < len(parts) - 1:
+            js.append(f'if (window.__ld) await window.__ld({(i + 1) / len(parts):.2f});')
+    script = bundle('\n'.join(js))
     html = (r / 'src/shell.html').read_text().replace('__SCRIPT__', script)
     B = buoys()
     # 湖岸線などのうち、作品で使わないもの（OpenStreetMap の川の線・灯台）は埋め込まない

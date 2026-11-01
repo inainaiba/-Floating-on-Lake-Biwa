@@ -13,6 +13,7 @@
 import sys, json, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import check
+from check import ready
 from playwright.sync_api import sync_playwright
 
 SCENES = [
@@ -68,6 +69,7 @@ def main():
         pg.on('pageerror', lambda e: errs.append(str(e)))
         pg.on('console', lambda m: check.gl_error(m, errs))
         pg.goto(f'http://127.0.0.1:{port}/docs/index.html?debug&q=mid')  # 重さの上限は中画質で測る（スマートフォンの既定）
+        ready(pg)
         pg.evaluate("()=>{try{localStorage.setItem('floating.hint2','1')}catch(e){}}")
         pg.wait_for_timeout(900)
         pg.evaluate("()=>document.getElementById('title').click()")

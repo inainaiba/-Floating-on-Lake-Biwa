@@ -86,6 +86,12 @@ def serve():
     return s
 
 
+def ready(pg):
+    """作品の組み立てが終わるまで待つ。読み込み中の線を伸ばすために部品の間で一息つくので、
+    ページの load の時点ではまだ組み立ての途中のことがある（確認用の __scene は最後に用意される）"""
+    pg.wait_for_function('()=>typeof __scene==="function"', timeout=300000)
+
+
 def gl_error(m, errs):
     """ブラウザのコンソールから、シェーダーや WebGL の誤りを拾う（画面が黒くなるだけでページのエラーにならないため）。"""
     t = m.text
@@ -111,6 +117,7 @@ def shoot(idx):
             ex = SCENES[i][4] if len(SCENES[i]) > 4 else {}
             if not loaded:
                 pg.goto(f'http://127.0.0.1:{port}/docs/index.html?debug&b={bnum}&{q}')
+                ready(pg)
                 pg.evaluate("()=>{try{localStorage.setItem('floating.hint2','1')}catch(e){}}")
                 pg.wait_for_timeout(900)
                 pg.evaluate("()=>document.getElementById('title').click()")
@@ -156,6 +163,7 @@ def start_check(n=10):
         pg.on('console', lambda m: gl_error(m, errs))
         for k in range(n):
             pg.goto(f'http://127.0.0.1:{port}/docs/index.html?debug&start={k * 7919 + 13}')
+            ready(pg)
             pg.evaluate("()=>{try{localStorage.setItem('floating.hint2','1')}catch(e){}}")
             pg.wait_for_timeout(700)
             pg.evaluate("()=>document.getElementById('title').click()")
@@ -221,6 +229,7 @@ def tap_check():
         for name, vw, vh, mob in [('パソコン', 1280, 720, False), ('スマートフォン', 390, 844, True), ('小さいスマートフォン', 360, 640, True)]:
             pg = b.new_page(viewport={'width': vw, 'height': vh}, is_mobile=mob, has_touch=mob)
             pg.goto(f'http://127.0.0.1:{port}/docs/index.html?debug', timeout=300000)
+            ready(pg)
             pg.evaluate("()=>{try{localStorage.setItem('floating.hint2','1')}catch(e){}}")
             pg.wait_for_timeout(800)
             pg.evaluate("()=>document.getElementById('title').click()")

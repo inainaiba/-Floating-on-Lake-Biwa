@@ -579,7 +579,7 @@
   - 12-renderer.js：`camera`、`scene`
   - 13-sky-dome.js：`skyU`
   - 14-water.js：`water`
-  - 20-villages-layout.js：`landY`
+  - 20-villages-layout.js：`cvTex`、`landY`
   - 29-controls.js：`isFar`
   - 30-audio.js：`thunder`
 
@@ -602,7 +602,7 @@
 ## 44b-bass.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`mergeStatic`
+  - 00-head.js：`G`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 06-inner-lakes.js：`inMain`
