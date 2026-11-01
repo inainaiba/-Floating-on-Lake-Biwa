@@ -91,10 +91,7 @@ const LOOK = {
     okishima: true, // 沖島の集落
     floatingLeaves: true, // 水に浮かぶ花びら・落ち葉
     fireflies: true, // 蛍
-    debussy: false, // 自然音によるドビュッシー的な響き（水滴・風の鳴り・光のきらめき）
-    debussyDrops: false, // その中の水滴の「ぽつ」という音（ふだんの水滴・動機・きらめき）
   },
-  debussyVol: 0.6, // ドビュッシー的な響きの層の音量
   months: {
     petals: 3, // 水に浮かぶ花びら（4月）
     leaves: 10, // 水に浮かぶ落ち葉（11月）

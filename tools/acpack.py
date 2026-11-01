@@ -6,7 +6,7 @@ deflate（zip と同じ圧縮）は「同じ並びのくり返し」を見つけ
 元に戻すと1ビットも違わない（可逆）。読み戻しが正しいかは、元のバイト列の CRC32 を一緒に持たせて確かめる。
 
 詰め方（m）
-  g   … 格子（標高・水深）：左・上・左上・右上から線形に予測し、差を、まわりの起伏の大きさと左の差の向きで分けた文脈で符号にする
+  g   … 格子（標高・水深）：左・上・左上・右上とその一つ先から線形に予測し、差を、まわりの起伏の大きさと左の差の向きで分けた文脈で符号にする
   n4  … 岸近くの細かい地形：32×32 の区画ごとに4ビットの値。左・上・左上の値の組を文脈にする
   st  … 道の線：線ごとに太さと点の数、点は前の点からの差（最初の点は前の線の最初の点からの差）
   tw  … 家：1軒8バイト（x, y, 幅, 奥行き, 向き, 種類）。幅は種類から、奥行きは幅から見当をつける
@@ -94,7 +94,11 @@ def enc_g(b, w):
         c = b[i - w] if y else a
         d = b[i - w - 1] if y and x else c
         f = b[i - w + 1] if y and x + 1 < w else c
-        p = min(255, max(0, (3 * a + 3 * c - 2 * d + f + 2) // 5))
+        a2 = b[i - 2] if x > 1 else a
+        c2 = b[i - 2 * w] if y > 1 else c
+        f2 = b[i - w + 2] if y and x + 2 < w else f
+        # 予測：左・上・左上・右上と、その一つ先（標高データに合わせて最小二乗で決めた重み。合計1024）
+        p = min(255, max(0, (792 * a + 625 * c - 245 * d + 169 * f - 148 * a2 - 210 * c2 + 41 * f2 + 512) >> 10))
         g = abs(a - d) + abs(c - d) + abs(c - f)
         k = 0
         while k < 10 and g > GK[k]:
@@ -186,3 +190,45 @@ def enc_lu(b):
 
 def crc(b):
     return zlib.crc32(b) & 0xFFFFFFFF
+
+
+def enc_int(e, P, b, v):
+    """符号つきの整数：ジグザグにして、ビットの長さ（文脈 b）と、長さごと・位置ごとの各ビット（文脈 b+1, b+2。上位16ビットより下は共通）"""
+    z = (v << 1) if v >= 0 else (-v << 1) - 1
+    n = z.bit_length()
+    e.sym(P, b * 256, 6, n, 5)
+    for i in range(n - 2, -1, -1):
+        e.bit(P, (b + 1) * 256 + n * 16 + min(i, 15), (z >> i) & 1, 5)
+
+
+def enc_pl(polys):
+    """多角形の列（多角形 → 輪 → 点 [x, y] の整数）。点は前の点との差で書く（輪の最初の点は、前の輪の最後の点から）"""
+    e, P = Enc(), [2048] * (21 * 256)
+    enc_int(e, P, 0, len(polys))
+    px = py = 0
+    for poly in polys:
+        enc_int(e, P, 3, len(poly))
+        for ring in poly:
+            enc_int(e, P, 6, len(ring))
+            for k, (x, y) in enumerate(ring):
+                c = 9 if k == 0 else 15
+                enc_int(e, P, c, x - px)
+                enc_int(e, P, c + 3, y - py)
+                px, py = x, y
+    return e.done()
+
+
+def enc_tw2(b):
+    """家（地図の上の並び順に並べ替えたもの）：位置は前の家との差（enc_int）、幅は種類から、奥行きは幅から見当をつける"""
+    e, P = Enc(), [2048] * (520 * 256)
+    px = py = 0
+    for o in range(0, len(b), 8):
+        x, y, w, d, r, t = struct.unpack_from('<hhBBBB', b, o)
+        enc_int(e, P, 0, x - px)
+        enc_int(e, P, 3, y - py)
+        px, py = x, y
+        e.sym(P, 6 * 256, 8, t, 5)
+        e.sym(P, (7 + t) * 256, 8, w, 5)
+        e.sym(P, (263 + w) * 256, 8, d, 5)
+        e.sym(P, 519 * 256, 8, r, 5)
+    return e.done()
