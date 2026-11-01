@@ -46,11 +46,27 @@
       ]);
   }
   const M = new THREE.Matrix4(),
-    WI = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(1, 1.6, 2.4),
-      new THREE.MeshLambertMaterial({ color: 0x8f8d86 }),
-      walls_.length,
-    );
+    // 防波堤：打ち継ぎ目のあるコンクリート（長さに合わせて目地を繰り返す）。
+    // 夜に真っ黒の帯にならないよう、わずかに自らの明るさを持たせる
+    wallTx = cvTex(64, 16, (g, w, h) => {
+      g.fillStyle = "#fff";
+      g.fillRect(0, 0, w, h);
+      for (let x = 0; x < w; x += 16) {
+        g.fillStyle = `rgba(0,0,0,${(0.03 + Math.random() * 0.08).toFixed(2)})`;
+        g.fillRect(x, 0, 15, h);
+        g.fillStyle = "rgba(0,0,0,.28)";
+        g.fillRect(x + 15, 0, 1, h);
+      }
+      g.fillStyle = "rgba(0,0,0,.18)";
+      g.fillRect(0, h - 4, w, 4); // 水ぎわの汚れ
+    }),
+    wallM = new THREE.MeshLambertMaterial({ color: 0xb8b6ae, map: wallTx, emissive: 0x1c1c1a }),
+    WI = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1.6, 2.4), wallM, walls_.length);
+  wallTx.wrapS = THREE.RepeatWrapping;
+  wallM.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace("#include <uv_vertex>", "#include <uv_vertex>\nvMapUv=vec2(uv.x*length(instanceMatrix[0].xyz)/8.,uv.y);");
+  };
+  wallM.customProgramCacheKey = () => "harbor-wall";
   walls_.forEach(([x1, y1, x2, y2], i) => {
     const L = Math.hypot(x2 - x1, y2 - y1) * S;
     M.compose(
@@ -61,6 +77,40 @@
     WI.setMatrixAt(i, M);
   });
   scene.add(WI);
+  // 港口の灯台：入口の両側に赤と白の小さな灯柱。夜に灯る
+  {
+    const postG = new THREE.CylinderGeometry(0.35, 0.45, 3.2, 8).translate(0, 1.6, 0),
+      lampG = new THREE.SphereGeometry(0.45, 8, 6).translate(0, 3.4, 0),
+      g = new THREE.Group(),
+      lamps = [];
+    for (let i = 0; i < walls_.length; i += 3) {
+      for (const [w, col, lc] of [
+        [walls_[i + 1], 0xc8383a, 0xff5040],
+        [walls_[i + 2], 0xeeeeea, 0x70ff90],
+      ]) {
+        const x = w[2] * S,
+          z = w[3] * S,
+          p = new THREE.Mesh(postG, new THREE.MeshLambertMaterial({ color: col, emissive: 0x141414 })),
+          lm = new THREE.MeshBasicMaterial({ color: 0x333333 }),
+          l = new THREE.Mesh(lampG, lm);
+        p.position.set(x, 1.3, z);
+        l.position.set(x, 1.3, z);
+        lm.userData.night = new THREE.Color(lc).multiplyScalar(1.8);
+        lamps.push(lm);
+        g.add(p, l);
+      }
+    }
+    scene.add(g);
+    const OFF = new THREE.Color(0x333333);
+    const WE_DAY = new THREE.Color(0x1c1c1a),
+      WE_NIGHT = new THREE.Color(0x6e6c66);
+    onFrame(126, (f) => {
+      const lit = Math.min(1, Math.max(0, (0.2 - f.day) / 0.1)),
+        bl = 0.55 + 0.45 * Math.sign(Math.sin(f.t * 1.6)); // ゆっくり明滅
+      for (const m of lamps) m.color.lerpColors(OFF, m.userData.night, lit * bl);
+      wallM.emissive.lerpColors(WE_DAY, WE_NIGHT, lit); // 夜の堤は月明かりにほの白く
+    });
+  }
   const BI = new THREE.InstancedMesh(
       new THREE.BoxGeometry(5, 0.9, 1.8),
       new THREE.MeshLambertMaterial({ color: 0xffffff }),

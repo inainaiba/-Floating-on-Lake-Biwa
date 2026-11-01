@@ -316,9 +316,15 @@ G.biwako = railLine(RAIL.biwako, RAIL.biwakoTunnels, RAIL.biwakoStations, { lift
     Sd.setMatrixAt(i, M);
   });
   scene.add(Sd);
+  // カメラのすぐ前に来た石は描かない（目の前の石が、画面を横切る大きな黒い面に見えるため）
+  const stM = new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true });
+  stM.onBeforeCompile = (sh) => {
+    sh.fragmentShader = sh.fragmentShader.replace("void main() {", "void main() {\nif(length(vViewPosition)<9.)discard;");
+  };
+  stM.customProgramCacheKey = () => "stone-near";
   const St = new THREE.InstancedMesh(
       new THREE.DodecahedronGeometry(0.35, 0),
-      new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true }),
+      stM,
       stones.length,
     ),
     cc = new THREE.Color(); // 西岸の山際は石浜
@@ -402,14 +408,58 @@ G.biwako = railLine(RAIL.biwako, RAIL.biwakoTunnels, RAIL.biwakoStations, { lift
     placeLog("桟橋の根元", "shore", [[p[0], p[1]]]);
     placeLog("桟橋の先", "water", [[p[0] + (Math.cos(a) * len) / S, p[1] + (Math.sin(a) * len) / S]]);
   }
-  const J = new THREE.InstancedMesh(
-    new THREE.BoxGeometry(1, 0.5, 2.2).translate(0.5, 0, 0),
-    new THREE.MeshLambertMaterial({ color: 0x8a8478 }),
-    js.length,
-  );
+  // 桟橋：板を横に並べた床（長さに合わせて板の模様を繰り返す）と、両側の杭、先の灯り。
+  // 夜も真っ黒の帯にならないよう、少しだけ自らの明るさを持たせる
+  const plankTx = cvTex(64, 16, (g, w, h) => {
+    g.fillStyle = "#fff";
+    g.fillRect(0, 0, w, h);
+    for (let x = 0; x < w; x += 8) {
+      g.fillStyle = `rgba(0,0,0,${(0.05 + Math.random() * 0.1).toFixed(2)})`;
+      g.fillRect(x, 0, 7, h);
+      g.fillStyle = "rgba(0,0,0,.35)";
+      g.fillRect(x + 7, 0, 1, h);
+    }
+  });
+  plankTx.wrapS = THREE.RepeatWrapping;
+  const plankM = new THREE.MeshLambertMaterial({ color: 0xa2927a, map: plankTx, emissive: 0x16130f });
+  plankM.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace("#include <uv_vertex>", "#include <uv_vertex>\nvMapUv=vec2(uv.x*length(instanceMatrix[0].xyz)/2.4,uv.y);");
+  };
+  plankM.customProgramCacheKey = () => "pier-planks";
+  const J = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.35, 2.2).translate(0.5, 0, 0), plankM, js.length);
+  // 杭：両側に4mおき。水の中へ下ろす
+  const posts = [];
+  js.forEach(([x, y, a, len]) => {
+    for (let s = 2; s < len; s += 4)
+      for (const side of [-1, 1]) posts.push([x * S + Math.cos(a) * s - Math.sin(a) * side * 1.05, y * S + Math.sin(a) * s + Math.cos(a) * side * 1.05]);
+  });
+  const PI = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.11, 0.13, 2.2, 6).translate(0, -0.25, 0), new THREE.MeshLambertMaterial({ color: 0x5a4c3c, emissive: 0x0e0b08 }), Math.max(1, posts.length));
+  posts.forEach(([px, pz], i) => {
+    M.makeTranslation(px, -0.2, pz); // 床の下から水の中へ
+    PI.setMatrixAt(i, M);
+  });
+  PI.count = posts.length;
+  scene.add(PI);
+  // 先の灯り：夜に灯る小さな灯
+  const lampM = new THREE.MeshBasicMaterial({ color: 0x3a3a36 }),
+    LP = new THREE.InstancedMesh(new THREE.SphereGeometry(0.22, 8, 6), lampM, Math.max(1, js.length)),
+    LPOLE = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.05, 0.06, 1.6, 5).translate(0, 0.8, 0), new THREE.MeshLambertMaterial({ color: 0x6a6a66 }), Math.max(1, js.length));
+  js.forEach(([x, y, a, len], i) => {
+    const tx = x * S + Math.cos(a) * (len - 0.6),
+      tz = y * S + Math.sin(a) * (len - 0.6);
+    M.makeTranslation(tx, 1.07, tz);
+    LPOLE.setMatrixAt(i, M);
+    M.makeTranslation(tx, 2.75, tz);
+    LP.setMatrixAt(i, M);
+  });
+  LP.count = LPOLE.count = js.length;
+  scene.add(LP, LPOLE);
+  const LAMP_DAY = new THREE.Color(0x3a3a36),
+    LAMP_NIGHT = new THREE.Color(0xffe2b0).multiplyScalar(2.2);
+  onFrame(125, (f) => lampM.color.lerpColors(LAMP_DAY, LAMP_NIGHT, Math.min(1, Math.max(0, (0.2 - f.day) / 0.1)))); // 桟橋の先の灯り
   js.forEach(([x, y, a, len], i) => {
     M.compose(
-      new THREE.Vector3(x * S, 0.9, y * S),
+      new THREE.Vector3(x * S, 0.95, y * S),
       new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -a, 0)),
       new THREE.Vector3(len, 1, 1),
     );

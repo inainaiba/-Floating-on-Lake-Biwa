@@ -239,7 +239,16 @@ function updateSkyLight(dt, t, c, W) {
   sd.y = Math.max(0.05, sd.y);
   sd.normalize();
   waterU.uSun.value.copy(sd);
-  sun.position.copy(sd).multiplyScalar(100).add(house.position);
+  // 影を落とす光の向き：昼は太陽。日が沈んだら月（月が低い・ない夜は真上）へ移し、高さも下げすぎない。
+  //（地平すれすれの向きのままだと、夜に建物の影が湖を横切るほど長い黒い帯になるため）
+  {
+    const nt = Math.min(1, Math.max(0, (0.06 - AS.sun.y) / 0.12)),
+      md = AS.moon.y > 0.2 ? AS.moon.clone() : new THREE.Vector3(0.2, 1, 0.1),
+      ld = sd.clone().lerp(md.normalize(), nt);
+    ld.y = Math.max(ld.y, 0.05 + 0.5 * nt);
+    ld.normalize();
+    sun.position.copy(ld).multiplyScalar(100).add(house.position);
+  }
   sun.target.position.copy(house.position);
   const warm = 1 - Math.min(1, day * 2.5);
   sun.color.setRGB(1, 1 - 0.3 * warm - 0.04, 1 - 0.55 * warm - 0.1);

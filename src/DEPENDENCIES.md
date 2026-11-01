@@ -231,17 +231,18 @@
   - 20-villages-layout.js：`TOWNS`、`houses`、`landY`
 
 ## 23-paddies.js
-- 作る：`PADDY`、`ghI`、`paddyI`、`paddyM`、`paddySeason`
+- 作る：`PADDY`、`ghI`、`paddyI`、`paddyM`、`paddySeason`、`paddyWet`
 - 使う：
+  - 00-head.js：`GLSL_NOISE`
   - 01-settings.js：`S`
   - 02-season.js：`SEASON`
   - 12-renderer.js：`scene`
-  - 20-villages-layout.js：`cvTex`、`landY`、`paddies`
+  - 20-villages-layout.js：`bHash`、`cvTex`、`landY`、`paddies`
 
 ## 24-shore-landmarks.js
 - 作る：`brk`、`railLine`、`shoreTrees`、`treeI`、`treeM`、`treeSeason`
 - 使う：
-  - 00-head.js：`G`、`placeLog`
+  - 00-head.js：`G`、`onFrame`、`placeLog`
   - 01-settings.js：`RAIL`、`S`
   - 03-coords.js：`ll`
   - 05-lake.js：`outer`
@@ -271,13 +272,14 @@
 ## 25-harbors.js
 - 作る：`TREE_MAT`、`lumpy`、`treeGeom`
 - 使う：
-  - 00-head.js：`G`、`LEAFTX`、`NEAR_TREE_MAT`、`mergeStatic`、`placeLog`
+  - 00-head.js：`G`、`LEAFTX`、`NEAR_TREE_MAT`、`mergeStatic`、`onFrame`、`placeLog`
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inLake`
   - 07-depth.js：`depth`
   - 10-start.js：`rnd`
   - 12-renderer.js：`scene`
   - 19-boats.js：`PORT_SITES`
+  - 20-villages-layout.js：`cvTex`
 
 ## 26-forests.js
 - 作る：`treeFade`
