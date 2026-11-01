@@ -717,9 +717,10 @@ function reedTex(kind) {
 }
 const REED_TEX = {};
 for (const k of ["summer", "spring", "autumn", "winter", "cut", "burnt"]) REED_TEX[k] = reedTex(k);
+// 冬（11〜2月）は黄金色の枯れヨシが立ったまま。1・2月は刈り取りが少しずつ進み（REED_CUT）、3月にヨシ焼き（38-seasonal-events.js）
 const REED_MONTH = [
-  "cut",
-  "cut",
+  "winter",
+  "winter",
   "burnt",
   "spring",
   "spring",
@@ -747,7 +748,17 @@ function reedGeom() {
   for (let i = 0; i < n.count; i++) n.setXYZ(i, 0, 1, 0);
   return g;
 } // 上向きの法線で、板の向きによる明暗の差をなくす
-const reedU = { uT: { value: 0 }, uW: { value: new THREE.Vector2(1, 0) }, uCut: { value: 0 }, tAlt: { value: null }, uSunD: { value: new THREE.Vector3(0.5, 0.7, 0.3) } };
+const REED_CUT = [0.22, 0.4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // 刈り取られた所の割合の目安（1・2月）
+const reedU = {
+  uT: { value: 0 },
+  uW: { value: new THREE.Vector2(1, 0) },
+  uCutT: { value: 0 }, // 刈り取りの進み（0：刈っていない）
+  uBurnOn: { value: 0 }, // 3月：ヨシ焼き（uBurn の円の内側が焼け跡）
+  uBurn: { value: Array.from({ length: 8 }, () => new THREE.Vector4(0, 0, 0, 0)) }, // 火を付けた所 x, z・燃え広がった半径・火が燃えているか
+  uGold: { value: 0 }, // 穂が光をとらえる強さ（秋・冬）
+  tAlt: { value: null },
+  uSunD: { value: new THREE.Vector3(0.5, 0.7, 0.3) },
+};
 function reedMat() {
   const m = new THREE.MeshBasicMaterial({
     map: REED_TEX.summer,
@@ -758,32 +769,47 @@ function reedMat() {
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uT = reedU.uT;
     sh.uniforms.uW = reedU.uW;
-    sh.uniforms.uCut = reedU.uCut;
+    sh.uniforms.uCutT = reedU.uCutT;
+    sh.uniforms.uBurnOn = reedU.uBurnOn;
+    sh.uniforms.uBurn = reedU.uBurn;
+    sh.uniforms.uGold = reedU.uGold;
+    sh.uniforms.uSunD = reedU.uSunD;
     sh.uniforms.tAlt = reedU.tAlt;
     sh.vertexShader = sh.vertexShader
-      .replace("#include <common>", "#include <common>\nuniform float uT;uniform vec2 uW;varying vec2 vRW;varying float vRH;")
+      .replace("#include <common>", "#include <common>\nuniform float uT;uniform vec2 uW;varying vec2 vRW;varying float vRH;varying float vRY;varying float vGust;")
       .replace(
         "#include <project_vertex>",
-        "vec4 wp=modelMatrix*instanceMatrix*vec4(transformed,1.);float hh=clamp(transformed.y/4.2,0.,1.);float sw=(.35+.65*sin(uT*1.6+wp.x*.35+wp.z*.27)+.3*sin(uT*.6+dot(wp.xz,normalize(uW+1e-4))*.08))*hh*hh;wp.xz+=uW*sw;vec4 mvPosition=viewMatrix*wp;gl_Position=projectionMatrix*mvPosition;vRW=wp.xz;vRH=hh;",
+        // 風に波打つ：風が渡ると、明るい帯が波のように群落の上を風下へ走る（帯の所は大きくなびく）
+        "vec4 wp=modelMatrix*instanceMatrix*vec4(transformed,1.);float hh=clamp(transformed.y/4.2,0.,1.);vec2 wd_=normalize(uW+1e-4);float gb=smoothstep(.45,1.,sin(dot(wp.xz,wd_)*.045-uT*1.25+sin(wp.x*.013+wp.z*.011)*2.));float sw=(.35+.65*sin(uT*1.6+wp.x*.35+wp.z*.27)+.3*sin(uT*.6+dot(wp.xz,wd_)*.08)+gb*1.4)*hh*hh;wp.xz+=uW*sw;vec4 mvPosition=viewMatrix*wp;gl_Position=projectionMatrix*mvPosition;vRW=wp.xz;vRH=hh;vRY=wp.y;vGust=gb*min(1.,length(uW)*2.5);",
       );
-    // 刈り取り後のヨシ原：刈り残しの立ったヨシの群れ、株の高さのむら、まばらな所と水の見える すき間、板の端をまばらに
+    // 刈り取り後のヨシ原・焼け跡：刈り残し（焼け残り）の立ったヨシの群れ、株の高さのむら、まばらな所と水の見える すき間
     sh.fragmentShader = sh.fragmentShader
-      .replace("#include <common>", "#include <common>\nuniform float uCut;uniform sampler2D tAlt;varying vec2 vRW;varying float vRH;float rh_(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5);}float rn_(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(rh_(i),rh_(i+vec2(1,0)),f.x),mix(rh_(i+vec2(0,1)),rh_(i+1.),f.x),f.y);}")
+      .replace("#include <common>", "#include <common>\nuniform float uCutT;uniform float uBurnOn;uniform vec4 uBurn[8];uniform float uGold;uniform vec3 uSunD;uniform sampler2D tAlt;varying vec2 vRW;varying float vRH;varying float vRY;varying float vGust;float rh_(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5);}float rn_(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(rh_(i),rh_(i+vec2(1,0)),f.x),mix(rh_(i+vec2(0,1)),rh_(i+1.),f.x),f.y);}")
       .replace(
         "#include <map_fragment>",
         `#include <map_fragment>
+float pn=rn_(vRW*.03)*.65+rn_(vRW*.11)*.35,bm=0.,emb=0.;
+if(uBurnOn>0.)for(int i=0;i<8;i++){vec4 b=uBurn[i];if(b.z<=0.)continue;float d=length(vRW-b.xy)+(pn-.5)*7.;bm=max(bm,smoothstep(b.z+1.5,b.z-1.5,d));emb=max(emb,exp(-pow((d-b.z)/2.2,2.))*b.w);}
+float keep=uBurnOn>0.?1.-bm:(uCutT>0.?smoothstep(uCutT-.04,uCutT+.04,pn):1.);
+bool alt=uBurnOn>0.||uCutT>0.;
+if(alt&&keep>.5){vec4 tA=texture2D(tAlt,vMapUv);diffuseColor=vec4(diffuse*tA.rgb,opacity*tA.a);}
 // 板の形を隠す：茎の列ごとに背丈をばらつかせ（上の縁を不揃いに）、板の左右の端ほど低くまばらにして、株の丸い形にする
-if(uCut<=0.){float cl=rh_(vec2(floor(vMapUv.x*40.),floor(vRW.x*.13+vRW.y*.17))),sd=smoothstep(0.,.45,min(vMapUv.x,1.-vMapUv.x));
+if(!alt||keep>.5){float cl=rh_(vec2(floor(vMapUv.x*40.),floor(vRW.x*.13+vRW.y*.17))),sd=smoothstep(0.,.45,min(vMapUv.x,1.-vMapUv.x));
  diffuseColor.a*=step(vRH,(.62+.38*cl)*(.5+.5*sd));
- diffuseColor.a*=step(cl*.9,sd*1.25);}
-if(uCut>0.){float pn=rn_(vRW*.03)*.65+rn_(vRW*.11)*.35;
- float keep=smoothstep(.66,.74,pn);
- if(keep>.5){vec4 tA=texture2D(tAlt,vMapUv);diffuseColor=vec4(diffuse*tA.rgb,opacity*tA.a);}
- else{float col=rh_(floor(vRW*2.3)+floor(vMapUv.x*36.));
+ diffuseColor.a*=step(cl*.9,sd*1.25);
+ // 穂が光をとらえる：朝日・夕日を背にしたヨシ原の上の方（穂）が、金色に透けて光る。風の帯の所は少し明るい
+ vec3 vd=normalize(vec3(vRW.x,vRY,vRW.y)-cameraPosition);vec3 sd_=normalize(uSunD);
+ float bl=pow(max(dot(vd,sd_),0.),4.)*smoothstep(.5,.02,sd_.y)*smoothstep(-.06,.04,sd_.y),top=smoothstep(.5,.95,vRH);
+ diffuseColor.rgb+=vec3(1.,.72,.36)*bl*top*uGold*.85+vec3(1.,.92,.75)*top*uGold*.07*smoothstep(0.,.3,sd_.y);
+ diffuseColor.rgb*=1.+vGust*.16*top;}
+else{float col=rh_(floor(vRW*2.3)+floor(vMapUv.x*36.));
   diffuseColor.a*=step(vRH,(.08+.16*col)*(.55+.9*pn));
   diffuseColor.a*=smoothstep(.3,.42,pn+col*.1);
-  diffuseColor.rgb*=.8+.4*col;}
- diffuseColor.a*=step(rh_(vec2(floor(vMapUv.x*48.),floor(vRW.x*.2+vRW.y*.2))),smoothstep(0.,.3,min(vMapUv.x,1.-vMapUv.x))*1.25);}`,
+  diffuseColor.rgb*=.8+.4*col;
+  if(uBurnOn>0.)diffuseColor.rgb*=.32; // 焼け跡は黒く
+  // 燃えている縁：焼け跡の株の根もとが赤く熾る
+  diffuseColor.rgb+=vec3(1.,.38,.08)*emb*(.6+.4*sin(vRW.x*3.1+vRW.y*2.7))*1.4;}
+if(alt)diffuseColor.a*=step(rh_(vec2(floor(vMapUv.x*48.),floor(vRW.x*.2+vRW.y*.2))),smoothstep(0.,.3,min(vMapUv.x,1.-vMapUv.x))*1.25);`,
       );
   };
   return m;
@@ -808,9 +834,9 @@ const reeds = new THREE.InstancedMesh(reedGeo, reedMat(), reedPts.length * QUALI
   reedPts.forEach(([x, y], j) => {
     const e = Math.min(1, Math.max(0, (ns[j] / med - 0.2) / 0.7));
     for (let k = 0; k < QUALITY.reedPer; k++) {
-      const s = (0.6 + R() * 0.7) * (0.8 + 0.4 * vnoise(x / 700, y / 700)) * (0.7 + 0.3 * e);
+      const s = (0.8 + R() * 0.5) * (0.85 + 0.3 * vnoise(x / 700, y / 700)) * (0.7 + 0.3 * e); // 背丈をそろえて、群落の帯に
       m.makeRotationY(R() * 3.14).premultiply(new THREE.Matrix4().makeScale(s, s * (0.85 + R() * 0.3) * (0.55 + 0.45 * e), s));
-      m.setPosition(x * S + (R() - 0.5) * 24, 0, y * S + (R() - 0.5) * 24);
+      m.setPosition(x * S + (R() - 0.5) * 16, 0, y * S + (R() - 0.5) * 16);
       reeds.setMatrixAt(i++, m);
     }
   });

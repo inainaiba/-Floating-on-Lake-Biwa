@@ -16,18 +16,44 @@ G.EV = (() => {
     tx.minFilter = THREE.LinearFilter;
     return tx;
   })();
-  const R = rnd(2718);
-  const sites = [];
-  for (let k = 0; k < 6 && reedPts.length; k++) {
-    const p = reedPts[Math.floor(R() * reedPts.length)];
-    sites.push([p[0] * S, p[1] * S]);
+  // ヨシ焼き（3月の昼）：各ヨシ原の決まった所に火を入れ、火の輪がヨシの中をゆっくり広がる。
+  // 焼けた所は黒い株が残り（16-terrain.js の uBurn）、白い煙の柱が高く立って風下へたなびく。近くではパチパチと音がする
+  const RF = 110, // 燃え広がる半径の上限（作品の単位。実寸約550m）
+    BS = [];
+  for (const [cx, cy] of REED_SITES) {
+    let best = null,
+      bd = 1e18;
+    for (const p of reedPts) {
+      const d = (p[0] - cx) ** 2 + (p[1] - cy) ** 2;
+      if (d < bd) (bd = d), (best = p);
+    }
+    if (!best) continue;
+    const ix = best[0] * S,
+      iz = best[1] * S,
+      pts = [];
+    for (const p of reedPts) {
+      const d = Math.hypot(p[0] * S - ix, p[1] * S - iz);
+      if (d < RF) pts.push([p[0] * S, p[1] * S, d]);
+    }
+    pts.sort((u, v) => u[2] - v[2]);
+    BS.push({ x: ix, z: iz, pts, maxD: pts.length ? pts[pts.length - 1][2] : 0, r: 0, w: 0 });
   }
+  const lowIdx = (arr, d) => {
+    let lo = 0,
+      hi = arr.length;
+    while (lo < hi) {
+      const m = (lo + hi) >> 1;
+      if (arr[m][2] < d) lo = m + 1;
+      else hi = m;
+    }
+    return lo;
+  };
   const smoke = [];
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 160; i++) {
     const s = new THREE.Sprite(
       new THREE.SpriteMaterial({
         map: smokeTx,
-        color: 0xb9b4aa,
+        color: 0xe2ddd4,
         transparent: true,
         depthWrite: false,
         opacity: 0,
@@ -38,7 +64,7 @@ G.EV = (() => {
     g.add(s);
     smoke.push(s);
   }
-  const fires = sites.map(([x, z]) => {
+  const fires = Array.from({ length: 60 }, () => {
     const l = new THREE.Sprite(
       new THREE.SpriteMaterial({
         map: smokeTx,
@@ -49,12 +75,17 @@ G.EV = (() => {
         opacity: 0,
       }),
     );
-    l.position.set(x, 1.2, z);
-    l.scale.set(9, 4, 1);
     l.visible = false;
     g.add(l);
     return l;
   });
+  const spawnSmoke = (x, z, big) => {
+    const s = smoke[si++ % smoke.length];
+    s.position.set(x + (Math.random() - 0.5) * 4, 1.5, z + (Math.random() - 0.5) * 4);
+    s.userData.a = 0;
+    s.userData.big = big;
+    s.visible = true;
+  };
   let si = 0,
     spT = 0;
   const NF = 260,
@@ -95,41 +126,75 @@ G.EV = (() => {
       ph = c.phase,
       cx = camera.position.x,
       cz = camera.position.z;
-    const burn = mo === 2 && ph > 0.3 && ph < 0.62 ? Math.min(1, (ph - 0.3) / 0.03, (0.62 - ph) / 0.03) : 0;
-    fires.forEach((f) => {
-      f.visible = burn > 0;
-      f.material.opacity = burn * (0.35 + 0.25 * Math.sin(t * 9 + f.position.x));
-    });
-    if (burn > 0) {
-      spT -= dt;
-      if (spT < 0) {
-        spT = 0.12;
-        const [x, z] = sites[si++ % sites.length];
-        const s = smoke[si % smoke.length];
-        s.position.set(x + (Math.random() - 0.5) * 10, 1, z + (Math.random() - 0.5) * 10);
-        s.userData.a = 0;
-        s.visible = true;
+    // 火を入れるのは10時ごろ、燃え広がって15時ごろに鎮まる（3月の一日）
+    const P0 = 0.42,
+      P1 = 0.6,
+      on = mo === 2;
+    for (const b of BS) {
+      const u = on ? Math.min(1, Math.max(0, (ph - P0) / (P1 - P0))) : 0;
+      b.r = on && ph > P0 ? Math.min(b.maxD + 4, RF * (u * u * (3 - 2 * u))) : 0;
+      b.w = on && ph > P0 && ph < P1 + 0.02 && b.r < b.maxD + 3 ? 1 : 0;
+      b.dc = Math.hypot(b.x - cx, b.z - cz);
+    }
+    const near = [...BS].sort((p, q) => p.dc - q.dc);
+    near.slice(0, 8).forEach((b, i) => reedU.uBurn.value[i].set(b.x, b.z, b.r, b.w));
+    for (let i = near.length; i < 8; i++) reedU.uBurn.value[i].set(0, 0, 0, 0);
+    // 炎：いちばん近い3か所の、燃えている縁のヨシの上に
+    let nf = 0,
+      crackle = 1e9;
+    for (const b of near.slice(0, 3)) {
+      if (!b.w || b.dc > 900) continue;
+      const i0 = lowIdx(b.pts, b.r - 3.5),
+        i1 = lowIdx(b.pts, b.r + 3.5),
+        n = i1 - i0,
+        step = Math.max(1, Math.floor(n / 24));
+      for (let k = i0; k < i1 && nf < fires.length; k += step) {
+        const [x, z] = b.pts[k],
+          f = fires[nf++];
+        f.visible = true;
+        f.position.set(x, 1.3 + Math.sin(t * 7 + k) * 0.15, z);
+        const fl = 0.75 + 0.25 * Math.sin(t * 11 + k * 1.7) * Math.sin(t * 6.3 + k);
+        f.scale.set(4.5 + (k % 3) * 1.5, (4 + (k % 4) * 0.8) * fl, 1);
+        f.material.opacity = 0.85 * fl;
+        crackle = Math.min(crackle, Math.hypot(x - cx, z - cz));
       }
     }
+    for (let k = nf; k < fires.length; k++) fires[k].visible = false;
+    // 煙：近くの燃えている縁からは盛んに、遠くのヨシ原からは柱が見える程度に
+    spT -= dt;
+    if (spT < 0) {
+      spT = 0.05;
+      for (const b of near) {
+        if (!b.w) continue;
+        const i0 = lowIdx(b.pts, b.r - 3),
+          i1 = Math.max(i0 + 1, lowIdx(b.pts, b.r + 3));
+        const pk = b.pts[Math.min(b.pts.length - 1, i0 + Math.floor(Math.random() * (i1 - i0)))];
+        if (!pk) continue;
+        if (b.dc < 900 || Math.random() < 0.3) spawnSmoke(pk[0], pk[1], b.dc > 900);
+      }
+    }
+    // パチパチと燃える音（近いときだけ）
+    if (crackle < 260 && SND.ctx && SND.on && Math.random() < dt * 14)
+      nburst(5000 + Math.random() * 3000, 1400, 0.04 + Math.random() * 0.05, 0.05 * (1 - crackle / 260), (Math.random() - 0.5) * 0.8, 0.8, 0.2);
     for (const s of smoke) {
       const u = s.userData;
       if (u.a < 0) continue;
-      u.a += dt / 22;
+      u.a += dt / 30;
       if (u.a >= 1) {
         u.a = -1;
         s.visible = false;
         continue;
       }
-      s.position.y += dt * (4 + u.a * 2);
-      s.position.x += W.x * dt * 0.8;
-      s.position.z += W.y * dt * 0.8;
-      const sc = 10 + u.a * 60;
+      s.position.y += dt * (4.5 + u.a * 3.5) * (1 - Math.min(0.5, W.s / 14)); // 風が強いほど低く横へ
+      s.position.x += W.x * dt * (0.4 + u.a * 1.2);
+      s.position.z += W.y * dt * (0.4 + u.a * 1.2);
+      const sc = (8 + u.a * 70) * (u.big ? 1.6 : 1);
       s.scale.set(sc, sc, 1);
       s.material.opacity =
         Math.min(1, u.a * 8) *
         (1 - u.a) *
-        0.42 *
-        Math.max(0, 1 - Math.hypot(s.position.x - cx, s.position.z - cz) / 1400);
+        0.6 *
+        Math.max(0, 1 - Math.hypot(s.position.x - cx, s.position.z - cz) / 2400);
     }
     const ff = LOOK.show.fireflies && mo === LOOK.months.fireflies && day < 0.05;
     ffl.visible = ff;
@@ -230,6 +295,6 @@ G.EV = (() => {
     up0(dt, c, day, t, W);
     sakI.visible = trI.visible = c.month === 3;
   }
-  return { update: update2, sites };
+  return { update: update2, sites: BS.map((b) => [b.x, b.z]) }; // ヨシ焼きの火を入れる所（確認用）
 })();
 onFrame(40, (f) => G.EV.update(f.dt, f.c, f.day, f.t, f.W)); // 毎フレームの更新（季節の出来事。順番は 00-head.js の onFrame）

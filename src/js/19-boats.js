@@ -665,38 +665,3 @@ function updatePrecip(wxNow, W, dt, t) {
 // 雷：点滅ではなく、ゆっくり明るむ光（1秒に3回以下）
 let flash = 0,
   nextFlash = 0;
-// ヨシの一年：冬に刈られ、早春にヨシ焼き、春に新芽、夏に茂り、秋に穂
-const REED_YEAR = [
-  [0x9a8a64, 0.25],
-  [0x9a8a64, 0.25],
-  [0x2b2620, 0.22],
-  [0x9fbf6a, 0.5],
-  [0x88ad58, 0.75],
-  [0x6f8f45, 1],
-  [0x5f8240, 1.1],
-  [0x627f3e, 1.15],
-  [0xa69a52, 1.15],
-  [0xc4a85a, 1.1],
-  [0xa88d5c, 1.05],
-  [0x998465, 1],
-];
-// ヨシ焼きの煙（3月の昼）
-const smokeGeo = new THREE.BufferGeometry(),
-  smP = new Float32Array(600 * 3),
-  smB = [];
-{
-  const R = rnd(21);
-  for (let i = 0; i < 600; i++) {
-    const s = REED_SITES[i % REED_SITES.length];
-    const a = R() * 6.28,
-      q = R() * s[2] * 0.6;
-    smB.push([(s[0] + Math.cos(a) * q) * S, (s[1] + Math.sin(a) * q) * S, R() * 40]);
-  }
-}
-smokeGeo.setAttribute("position", new THREE.BufferAttribute(smP, 3));
-const smoke = new THREE.Points(
-  smokeGeo,
-  new THREE.PointsMaterial({ color: 0x9a958c, size: 6, transparent: true, opacity: 0.35, depthWrite: false }),
-);
-smoke.frustumCulled = false;
-scene.add(smoke);
