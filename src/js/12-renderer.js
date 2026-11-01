@@ -1,10 +1,26 @@
 /* ---------- three.js：近景 ---------- */
+// WebGL が使えない端末では、湖の絵の幕に説明を出して止める（src/shell.html の __fail）
+{
+  const tc = document.createElement("canvas");
+  if (!(tc.getContext("webgl2") || tc.getContext("webgl"))) {
+    window.__fail?.("この端末では湖を描けません", "WebGL is not available on this device or browser");
+    throw new Error("WebGL unavailable");
+  }
+}
 const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("gl"), antialias: true });
+// 描画が中断されたとき（メモリ不足や、ほかのアプリに GPU を取られたとき）
+renderer.domElement.addEventListener("webglcontextlost", (e) => {
+  e.preventDefault();
+  window.__ready = false;
+  window.__failed = false;
+  window.__fail?.("描画が中断されました", "Drawing was interrupted (the device may be low on memory)");
+});
 const MOBILE_ = matchMedia("(pointer:coarse)").matches;
 // 画質：端末に応じた3段階（?q=high|mid|low で固定もできる）。表示中もフレームの速さで解像度を自動調整
 const QQ = Q.get("q");
 const QUAL =
   QQ ||
+  (navigator.deviceMemory && navigator.deviceMemory <= 2 ? "low" : null) || // メモリの少ない端末は、はじめから低い画質で
   (MOBILE_
     ? devicePixelRatio >= 3 || (navigator.hardwareConcurrency || 4) < 6
       ? "mid"

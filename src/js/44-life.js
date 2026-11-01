@@ -263,3 +263,4 @@ G.life = (() => {
   }
   return { update, bam, susuki };
 })();
+onFrame(70, (f) => G.life.update(f.dt, f.t, f.c, f.day, f.wxNow)); // 毎フレームの更新（竹林・雲・ススキなど。順番は 00-head.js の onFrame）

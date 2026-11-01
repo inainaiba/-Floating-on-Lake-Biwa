@@ -405,3 +405,4 @@ void main(){
   }
   return { update, g, sagi, street: otsu.route };
 })();
+onFrame(160, (f) => G.fest.update(f.dt, f.t, f.c, f.day)); // 毎フレームの更新（湖の祭り。順番は 00-head.js の onFrame）

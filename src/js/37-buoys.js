@@ -198,3 +198,4 @@ G.buoys = (() => {
     },
   };
 })();
+onFrame(20, (f) => G.buoys.update(f.t, f.day < 0.08)); // 毎フレームの更新（ブイ。順番は 00-head.js の onFrame）

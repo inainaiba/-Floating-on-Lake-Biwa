@@ -227,3 +227,4 @@ G.EV = (() => {
   }
   return { update: update2, sites };
 })();
+onFrame(40, (f) => G.EV.update(f.dt, f.c, f.day, f.t, f.W)); // 毎フレームの更新（季節の出来事。順番は 00-head.js の onFrame）

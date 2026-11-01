@@ -211,3 +211,4 @@ G.bass = (() => {
   }
   return { update, boats };
 })();
+onFrame(80, (f) => G.bass.update(f.dt, f.t, f.c, f.day)); // 毎フレームの更新（南湖のバスボート。順番は 00-head.js の onFrame）

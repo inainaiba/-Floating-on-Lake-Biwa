@@ -176,3 +176,4 @@ G.moments = (() => {
   }
   return { update, lone };
 })();
+onFrame(60, (f) => G.moments.update(f.dt, f.t, f.c, f.W)); // 毎フレームの更新（湖の詩情・鐘。順番は 00-head.js の onFrame）

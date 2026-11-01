@@ -201,3 +201,4 @@ G.trains = (() => {
     },
   };
 })();
+onFrame(110, (f) => G.trains.update(f.c, f.day)); // 毎フレームの更新（電車。順番は 00-head.js の onFrame）

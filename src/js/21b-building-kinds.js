@@ -216,3 +216,4 @@ vMapUv=abs(normal.y)>.5?vec2(.5):vec2(uv.x*(abs(normal.x)>.5?sz_:sx_)/3.,uv.y*sy
     },
   };
 })();
+onFrame(140, (f) => G.bkinds.update(f.day)); // 毎フレームの更新（集落の鉄筋の建物の夜の窓。順番は 00-head.js の onFrame）

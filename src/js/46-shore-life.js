@@ -84,3 +84,4 @@ G.shore = (() => {
   }
   return { update };
 })();
+onFrame(100, (f) => G.shore.update(f.dt, f.t, f.c, f.day, f.wxNow)); // 毎フレームの更新（家々の灯り・えり。順番は 00-head.js の onFrame）

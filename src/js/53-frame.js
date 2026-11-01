@@ -5,7 +5,9 @@ function frame(now) {
     return;
   }
   if (G.frameWaiters) for (const f of G.frameWaiters.splice(0)) requestAnimationFrame(f);
-  const dt = Math.min(0.1, (now - last) / 1000);
+  // 確認用に時計を止めているとき（G.tFix）は、動きの時刻も一定の歩みで進める（撮るたびに雲や波の形が違わないように）
+  const fixed = G.tFix != null,
+    dt = fixed ? 1 / 30 : Math.min(0.1, (now - last) / 1000);
   last = now;
   fpsN++;
   fpsT += dt;
@@ -27,7 +29,7 @@ function frame(now) {
   } // 確認用：処理時間の内訳（?debug のときだけ G.prof がある）
   const c = clock(),
     W = wind(c),
-    t = now / 1000;
+    t = fixed ? (G.simT = (G.simT || 0) + dt) : now / 1000;
   moveHouse(dt, c, W);
   const boats = boatState(c);
   trailT += dt;
@@ -57,24 +59,11 @@ function frame(now) {
   const pB = performance.now();
   const { hx, hz } = floatHouse(dt, t, W, day);
   updateBoats(boats, dt, t, night);
-  if (FW) FW.update(dt, c, day);
-  if (G.buoys) G.buoys.update(t, day < 0.08);
-  if (G.fountain) G.fountain.update(dt, c, day); // びわこ花噴水（37b-fountain.js）
-  if (G.EV) G.EV.update(dt, c, day, t, W);
-  if (G.ambience) G.ambience.update(dt, t, c, day);
-  if (G.moments) G.moments.update(dt, t, c, W);
-  if (G.life) G.life.update(dt, t, c, day, wxNow);
-  if (G.bass) G.bass.update(dt, t, c, day); // 南湖のバスボート（44b-bass.js）
-  if (G.boats) G.boats.update(dt, t, c, day, wxNow);
-  if (G.shore) G.shore.update(dt, t, c, day, wxNow);
-  if (G.trains) G.trains.update(c, day); // 湖西線と琵琶湖線の電車（24b-trains.js）
-  if (G.meisho) G.meisho.update(day); // 名所の建築（40b-meisho.js）：夜の彦根城
-  if (G.city) G.city.update(day); // 南湖の街（47-city.js）：夜の窓
-  if (G.bkinds) G.bkinds.update(day); // 集落の鉄筋の建物（21b-building-kinds.js）：夜の窓
-  if (G.birdman) G.birdman.update(dt, t, c); // 鳥人間コンテスト（38b-birdman.js）：7月の発進台と飛行機
-  if (G.fest) G.fest.update(dt, t, c, day); // 湖の祭り（38c-festivals.js）：8月の船幸祭・10月の大津祭・1月の左義長
-  if (G.showers) G.showers.update(dt, t, c, day, wxNow); // 遠くのにわか雨と雷（43c-showers.js）
-  if (G.birds) G.birds.update(dt, t, c, day, W, wxNow); // 水鳥と空の鳥（43b-birds.js）
+  // 景物の部品の毎フレームの更新（各部品が onFrame で登録したもの。00-head.js）
+  {
+    const f = { dt, t, c, day, W, wxNow };
+    for (const [, fn] of FRAME_HOOKS) fn(f);
+  }
   updateCamera(dt, t, hx, hz);
   if (G.nearPatch) G.nearPatch.update(camera.position.x / S, camera.position.z / S); // カメラのまわりの細かい地形（16-terrain.js）
   // 木が縮んで消える距離（cardForest の far）より遠い森の区画は、はじめから描かない
@@ -137,6 +126,7 @@ if (Q.has("debug")) {
     if (q.phase !== undefined) PH = String(q.phase);
     if (q.wx !== undefined) WXQ = String(q.wx);
     if (q.t !== undefined) G.tFix = q.t;
+    G.simT = 0; // 動きの時刻も、場面ごとに同じ所から
     if (q.b !== undefined && q.b !== CUST.b) {
       CUST.b = q.b;
       buildHouse();
@@ -196,5 +186,7 @@ if (G.wakeMesh) G.wakeMesh.userData.noChunk = true; // 航跡は毎フレーム�
   rt.dispose();
   for (const o of hidden) o.visible = false;
 }
+Math.random = TRUE_RANDOM; // 組み立てが終わったら、乱数を元に戻す（00-head.js）
+window.__ready = true; // 読み込みが終わった（これより後の誤りでは、描けない幕を出さない。src/shell.html）
 requestAnimationFrame(frame);
 requestAnimationFrame(() => (document.getElementById("veil").style.opacity = 0));

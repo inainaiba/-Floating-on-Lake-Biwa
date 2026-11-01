@@ -100,6 +100,7 @@ G.ambience = (() => {
   }
   return { update, boats };
 })();
+onFrame(50, (f) => G.ambience.update(f.dt, f.t, f.c, f.day)); // 毎フレームの更新（釣り舟・はさ掛け。順番は 00-head.js の onFrame）
 
 // 眺めるだけの時間：しばらく操作がないと、カメラがゆっくり湖を見渡す
 {

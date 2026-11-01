@@ -1,5 +1,25 @@
 import * as THREE from "three";
 
+// 読み込みの間（景物の配置・手描きの模様など）の乱数は、決まった種から出す。見る人みな同じ湖になり、確認の撮影も揺れない。
+// 本当の乱数は TRUE_RANDOM（始まりの場所を選ぶときだけ）。組み立てが終わると Math.random を元に戻す（53-frame.js。舟の現れ方などは見る人ごと）
+const TRUE_RANDOM = Math.random;
+Math.random = (() => {
+  let a = 0x2f6b3a91;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+})();
+// 毎フレームの更新：景物の部品は onFrame(順番, 関数) で登録し、53-frame.js が順番の小さい順に呼ぶ。
+// 関数は f = { dt, t, c, day, W, wxNow }（経った秒・動きの時刻・時計・昼の明るさ・風・今の天気）を受け取る。
+// 部品を足し引きしても 53-frame.js を書き換えずに済む。順番は、ほかの部品の動きを使う部品を後にするためのもの
+const FRAME_HOOKS = [];
+function onFrame(order, fn) {
+  FRAME_HOOKS.push([order, fn]);
+  FRAME_HOOKS.sort((a, b) => a[0] - b[0]);
+}
 // 部品をまたいで使う共有の値はここに集める。
 // URL に ?debug を付けたときだけ、確認用に window.__floating として外から見えるようにする（公開時は閉じておく）
 const G = /[?&]debug(?:[=&]|$)/.test(location.search) ? (window.__floating = {}) : {};

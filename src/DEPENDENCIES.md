@@ -5,7 +5,7 @@
 部品は番号順に1つのモジュールとしてつながる。後ろの部品で作る名前は、前の部品の「読み込み時に動く処理」からは使えない（関数の中や毎フレームの処理からは使える）。
 
 ## 00-head.js
-- 作る：`CHUNK`、`G`、`GLSL_NOISE`、`LEAFTX`、`NEAR_TREE_MAT`、`PLACE_LOG`、`chunkOf`、`chunkify`、`mergeStatic`、`mkLeaf`、`placeLog`
+- 作る：`CHUNK`、`FRAME_HOOKS`、`G`、`GLSL_NOISE`、`LEAFTX`、`NEAR_TREE_MAT`、`PLACE_LOG`、`TRUE_RANDOM`、`chunkOf`、`chunkify`、`mergeStatic`、`mkLeaf`、`onFrame`、`placeLog`
 - 使う：
   - 01-settings.js（後ろの部品・要注意）：`S`
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
@@ -74,6 +74,7 @@
 ## 10-start.js
 - 作る：`DBG_START`、`NB`、`R0`、`bands`、`cumL`、`okB`、`okS`、`rnd`、`rndFor`、`st`、`starts`
 - 使う：
+  - 00-head.js：`TRUE_RANDOM`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inMain`、`maxY`、`minY`
   - 07-depth.js：`depth`、`distShore`
@@ -203,7 +204,7 @@
 ## 21b-building-kinds.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`onFrame`
   - 01-settings.js：`S`
   - 10-start.js：`rnd`
   - 12-renderer.js：`QUALITY`、`scene`
@@ -259,7 +260,7 @@
 ## 24b-trains.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`onFrame`
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inLake`
   - 10-start.js：`rnd`
@@ -341,7 +342,7 @@
 ## 31-ui.js
 - 作る：`$`、`MAT_ICONS`、`dots`、`hex`、`mats`、`pick`、`replayWanted`、`restBtn`、`runHints`、`showName`
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`TRUE_RANDOM`
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inLake`、`inMain`
   - 07-depth.js：`depth`
@@ -380,7 +381,7 @@
 ## 36-fireworks.js
 - 作る：`FW`
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`onFrame`
   - 01-settings.js：`Q`、`S`
   - 03-coords.js：`ll`
   - 04-clock.js：`DAY`、`PH`
@@ -394,7 +395,7 @@
 ## 37-buoys.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`placeLog`
+  - 00-head.js：`G`、`onFrame`、`placeLog`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 07-depth.js：`depth`
@@ -406,7 +407,7 @@
 ## 37b-fountain.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`placeLog`
+  - 00-head.js：`G`、`onFrame`、`placeLog`
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inLake`
   - 07-depth.js：`shoreSnap`
@@ -420,7 +421,7 @@
 ## 38-seasonal-events.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`placeLog`
+  - 00-head.js：`G`、`onFrame`、`placeLog`
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
   - 05-lake.js：`outer`
@@ -434,7 +435,7 @@
 ## 38b-birdman.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`placeLog`
+  - 00-head.js：`G`、`onFrame`、`placeLog`
   - 01-settings.js：`S`
   - 04-clock.js：`DAY`
   - 07-depth.js：`depth`、`shoreSnap`
@@ -447,7 +448,7 @@
 ## 38c-festivals.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`mergeStatic`、`placeLog`
+  - 00-head.js：`G`、`mergeStatic`、`onFrame`、`placeLog`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 06-inner-lakes.js：`inLake`、`inRiver`
@@ -485,7 +486,7 @@
 ## 40b-meisho.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`mergeStatic`、`placeLog`
+  - 00-head.js：`G`、`mergeStatic`、`onFrame`、`placeLog`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 03b-meisho-sites.js：`MEISHO`
@@ -513,7 +514,7 @@
 ## 42-ambience.js
 - 作る：`idleLook`
 - 使う：
-  - 00-head.js：`G`、`mergeStatic`
+  - 00-head.js：`G`、`mergeStatic`、`onFrame`
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inLake`
   - 07-depth.js：`depth`
@@ -527,7 +528,7 @@
 ## 43-moments.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`placeLog`
+  - 00-head.js：`G`、`onFrame`、`placeLog`
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
   - 03-coords.js：`ll`
@@ -546,7 +547,7 @@
 ## 43b-birds.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`onFrame`
   - 01-settings.js：`S`
   - 02-season.js：`SEASON`
   - 03-coords.js：`KX`、`KY`、`LAT0`、`LON0`、`ll`
@@ -566,7 +567,7 @@
 ## 43c-showers.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`onFrame`
   - 01-settings.js：`S`
   - 04-clock.js：`DAY`
   - 05-lake.js：`outer`
@@ -582,7 +583,7 @@
 ## 44-life.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`placeLog`
+  - 00-head.js：`G`、`onFrame`、`placeLog`
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
   - 05-lake.js：`outer`
@@ -598,7 +599,7 @@
 ## 44b-bass.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`onFrame`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 06-inner-lakes.js：`inMain`
@@ -610,7 +611,7 @@
 ## 45-boats.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`mergeStatic`、`placeLog`
+  - 00-head.js：`G`、`mergeStatic`、`onFrame`、`placeLog`
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
   - 03-coords.js：`ll`
@@ -625,7 +626,7 @@
 ## 46-shore-life.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`placeLog`
+  - 00-head.js：`G`、`onFrame`、`placeLog`
   - 01-settings.js：`S`
   - 02-season.js：`LOOK`
   - 05-lake.js：`outer`
@@ -638,7 +639,7 @@
 ## 47-city.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`onFrame`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 03b-meisho-sites.js：`meishoClear`
@@ -725,7 +726,7 @@
 ## 53-frame.js
 - 作る：`frame`
 - 使う：
-  - 00-head.js：`G`、`PLACE_LOG`、`chunkify`
+  - 00-head.js：`FRAME_HOOKS`、`G`、`PLACE_LOG`、`TRUE_RANDOM`、`chunkify`
   - 01-settings.js：`Q`、`S`
   - 03-coords.js：`ll`
   - 04-clock.js：`MO`、`PH`、`clock`
@@ -747,7 +748,6 @@
   - 32-photo.js：`finishPhoto`
   - 33-resize.js：`resize`
   - 34-frame-state.js：`fpsN`、`fpsT`、`last`、`trailT`
-  - 36-fireworks.js：`FW`
   - 48-frame-move.js：`moveHouse`
   - 49-frame-sky-light.js：`updateSkyLight`
   - 50-frame-float.js：`floatHouse`
@@ -756,9 +756,12 @@
 
 ## 共有の値（window.__xxx）
 
+- `__fail`：12-renderer.js
+- `__failed`：12-renderer.js
 - `__floating`：00-head.js、10-start.js
 - `__frames`：53-frame.js
 - `__pause`：53-frame.js
+- `__ready`：12-renderer.js、53-frame.js
 - `__scene`：53-frame.js
 - `__set`：53-frame.js
 - `__setH`：53-frame.js
@@ -840,6 +843,7 @@
 - `G.shigure`：49-frame-sky-light.js
 - `G.shore`：46-shore-life.js
 - `G.showers`：43c-showers.js
+- `G.simT`：53-frame.js
 - `G.snapNow`：32-photo.js
 - `G.stationLamps`：24-shore-landmarks.js
 - `G.street`：21-villages-walls-roofs.js
