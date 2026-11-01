@@ -20,6 +20,13 @@ function floatHouse(dt, t, W, day) {
   }
   waterU.uHouse.value.set(hx, hz, house.size * 0.6);
   {
+    const sp = Math.hypot(B.vx || 0, B.vy || 0);
+    const u = waterU.uHV.value,
+      tz = Math.min(1, sp / 0.35);
+    if (sp > 1e-4) u.set(B.vx / sp, B.vy / sp, u.z);
+    u.z += (tz - u.z) * Math.min(1, dt * 1.5); // 八の字の航跡（14-water.js）：止まると、ゆっくり消える
+  }
+  {
     const tgt = inIn
       ? INNER_Y + h0 * 0.15
       : Math.max(h0, waveTop(hx, hz, t, house.size * 0.35) - 0.25) + water.position.y;
