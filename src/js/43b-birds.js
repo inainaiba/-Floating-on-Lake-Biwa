@@ -3,7 +3,7 @@
    ・どこにどの群れがいるか、ねぐらへの行き帰りの時刻は、共有時計の日ごとに決まる（見る人みな同じ）
    ・建築が近づくと群れは飛び立ち、少し先の水面へ移る（カイツブリは潜る）。これは各自の画面だけ
    ・カメラから約800mより近い鳥は描かない（間近では不自然なため）。遠景の群れと、空を渡る編隊を見せる
-   ・形は5種類（泳ぐカモ形・ハクチョウ・カワウ・立つサギ・飛ぶ鳥）。飛ぶ鳥の羽ばたきは頂点の計算で動かす
+   ・形は5種類（泳ぐ点・白い長い点・カワウ・立つ一筆・飛ぶ「へ」の字）。描き込みすぎず、気配だけ。飛ぶ鳥の羽ばたきは頂点の計算で動かす
    ・見えやすいよう実物の約2.5倍の大きさ。群れは自分のまわり（約1.6km）にだけ置く ---------- */
 G.birds = (() => {
   const NEAR_HIDE = 160, // これより近い鳥は描かない（作品の中の長さ。実寸で約800m）
@@ -12,27 +12,7 @@ G.birds = (() => {
     Mx = (x, y, z, sx = 1, sy = 1, sz = 1, rz = 0) => new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, rz)), new THREE.Vector3(sx, sy, sz));
 
   // ---- 形：部品を1つの形にまとめる（wing は羽、羽ばたきで上下する）。長さは実寸m、+x が前 ----
-  const ball = (x, y, z, sx, sy, sz, rz = 0) => [new THREE.SphereGeometry(1, 7, 5), Mx(x, y, z, sx, sy, sz, rz)];
   const seg = (ax, ay, bx, by, r, z = 0) => [new THREE.CylinderGeometry(r * 0.8, r, Math.hypot(bx - ax, by - ay), 5), Mx((ax + bx) / 2, (ay + by) / 2, z, 1, 1, 1, Math.atan2(-(bx - ax), by - ay))];
-  const beak = (x, y, r, len) => [new THREE.ConeGeometry(r, len, 4), Mx(x + len / 2, y, 0, 1, 1, 1, -Math.PI / 2)];
-  function wings(span) {
-    const v = [];
-    for (const s of [-1, 1]) {
-      const z0 = s * 0.05,
-        z1 = s * span * 0.45,
-        z2 = s * span;
-      const a = [0.1, 0, z0],
-        b = [-0.14, 0, z0],
-        c = [0.08, 0, z1],
-        d = [-0.13, 0, z1],
-        e = [-0.01, 0, z2],
-        f = [-0.1, 0, z2];
-      v.push(...a, ...c, ...b, ...b, ...c, ...d, ...c, ...e, ...d, ...d, ...e, ...f);
-    }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.Float32BufferAttribute(v, 3));
-    return [g, new THREE.Matrix4(), true];
-  }
   function merge(parts) {
     let n = 0;
     const gs = parts.map(([g, m, w]) => {
@@ -61,21 +41,31 @@ G.birds = (() => {
     geo.computeBoundingSphere();
     return geo;
   }
+  // 形は描き込みすぎない（2026年11月）：くちばし・頭・首・脚は描かず、遠くに見える「気配」だけにする。
+  // 泳ぐ鳥は水面の低い点（白い鳥は少し長く、カワウは低く細く首の一筆）、立つ鳥は細い一筆の縦線、
+  // 飛ぶ鳥は「へ」の字の翼だけ（胴はほとんど見えない細い線）
+  const low = (x, y, sx, sy, sz) => [new THREE.SphereGeometry(1, 6, 3), Mx(x, y, 0, sx, sy, sz)];
+  function vWings(span) {
+    // 付け根から先へ、後ろに流れて少し上がる薄い翼（静かに浮かぶときの浅いV字）
+    const v = [];
+    for (const s of [-1, 1]) {
+      const r0 = [0.06, 0, s * 0.03],
+        r1 = [-0.1, 0, s * 0.03],
+        m0 = [0.02, span * 0.1, s * span * 0.5],
+        m1 = [-0.1, span * 0.1, s * span * 0.5],
+        t = [-0.16, span * 0.16, s * span];
+      v.push(...r0, ...m0, ...r1, ...r1, ...m0, ...m1, ...m0, ...t, ...m1);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(v, 3));
+    return [g, new THREE.Matrix4(), true];
+  }
   const GEO = {
-    duck: merge([ball(0, 0.05, 0, 0.28, 0.12, 0.15), seg(0.17, 0.08, 0.22, 0.19, 0.045), ball(0.23, 0.21, 0, 0.07, 0.065, 0.06), beak(0.28, 0.2, 0.025, 0.08), ball(-0.27, 0.09, 0, 0.07, 0.03, 0.07)]),
-    swan: merge([ball(0, 0.1, 0, 0.5, 0.2, 0.27), seg(0.32, 0.15, 0.38, 0.62, 0.055), ball(0.43, 0.64, 0, 0.1, 0.07, 0.065), beak(0.5, 0.62, 0.03, 0.12), ball(-0.48, 0.16, 0, 0.12, 0.06, 0.12)]),
-    corm: merge([ball(0, 0.02, 0, 0.36, 0.09, 0.13), seg(0.28, 0.06, 0.34, 0.3, 0.05), ball(0.37, 0.32, 0, 0.08, 0.06, 0.055), beak(0.43, 0.31, 0.02, 0.1), ball(-0.36, 0.06, 0, 0.12, 0.025, 0.06)]),
-    heron: merge([
-      seg(0, 0, 0.02, 0.56, 0.022, 0.05),
-      seg(0, 0, -0.03, 0.56, 0.022, -0.05),
-      ball(0, 0.66, 0, 0.24, 0.12, 0.12, 0.35),
-      seg(0.14, 0.72, 0.1, 0.93, 0.03),
-      seg(0.1, 0.93, 0.18, 1.06, 0.028),
-      ball(0.2, 1.08, 0, 0.06, 0.045, 0.045),
-      beak(0.24, 1.07, 0.018, 0.16),
-      ball(-0.2, 0.62, 0, 0.1, 0.03, 0.06),
-    ]),
-    fly: merge([ball(0, 0, 0, 0.3, 0.09, 0.1), seg(0.22, 0.01, 0.38, 0.03, 0.04), ball(0.41, 0.035, 0, 0.06, 0.05, 0.05), beak(0.45, 0.03, 0.018, 0.08), ball(-0.33, 0, 0, 0.1, 0.02, 0.09), wings(0.75)]),
+    duck: merge([low(0, 0.04, 0.26, 0.08, 0.12), low(0.16, 0.1, 0.07, 0.06, 0.06)]),
+    swan: merge([low(0, 0.08, 0.5, 0.16, 0.24), low(0.32, 0.22, 0.09, 0.16, 0.07)]),
+    corm: merge([low(0, 0.02, 0.36, 0.06, 0.1), seg(0.3, 0.04, 0.33, 0.3, 0.035)]),
+    heron: merge([seg(0, 0, 0, 0.58, 0.015), low(0.03, 0.74, 0.17, 0.19, 0.08)]),
+    fly: merge([low(0, 0, 0.22, 0.04, 0.05), vWings(0.75)]),
   };
   // 飛ぶ鳥の材質：羽（wing）の頂点を、付け根からの隔たりに比べて上下させる。aAnim＝（位相・速さ・振れ幅）
   const flyMat = new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide });

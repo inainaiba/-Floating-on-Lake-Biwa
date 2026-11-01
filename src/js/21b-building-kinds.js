@@ -210,10 +210,11 @@ vMapUv=abs(normal.y)>.5?vec2(.5):vec2(uv.x*(abs(normal.x)>.5?sz_:sx_)/3.,uv.y*sy
   }
   return {
     g,
-    // 夜は鉄筋の建物の窓が灯る
-    update(day) {
-      rcMat.emissiveIntensity = Math.min(1, Math.max(0, (0.2 - day) / 0.1)) * 1.6;
+    // 夜は鉄筋の建物の窓が灯る。夜が更けるにつれて消えていく窓が増え、夜中は数えるほどに（灯りの暮らし）
+    update(day, hour) {
+      const late = hour >= 12 ? 1 - 0.55 * Math.min(1, Math.max(0, (hour - 21.5) / 2.5)) : hour < 5 ? 0.3 : 0.3 + 0.35 * Math.min(1, (hour - 5) / 1.5);
+      rcMat.emissiveIntensity = Math.min(1, Math.max(0, (0.2 - day) / 0.1)) * 1.6 * late;
     },
   };
 })();
-onFrame(140, (f) => G.bkinds.update(f.day)); // 毎フレームの更新（集落の鉄筋の建物の夜の窓。順番は 00-head.js の onFrame）
+onFrame(140, (f) => G.bkinds.update(f.day, f.c.phase * 24)); // 毎フレームの更新（集落の鉄筋の建物の夜の窓。順番は 00-head.js の onFrame）

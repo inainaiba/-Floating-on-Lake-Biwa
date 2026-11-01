@@ -188,7 +188,7 @@ G.trains = (() => {
                 }
               }
               // 速さ（実寸 m/s）は、0.5秒後の先頭の位置との差から
-              if (nd < 600) near.push({ x: nx, z: nz, d: nd, v: Math.abs(headAt(sched[dir > 0 ? 0 : 1], tau + 0.5) - head) * 2 });
+              if (nd < 600) near.push({ x: nx, z: nz, d: nd, v: Math.abs(headAt(sched[dir > 0 ? 0 : 1], tau + 0.5) - head) * 2, ground: K !== G.kosei }); // ground：地上を走る線（踏切がある）
             }
       body.count = win.count = n;
       glow.count = ng;
