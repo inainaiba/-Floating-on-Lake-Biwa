@@ -495,7 +495,7 @@ G.birds = (() => {
               v = (1 - d / hear) * (f.sp === "kite" ? 0.035 : 0.03);
             if (f.sp === "kite") kiteCall(f.x + Math.cos(b.a) * b.r, f.z + Math.sin(b.a) * b.r, v);
             else gullCall(f.x + Math.cos(b.a) * b.r, f.z + Math.sin(b.a) * b.r, v);
-            nextCall[f.sp] = t + (f.sp === "kite" ? 9 + R() * 14 : 0.8 + R() * 3);
+            nextCall[f.sp] = t + (f.sp === "kite" ? 25 + R() * 35 : 4 + R() * 9); // 鳴く回数は控えめに
           }
         }
         for (const b of f.m) {
@@ -555,7 +555,7 @@ G.birds = (() => {
         }
         // ガンの声：近くを渡る編隊から
         if (g.sp === "goose" && SND.ctx && SND.on && t > nextHonk && Math.hypot(lx - camera.position.x, lz - camera.position.z) < 350) {
-          nextHonk = t + 1.5 + R() * 3;
+          nextHonk = t + 5 + R() * 9; // 鳴く回数は控えめに
           gooseCall(lx, lz, 0.025 + R() * 0.02);
         }
       }

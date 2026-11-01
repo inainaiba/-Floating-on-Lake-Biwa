@@ -631,7 +631,7 @@ function audioUpdate(dt, c, W, boats, nearReed) {
     const winter = SEASON.waterbirds[c.month],
       night = c.phase < 0.22 || c.phase > 0.82;
     const rate = (0.15 + winter * 0.6 + nearReed * 0.6) * (night ? 0.2 : 1);
-    SND.nextBird = now + (6 + Math.random() * 14) / rate;
+    SND.nextBird = now + (16 + Math.random() * 30) / rate; // 鳴く回数は控えめに
     const a = Math.random() * 6.283,
       r = 40 + Math.random() * 200;
     bird(
