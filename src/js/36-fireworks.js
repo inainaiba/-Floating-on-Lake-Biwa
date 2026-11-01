@@ -536,5 +536,12 @@ FW = (() => {
   }
   return { update, BAR, pts, geo, pending, glows, ev, self };
 })();
+// 全体地図：大津の湖上の花火（8月の夜、打ち上げの間）
+mapMark((c) => {
+  const st = (c.phase - 0.8) * DAY;
+  if (c.month !== 7 || st < 0 || st > 208) return [];
+  const [x, y] = ll(135.8665, 35.0105);
+  return [{ x, y, ja: "びわ湖の花火", en: "Fireworks over the lake" }];
+});
 onFrame(10, (f) => FW && FW.update(f.dt, f.c, f.day)); // 毎フレームの更新（花火。順番は 00-head.js の onFrame）
 G.FW = FW;

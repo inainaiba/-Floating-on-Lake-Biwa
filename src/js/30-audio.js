@@ -440,7 +440,7 @@ function audioUpdate(dt, c, W, boats, nearReed) {
   const ac = SND.ctx,
     now = ac.currentTime,
     k = 0.25;
-  SND.master.gain.setTargetAtTime(SND.on ? 0.9 : 0, now, 0.4);
+  SND.master.gain.setTargetAtTime(SND.on ? 0.9 * CFG.vol : 0, now, 0.4); // 音量は設定の画面から（31b-settings.js）
   if (!SND.on) return;
   const ws = Math.min(1, W.s / 8);
   {

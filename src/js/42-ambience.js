@@ -111,5 +111,5 @@ onFrame(50, (f) => G.ambience.update(f.dt, f.t, f.c, f.day)); // 毎フレーム
 function idleLook(dt) {
   if (STATE !== "lake" || isFar) return;
   const idle = (performance.now() - (G.lastInput || 0)) / 1000;
-  if (idle > 40) yawT += dt * 0.035 * Math.min(1, (idle - 40) / 10);
+  if (idle > 40) yawT += dt * (RM ? 0.015 : 0.035) * Math.min(1, (idle - 40) / 10);
 }

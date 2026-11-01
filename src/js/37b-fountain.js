@@ -228,6 +228,7 @@ void main(){
       if (glow.instanceColor) glow.instanceColor.needsUpdate = true;
     }
   }
+  mapMark((c) => (onAt(c) > 0 ? [{ x: C[0], y: C[1], ja: "びわこ花噴水", en: "Biwako Flower Fountain" }] : []));
   return { update, at: C, th, g };
 })();
 onFrame(30, (f) => G.fountain.update(f.dt, f.c, f.day)); // 毎フレームの更新（びわこ花噴水。順番は 00-head.js の onFrame）

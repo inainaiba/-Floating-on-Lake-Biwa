@@ -47,7 +47,7 @@ function updateSkyLight(dt, t, c, W) {
     if (wxNow.white)
       sky.lerp(new THREE.Color(0xdcdfe0).multiplyScalar(0.35 + 0.65 * Math.min(1, day * 3 + 0.2)), wxNow.white);
   }
-  if (wxNow.storm > 0.5 && t > nextFlash && !isFar) {
+  if (wxNow.storm > 0.5 && t > nextFlash && !isFar && !RM) { // 動きを抑えるときは、空全体が光る稲光を出さない
     flash = 1;
     nextFlash = t + 6 + Math.random() * 14;
   }
