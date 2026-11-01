@@ -78,6 +78,7 @@ const waterU = {
   uFoam: { value: 0 },
   uT2: { value: 0 },
   uHouse: { value: new THREE.Vector3(0, 0, 8) },
+  uHV: { value: new THREE.Vector3(1, 0, 0) }, // 建物の進む向き x, z と速さ（0〜1）。八の字の航跡に使う
   uWd: { value: new THREE.Vector2(1, 0) },
   uRefl: { value: null },
   uTM: { value: new THREE.Matrix4() },
@@ -119,6 +120,8 @@ uniform vec3 uHLc;
 uniform float uRainR;
 uniform float uT2;
 uniform vec3 uHouse;
+uniform vec3 uHV;
+float WKE; // 八の字の航跡の波頭の明るさ（下の合成で使う）
 uniform vec2 uWd;
 uniform sampler2D uRefl;
 uniform vec2 uRes;
@@ -152,6 +155,8 @@ n.x-=d.x*k*A*cos(f)*fd;
 n.z-=d.y*k*A*cos(f)*fd;
 }
 vec2 rp=vP0.xz;
+// 画面の1点にあたる水面の広さ（遠くほど広い）。それより細かい波は、ちらつくので消す
+float fwR=length(fwidth(rp));
 float t2=uT2;
 vec2 g=vec2(0.);
 float fa=1.;
@@ -163,24 +168,24 @@ vec2 i=floor(q),f=fract(q);
 vec2 u=f*f*(3.-2.*f);
  float a=fract(sin(dot(i,vec2(127.1,311.7)))*43758.5),b=fract(sin(dot(i+vec2(1,0),vec2(127.1,311.7)))*43758.5),c2=fract(sin(dot(i+vec2(0,1),vec2(127.1,311.7)))*43758.5),d2=fract(sin(dot(i+vec2(1,1),vec2(127.1,311.7)))*43758.5);
  vec2 du=6.*f*(1.-f);
-g+=fa*vec2((b-a)*(1.-u.y)+(d2-c2)*u.y,(c2-a)*(1.-u.x)+(d2-b)*u.x)*du*.09*smoothstep(160.+float(o)*-20.,4.,dc*(1.+float(o)*.4));
+g+=fa*vec2((b-a)*(1.-u.y)+(d2-c2)*u.y,(c2-a)*(1.-u.x)+(d2-b)*u.x)*du*.09*smoothstep(160.+float(o)*-20.,4.,dc*(1.+float(o)*.4))*(1.-smoothstep(.15,.45,fwR*1.1*pow(2.,float(o))));
 pp=mat2(1.6,1.2,-1.2,1.6)*pp+vec2(1.7,9.2);
 fa*=.55;
 }
 // 風の向きのまわりに広がる短い波（12本）。波長ごとに水の波の速さ（重力と表面張力）で進み、
 // 風が強いほど高く、向きのばらつきは風の向きを中心に狭い
 {vec2 wd=normalize(uWd+1e-4);float wa=atan(wd.y,wd.x),ws=.35+.65*(1.-uCalm);
-for(int j=0;j<12;j++){float fj=float(j);
+for(int j=0;j<15;j++){float fj=float(j)-3.; // 3本は、ごく近くだけの細かいさざ波
  float L=.35*pow(1.28,fj);float k=6.2832/L;
  float om=sqrt(9.8*k+.074/1000.*k*k*k*30.);
  float ang=wa+(fract(sin(fj*12.9898)*43758.5)-.5)*2.2*(.5+.5*fract(sin(fj*7.13)*91.3));
  vec2 d=vec2(cos(ang),sin(ang));
  float A=.0045*L*ws*pow(cos(ang-wa)*.5+.5,2.);
  float ph=k*dot(d,rp)-om*t2*.6+fj*1.7;
- g+=d*k*A*cos(ph)*smoothstep(L*60.,L*6.,dc);
+ g+=d*k*A*cos(ph)*smoothstep(L*60.,L*6.,dc)*(1.-smoothstep(.15,.45,fwR/L));
 }}
 g+=vec2(cos(dot(rp,vec2(.05,.03))+t2*.6+sin(rp.y*.021)*3.),cos(dot(rp,vec2(-.02,.06))+t2*.5+sin(rp.x*.017)*3.))*.01;
-vec2 mg=vec2(sin(rp.x*3.1+t2*1.9+sin(rp.y*2.3)),sin(rp.y*2.9+t2*1.7+sin(rp.x*2.1)))*.018*smoothstep(25.,2.,dc);
+vec2 mg=vec2(sin(rp.x*3.1+t2*1.9+sin(rp.y*2.3)),sin(rp.y*2.9+t2*1.7+sin(rp.x*2.1)))*.018*smoothstep(25.,2.,dc)*(1.-smoothstep(.15,.45,fwR*.5));
 g+=mg;
 float wf=0.;
 for(int i=0;
@@ -194,6 +199,14 @@ float env=exp(-pow((dd-r)/(1.2+tr.z*.35),2.))*exp(-tr.z*.22)*tr.w;
 g+=d/(dd+1e-3)*cos(ph)*env*.55;
 wf+=exp(-dd*dd/(.5+tr.z*.9))*exp(-tr.z*.28)*tr.w*.55;
 }
+// 八の字の航跡：建物が進むと、後ろに約20°の角度で開く斜めの波（縁）と、その内側の横波が残る。形は置かず、水面の計算だけで描く
+WKE=0.;if(uHV.z>.01){vec2 dv=uHV.xy,pv=vec2(-dv.y,dv.x),rel=vP.xz-uHouse.xy;float s_=-dot(rel,dv),l_=dot(rel,pv);
+ if(s_>0.){float W0=max(uHouse.z,2.),al=abs(l_),edge=s_*.354+W0*.45,k_=6.2832/(W0*.8),
+  fade=exp(-s_/(W0*14.))*smoothstep(0.,W0*.8,s_)*uHV.z*(1.-smoothstep(.2,.5,fwR/(W0*.8)));
+  float ed=exp(-pow((al-edge)/(W0*.4+s_*.05),2.)),ins=smoothstep(edge,edge*.55,al)*smoothstep(0.,W0*.3,al+W0*.3);
+  float phd=k_*(s_*.94+al*.34)-uT2*3.,pht=k_*1.15*s_-uT2*2.4;
+  g+=normalize(-dv*.94+pv*sign(l_)*.34)*sin(phd)*.45*fade*ed+(-dv)*sin(pht)*.15*fade*ins;
+  WKE=fade*(ed*smoothstep(.3,1.,sin(phd))+ins*.35*smoothstep(.5,1.,sin(pht)));}} // 波頭がうっすら光る
  float bk=.55+.9*nzN(vP0.xz*.004)*.5+.45*sin(vP0.x*.0031+sin(vP0.z*.0023)*2.)*.5;
 g*=bk;
 vec3 N=normalize(n*vec3(1.-uCalm*.5,1.,1.-uCalm*.5)+vec3(-g.x,0.,-g.y)*(1.+uFoam)*(1.-uCalm*.45)*(1.-.6*smoothstep(.0,-.2,uSun.y)));
@@ -201,7 +214,8 @@ N=normalize(mix(N,vec3(0.,1.,0.),smoothstep(150.,900.,dc)*.85));
 // 風紋の境目：微風の日、鏡のような凪の面と波立つ面がくっきり分かれる
 {vec2 wd=normalize(uWd+1e-4);vec2 q=vP0.xz*.0011-wd*uT2*.01;float fld=sin(q.x*2.3+sin(q.y*1.7)*1.8)*sin(q.y*2.1+sin(q.x*1.3)*1.5)+.25*sin(q.x*7.1+q.y*5.3);
 float lt=smoothstep(.15,.45,uCalm)*smoothstep(1.,.75,uCalm);float gz=smoothstep(.02,.06,fld)*lt;N=normalize(mix(N,vec3(0.,1.,0.),gz*.8));}
-float fr=.02+.98*pow(1.-max(dot(N,V),0.),5.);
+// 映り込みの強さ（フレネル）：真下を見ると水の中の色、低い角度ほど空と山を強く映す。細かい波で明滅しないよう、なだらかにした面の向きで求める
+float fr=.02+.98*pow(1.-max(dot(normalize(mix(N,vec3(0.,1.,0.),.45)),V),0.),5.);
 vec2 uv=(vP.xz-uBox.xy)/uBox.zw;
 float dep=texture2D(uDepth,uv).r*255./6.;
 float sh=exp(-dep/3.);`;
@@ -310,13 +324,13 @@ body=mix(body,body*vec3(.75,.85,.95),graz*.5);`;
 // 山や建物の映り込み
 const W_FS_MIRROR = `// ── 山や建物の映り込み（静かな日ほど鮮明に）──
 vec4 tp=uTM*vec4(vP.x,uWy,vP.z,1.);
-vec2 ruv=tp.xy/tp.w+N.xz*vec2(.04,.08)*(1.2-uCalm*.7)*(.35+.65*smoothstep(1400.,40.,dc));
+vec2 ruv=tp.xy/tp.w+N.xz*vec2(.04,.08)*(1.3-uCalm*.95)*(.35+.65*smoothstep(1400.,40.,dc)); // 凪ではくっきり、波があるとゆがむ
 vec4 rf=vec4(0.);
 for(int k=-3;
 k<=3;
 k++)for(int j=-1;
 j<=1;
-j++)rf+=texture2D(uRefl,ruv+vec2(float(j)*.003,float(k)*.0018)*(1.-uCalm*.65)*mix(.35,1.,smoothstep(15.,140.,dc)));
+j++)rf+=texture2D(uRefl,ruv+vec2(float(j)*.003,float(k)*.0018*(1.+(1.-uCalm)*.9))*(1.-uCalm*.85)*mix(.35,1.,smoothstep(15.,140.,dc))); // 凪では鏡、波があると縦に伸びてにじむ
 rf/=21.;
 // 夜の灯りの映り込み：明るい灯りほど水面に縦長の筋になって揺れる
 {float nt=smoothstep(.0,-.12,uSun.y);if(nt>.01){vec3 sk=vec3(0.),sa=vec3(0.);for(int k=-12;k<=12;k++){float fk=float(k);vec4 s=texture2D(uRefl,ruv+vec2(sin(fk*1.7+uT2*1.6)*.0026*(1.-uCalm*.55),fk*.0075));vec3 v=(s.rgb/max(s.a,.001))*s.a*(1.-abs(fk)/13.);sk=max(sk,v);sa+=v;}
@@ -357,6 +371,7 @@ c=mix(c,mix(uFogC,vec3(1.),.45)*1.05,uMist*smoothstep(30.,700.,dc)*.8);
 c=mix(c,uFogC*1.02,smoothstep(1500.,6500.,dc)*(.25+.45*uCalm));
 float fd=length(cameraPosition-vP);
 c=mix(c,uFogC,smoothstep(uFog.x*.6,uFog.y,fd));
+c=mix(c,c*1.05+.03,clamp(WKE,0.,1.)*.6*(1.-smoothstep(.0,-.15,uSun.y)*.7));
 gl_FragColor=vec4(c,1.);`;
 const water = new THREE.Mesh(
   new THREE.PlaneGeometry(5000, 5000, QUALITY.waterGrid, QUALITY.waterGrid).rotateX(
