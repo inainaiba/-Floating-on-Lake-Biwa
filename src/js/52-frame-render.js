@@ -8,8 +8,9 @@ function hideEmpty() {
     scene.traverse((o) => o.isInstancedMesh && INST.push(o));
   }
   const hid = [];
+  // 区画ごとの子に分けた物（00-head.js の chunkify）の親は数が0でも隠さない（隠すと子の区画もすべて消える）
   for (const o of INST)
-    if (o.visible && o.count === 0) {
+    if (o.visible && o.count === 0 && !o.children.length) {
       o.visible = false;
       hid.push(o);
     }
