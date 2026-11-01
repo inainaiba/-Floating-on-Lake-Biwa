@@ -129,7 +129,7 @@ G.bass = (() => {
     g.add(spray);
     g.visible = false;
     scene.add(g);
-    return { g, body, spray, spM, on: false, st: "fish", x: 0, z: 0, hd: 0, v: 0, tx: 0, tz: 0, wait: 0, spin: 0 };
+    return { g, body, spray, spM, on: false, fast: true, st: "fish", x: 0, z: 0, hd: 0, v: 0, tx: 0, tz: 0, wait: 0, spin: 0 }; // fast：航跡を短く（45-boats.js）
   };
   for (const m of [deckM, whiteM]) m.emissive.copy(m.color).multiplyScalar(0.15); // 日の当たらない側も暗くなりすぎないように
   const boats = [0, 1, 2, 3].map(mkBoat);

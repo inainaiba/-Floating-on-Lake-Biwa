@@ -46,7 +46,9 @@ G.boats = (() => {
   }
   // 遠くの舟の航跡：静かな湖面に細く長く残るV字の筋（釣り舟と、南湖のバスボート 44b-bass.js）
   const wakes = (LOOK.show.wakes ? [...(G.ambience ? G.ambience.boats : []), ...(G.bass ? G.bass.boats : [])] : []).map((b) => {
-    const N = 60,
+    // 跡の長さ：0.5秒ごとの点の数。ゆっくりの釣り舟は30秒分。速いバスボートは5秒分
+    //（速い舟で30秒分を残すと、湖を横切るほど長い真っすぐな線になってしまうため）
+    const N = b.fast ? 10 : 60,
       pos = new Float32Array(N * 3 * 2 * 3),
       col = new Float32Array(N * 3 * 2 * 3);
     const geo = new THREE.BufferGeometry();
@@ -65,6 +67,7 @@ G.boats = (() => {
     );
     m.frustumCulled = false;
     m.visible = false;
+    m.userData.noRefl = true; // 水面の上の跡なので、映り込みには描かない（52-frame-render.js）
     scene.add(m);
     return { b, m, N, hist: [], acc: 0 };
   });

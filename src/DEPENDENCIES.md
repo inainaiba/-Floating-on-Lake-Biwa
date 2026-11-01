@@ -324,9 +324,7 @@
 - 作る：`dist`、`distT`、`gl`、`isFar`、`joy`、`joyEnd`、`joyId`、`kIn`、`keys`、`knob`、`lastTap`、`pinch0`、`pitch`、`ptrs`、`setFar`、`up`、`yaw`、`yawT`
 - 使う：
   - 00-head.js：`G`
-  - 01-settings.js：`CFG`、`LAKE`、`S`
-  - 03b-meisho-sites.js：`MEISHO`
-  - 06-inner-lakes.js：`inLake`
+  - 01-settings.js：`S`
   - 11-state.js：`B`、`STATE`、`steer`
   - 12-renderer.js：`camera`
   - 28-map.js：`FZ`、`far`、`fzAt`
@@ -821,7 +819,6 @@
 - `G.groundH`：53-frame.js
 - `G.gs`：52-frame-render.js
 - `G.harb`：25-harbors.js
-- `G.hidePick`：29-controls.js
 - `G.innerMeshes`：16-terrain.js
 - `G.isl`：41-islands.js
 - `G.kaizu`：39-kaizu.js
@@ -831,7 +828,6 @@
 - `G.life`：44-life.js
 - `G.lock`：53-frame.js
 - `G.lt`：49-frame-sky-light.js
-- `G.mapPick`：29-controls.js
 - `G.meisho`：40b-meisho.js
 - `G.moments`：43-moments.js
 - `G.moonLit`：49-frame-sky-light.js

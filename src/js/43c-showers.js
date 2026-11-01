@@ -113,6 +113,7 @@ float a=uA*e*(.22+.12*pit+.08*nzN(vP*6.+uT*.4));if(a<.003)discard;gl_FragColor=v
     );
     pm.visible = false;
     pm.frustumCulled = false;
+    pm.userData.noRefl = true; // 水面の荒れは映り込みに描かない
     scene.add(pm);
     return { m, pm, fl: 0, next: 0, key: "" };
   };
@@ -148,6 +149,7 @@ float a=uA*e*(.22+.12*pit+.08*nzN(vP*6.+uT*.4));if(a<.003)discard;gl_FragColor=v
   );
   bRef.visible = false;
   bRef.frustumCulled = false;
+  bRef.userData.noRefl = true;
   scene.add(bRef);
   let bWater = false,
     bx_ = 0,
