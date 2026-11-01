@@ -39,13 +39,14 @@
 - `src/DEPENDENCIES.md` … 部品どうしのつながり（どの部品が何を作り、何を使うか）。組み立て時に自動で更新。部品をまたぐ共有の値は `G`（00-head.js）に集めてある。`G.xxx` を2つの部品で書き換えるとビルドが止まる（意図した共有は `tools/deps.py` の `G_SHARED` に書く）
 - `docs/index.html` … 組み立て後の公開用ファイル（GitHub Pages）
 
-組み立て：`python3 build.py`　（`src/` と `data/` から `docs/index.html` を作る）
+組み立て：`python3 build.py`　（`src/` と `data/` から `docs/index.html` を作る。詰めたデータは `tools/datacheck.mjs` で元に戻せるかを毎回確かめる。読み込みの時間を部品ごとに測るときは `PROFILE=1 python3 build.py` で `tools/.profile.html` を作る）
 
 読み込む量を減らすため、組み立てでは見た目を変えずに次のことをする（公開ファイルは three.js を含めて1つ、約1.27MB。送るときの圧縮で約0.57MB）
 - 大きな2進のデータ（地形・深さ・岸近くの地形・家並みと道・地図記号）は、まわりの値から見当をつけて算術符号で詰めて埋め込み、作品の中で元とまったく同じ文字列に戻す（`tools/acpack.py`、読み戻しは `src/js/00a-data.js`。元のバイト列の CRC32 で読み戻しを確かめる。詰めた結果は `tools/.ac_cache/` に取っておく）。小さなデータ（島の高さなど）は並べ方を変えてから deflate で（`build.py` の `pack`）
 - 湖岸線・島・川の形も、点の差を算術符号で詰めて埋め込む（`DATA.shape`）。家は画質ごとの数の上限の段の中で地図の上の並びに並べ替えて、前の家との差で詰める。道の座標は10m単位
 - 湖岸から7kmより遠い山の奥だけ、標高の格子を一つおきにして間を補間した値にする（`build.py` の `dem_far`。補間した値は予測とほぼ一致して場所を取らない）
 - シェーダー（GLSL）の中の説明のコメントと、行頭の字下げは埋め込まない（`build.py` の `glsl_comments` と `bundle`）
+- 画面のボタン（音・地図・写真・鑑賞・浜でひと休み）は上段に一行に並べる（`src/shell.html` の `#bar`）。鑑賞はボタンや案内を消し、カメラがゆっくり回りながら湖を漂う（`51-frame-camera.js`。触れると戻る）
 - 読み込み中は、湖と山影の夜明けのような画面に、進み具合の線を出す（`src/shell.html` の `__ld`。組み立てが部品の間に約8か所 `await __ld(進み具合)` を入れる）。そのため、ページの load の時点では組み立ての途中のことがあり、確認の道具は `__scene` ができるまで待つ（`tools/check.py` の `ready`）
 - three.js（0.160.0・MIT。使う部分だけ）と作品のコードを1つにまとめて縮める（esbuild。`npm install --no-save esbuild@0.24.2 three@0.160.0` が要る。手元の `src/` のコードはそのまま）
 - 作品で使わないデータ（OpenStreetMap の川の線・灯台）は埋め込まない

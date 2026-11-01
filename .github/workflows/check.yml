@@ -14,6 +14,8 @@ on:
       - "docs/index.html"
       - "tools/check.py"
       - "tools/audit.py"
+      - "tools/acpack.py"
+      - "tools/datacheck.mjs"
   workflow_dispatch:
 
 concurrency:
@@ -25,17 +27,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-1.63.0-chromium
@@ -61,7 +63,7 @@ jobs:
 
       - name: 確認の結果を残す
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: 確認の結果
           path: |

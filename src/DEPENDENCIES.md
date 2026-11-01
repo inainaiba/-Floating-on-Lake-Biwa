@@ -12,7 +12,7 @@
   - 31-ui.js（後ろの部品・要注意）：`$`
 
 ## 00a-data.js
-- 作る：`DATA`、`b64`、`unpackAC`、`unpackBlob`、`unpackData`、`unpackPL`
+- 作る：`DATA`、`b64`、`crcCheck`、`unpackAC`、`unpackBlob`、`unpackData`、`unpackPL`
 
 ## 01-settings.js
 - 作る：`LAKE`、`Q`、`RAIL`、`RM`、`S`、`SPEED`
@@ -38,7 +38,7 @@
   - 01-settings.js：`Q`
 
 ## 05-lake.js
-- 作る：`inPoly`、`islands`、`outer`
+- 作る：`POLY_IDX`、`inPoly`、`islands`、`outer`、`polyIndex`
 - 使う：
   - 01-settings.js：`LAKE`
 
@@ -341,6 +341,7 @@
 ## 31-ui.js
 - 作る：`$`、`MAT_ICONS`、`dots`、`hex`、`mats`、`pick`、`replayWanted`、`restBtn`、`runHints`、`showName`
 - 使う：
+  - 00-head.js：`G`
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inLake`、`inMain`
   - 07-depth.js：`depth`
@@ -707,7 +708,7 @@
   - 14-water.js：`water`、`waveH`
   - 18-buildings.js：`house`
   - 20-villages-layout.js：`groundH`
-  - 29-controls.js：`dist`、`distT`、`pitch`、`ptrs`、`yaw`、`yawT`
+  - 29-controls.js：`dist`、`distT`、`isFar`、`pitch`、`ptrs`、`yaw`、`yawT`
   - 42-ambience.js：`idleLook`
 
 ## 52-frame-render.js
@@ -852,4 +853,5 @@
 - `G.trains`：24b-trains.js
 - `G.wake`：19-boats.js
 - `G.wakeMesh`：19-boats.js
+- `G.watch`：31-ui.js
 - `G.wxNow`：49-frame-sky-light.js

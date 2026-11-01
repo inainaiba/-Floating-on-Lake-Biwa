@@ -192,3 +192,20 @@ document.addEventListener("visibilitychange", () => {
   if (!SND.ctx) return;
   document.hidden ? SND.ctx.suspend() : SND.on && SND.ctx.resume();
 });
+// 鑑賞：ボタンや案内を消し、カメラがゆっくり湖を漂う（51-frame-camera.js）。どこかに触れるか、キーを押すと戻る
+$("watch").onclick = (e) => {
+  e.stopPropagation();
+  G.watch = performance.now();
+  document.body.classList.add("watch");
+};
+for (const ev of ["pointerdown", "keydown", "wheel"])
+  addEventListener(
+    ev,
+    () => {
+      if (!G.watch || performance.now() - G.watch < 600) return; // 押したその手で戻らないように
+      G.watch = 0;
+      document.body.classList.remove("watch");
+    },
+    true,
+  );
+
