@@ -314,7 +314,7 @@ diffuseColor.rgb+=vec3(1.,.55,.3)*face*low*smoothstep(40.,180.,vH)*.35;
 diffuseColor.rgb=mix(diffuseColor.rgb,mix(uHaze*1.1,uHaze*vec3(.5,.56,.68),smoothstep(${glf(LOOK.farDarkFrom)},${glf(LOOK.farDarkTo)},dc_)),clamp(hz,0.,1.)*${glf(LOOK.hazeAmount)});
 diffuseColor.rgb*=1.+.12*hz;
 // 空気の層：谷や山すそ（低い所）ほど霞がたまり、尾根が一枚ずつ浮かぶ。朝の霧の日は濃く
-{float vf=(1.-smoothstep(8.,90.,vH))*smoothstep(40.,350.,dc_)*(.08+.3*uMist);diffuseColor.rgb=mix(diffuseColor.rgb,uHaze*1.18,clamp(vf,0.,1.));}
+{float vf=(1.-smoothstep(8.,90.,vH))*smoothstep(40.,350.,dc_)*(.06+.16*uMist);diffuseColor.rgb=mix(diffuseColor.rgb,uHaze*1.18,clamp(vf,0.,1.));}
 }`;
 // 夜の山並み（霧をかけた後の色に重ねる。夜は光が弱く、色を変えても暗さに埋もれるため）：
 // 月に向いた斜面に青白い光の縁、遠い稜線ほど夜空の地平の色に近づけて、重なる山を見分けられるように

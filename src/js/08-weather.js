@@ -22,7 +22,7 @@ const WX = [
   {
     wind: 0.7,
     wave: 0.8,
-    fog: [15, 260],
+    fog: [110, 1100], // 霧の日（濃すぎないよう、2026年11月に弱めた）
     gray: 0.75,
     dark: 0,
     rain: 0,
@@ -34,7 +34,7 @@ const WX = [
   {
     wind: 0.85,
     wave: 0.8,
-    fog: [250, 1800],
+    fog: [380, 2600],
     gray: 0.7,
     dark: 0.15,
     rain: 0.35,
@@ -42,12 +42,12 @@ const WX = [
     storm: 0,
     sense: 0.8,
   },
-  { wind: 1.2, wave: 1.4, fog: [120, 1000], gray: 0.85, dark: 0.3, rain: 1, snow: 0, storm: 0, sense: 0.6 },
-  { wind: 2, wave: 2.1, fog: [120, 900], gray: 0.9, dark: 0.5, rain: 0.8, snow: 0, storm: 1, sense: 0.4 },
+  { wind: 1.2, wave: 1.4, fog: [240, 1800], gray: 0.85, dark: 0.3, rain: 1, snow: 0, storm: 0, sense: 0.6 },
+  { wind: 2, wave: 2.1, fog: [220, 1600], gray: 0.9, dark: 0.5, rain: 0.8, snow: 0, storm: 1, sense: 0.4 },
   {
     wind: 0.6,
     wave: 0.6,
-    fog: [70, 800],
+    fog: [170, 1500],
     gray: 0.75,
     dark: 0.28,
     rain: 0,

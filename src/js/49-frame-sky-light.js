@@ -159,9 +159,9 @@ function updateSkyLight(dt, t, c, W) {
       : 0;
   const mornH = Math.max(0, 1 - Math.abs(c.phase - 0.34) / 0.08);
   const airQ = SEASON.airClarity[c.month];
-  scene.fog.near = wxNow.fog[0] * (1 - mist * 0.8) * (1 - mornH * 0.2) * airQ;
+  scene.fog.near = wxNow.fog[0] * (1 - mist * 0.5) * (1 - mornH * 0.2) * airQ;
   scene.fog.far = wxNow.fog[1] * (day < 0.05 && wxNow.fog[1] > 3000 ? 1.8 : 1) * airQ;
-  scene.fog.far *= (1 - mist * 0.6) * (1 - mornH * 0.1);
+  scene.fog.far *= (1 - mist * 0.35) * (1 - mornH * 0.1);
   {
     // 雨上がり：雨のあと10分ほどは空気が澄んで、遠くまでくっきり見える
     if (wxNow.rain > 0.3) G.afterRain = 1;
