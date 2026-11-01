@@ -82,7 +82,16 @@ function moveHouse(dt, c, W) {
   } // 慣性でなめらかに
   const nx = B.x + (vx * SPEED * dt) / S,
     ny = B.y + (vy * SPEED * dt) / S;
+  // 防波堤：線をまたぐ動きに加え、家の幅ぶん（地図で約25m）手前で止まる。離れる向きには動ける
+  const segD = (x, y, a, b, c2, d) => {
+    const dx = c2 - a,
+      dy = d - b,
+      u = Math.max(0, Math.min(1, ((x - a) * dx + (y - b) * dy) / (dx * dx + dy * dy || 1)));
+    return Math.hypot(x - a - u * dx, y - b - u * dy);
+  };
   const crossW = (G.harb || []).some(([a, b, c2, d]) => {
+    const dn = segD(nx, ny, a, b, c2, d);
+    if (dn < 25 && dn < segD(B.x, B.y, a, b, c2, d)) return true;
     const s = (x1, y1, x2, y2) => (x2 - x1) * (ny - y1) - (y2 - y1) * (nx - x1);
     const e = (x, y) => (c2 - a) * (y - b) - (d - b) * (x - a);
     return (

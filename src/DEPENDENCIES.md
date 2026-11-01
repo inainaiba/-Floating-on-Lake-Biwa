@@ -272,13 +272,14 @@
 ## 25-harbors.js
 - 作る：`TREE_MAT`、`lumpy`、`treeGeom`
 - 使う：
-  - 00-head.js：`G`、`LEAFTX`、`NEAR_TREE_MAT`、`mergeStatic`、`placeLog`
+  - 00-head.js：`G`、`LEAFTX`、`NEAR_TREE_MAT`、`mergeStatic`、`onFrame`、`placeLog`
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inLake`
   - 07-depth.js：`depth`
   - 10-start.js：`rnd`
   - 12-renderer.js：`scene`
   - 19-boats.js：`PORT_SITES`
+  - 20-villages-layout.js：`cvTex`
 
 ## 26-forests.js
 - 作る：`treeFade`
