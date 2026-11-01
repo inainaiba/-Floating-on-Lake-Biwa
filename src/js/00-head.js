@@ -157,8 +157,26 @@ function chunkify(mesh) {
   }
   if (groups.size < 2) return;
   const col = new THREE.Color();
+  // 1つずつの値を持つ属性（窓の模様の種類など）があれば、区画ごとに並べ直した形状を作る（そのままだと番号がずれる）
+  const inst = Object.entries(mesh.geometry.attributes).filter(([, a]) => a.isInstancedBufferAttribute);
   for (const idx of groups.values()) {
-    const c = new THREE.InstancedMesh(mesh.geometry, mesh.material, idx.length);
+    let geo = mesh.geometry;
+    if (inst.length) {
+      geo = new THREE.BufferGeometry();
+      geo.index = mesh.geometry.index;
+      for (const [k, a] of Object.entries(mesh.geometry.attributes))
+        if (!a.isInstancedBufferAttribute) geo.setAttribute(k, a);
+        else {
+          const n = a.itemSize,
+            arr = new a.array.constructor(idx.length * n);
+          idx.forEach((i, j) => {
+            for (let q = 0; q < n; q++) arr[j * n + q] = a.array[i * n + q];
+          });
+          geo.setAttribute(k, new THREE.InstancedBufferAttribute(arr, n));
+        }
+      for (const g of mesh.geometry.groups) geo.addGroup(g.start, g.count, g.materialIndex);
+    }
+    const c = new THREE.InstancedMesh(geo, mesh.material, idx.length);
     idx.forEach((i, j) => {
       mesh.getMatrixAt(i, M);
       c.setMatrixAt(j, M);

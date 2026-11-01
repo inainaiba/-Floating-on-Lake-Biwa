@@ -30,7 +30,7 @@ G.showers = (() => {
   }
   const vert = `varying vec2 vU;varying float vD;void main(){vU=uv;vec4 mv=modelViewMatrix*vec4(position,1.);vD=-mv.z;gl_Position=projectionMatrix*mv;}`,
     frag = `${GLSL_NOISE}
-uniform float uT,uA,uFl,uSeed,uBase,uHt,uW,uR,uLean;uniform vec3 uLit,uDk,uFogC;uniform vec2 uFog;varying vec2 vU;varying float vD;
+uniform float uT,uA,uFl,uSeed,uBase,uHt,uW,uR,uLean,uAnv,uWarmA;uniform vec3 uLit,uDk,uFogC,uWarm;uniform vec2 uFog;varying vec2 vU;varying float vD;
 void main(){
   float X=vU.x*2.-1.,Y=vU.y*uHt;
   // 雨脚：雲の底から水面まで。風下へ少し傾き、縁はほつれ、縦の筋が下へ流れる
@@ -41,9 +41,16 @@ void main(){
   // 雲：底は平らで暗く、上へ行くほど細り、もくもくした縁。日の当たる上ほど明るい
   float h=(Y-uBase*.82)/(uHt-uBase*.82);
   float bp=nzF4(vec2(X*2.6+uSeed,Y*.005+uT*.003));
-  float pr=mix(.95,.32,pow(clamp(h,0.,1.),1.2));
-  float cl=smoothstep(pr+.04,pr-.28,abs(X)+(bp-.5)*.55)*smoothstep(-.06,.1,h+(bp-.5)*.18)*smoothstep(1.,.8,h+(bp-.5)*.35);
+  // 積乱雲：底は広く、中ほどは塔のように細く立ち上がり、てっぺんは横へ平たく広がる（かなとこ雲）
+  float hc=clamp(h,0.,1.);
+  float pr=mix(.9,.42,smoothstep(.0,.55,hc));
+  pr=mix(pr,1.02,smoothstep(.74,.9,hc)*uAnv);
+  // 塔の部分は、もくもくした瘤（大きなうねり）で縁を削る
+  float bump=(bp-.5)*.55+(nzN(vec2(X*5.+uSeed,Y*.012))-.5)*.25*(1.-smoothstep(.75,.9,hc));
+  float cl=smoothstep(pr+.04,pr-.26,abs(X)+bump)*smoothstep(-.06,.1,h+(bp-.5)*.18)*smoothstep(1.,.93,h+(bp-.5)*.12);
   vec3 c=mix(uDk,uLit*1.05,smoothstep(.02,.75,h)*(.55+.45*bp));
+  // 夕方：雲の上だけが日に照らされて赤く染まる
+  c=mix(c,uWarm,smoothstep(.35,.95,h)*uWarmA*(.6+.4*bp));
   // 雨脚の色：雲の底の暗さを受けた青灰色。水面の近くは、しぶきで少し白む
   vec3 rc=mix(uDk*.62,vec3(.36,.4,.47)*dot(uLit,vec3(.33)),.4);
   rc=mix(rc,uLit*.8,smoothstep(60.,0.,Y)*.35);
@@ -73,6 +80,9 @@ void main(){
           uW: { value: 1 },
           uR: { value: 1 },
           uLean: { value: 0.2 },
+          uAnv: { value: 1 },
+          uWarmA: { value: 0 },
+          uWarm: { value: new THREE.Color(1, 0.55, 0.35) },
           uLit: { value: new THREE.Color() },
           uDk: { value: new THREE.Color() },
           uFogC: { value: new THREE.Color() },
@@ -86,7 +96,25 @@ void main(){
     m.visible = false;
     m.renderOrder = -1; // 遠くのものなので、ほかの半透明のもの（花火・灯り）より先に描く
     scene.add(m);
-    return { m, fl: 0, next: 0, key: "" };
+    // 雨脚の下の湖面：雨粒に打たれて細かく荒れ、空が映らず暗い灰色になる
+    const pm = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2),
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        uniforms: { uT: { value: 0 }, uA: { value: 0 }, uC: { value: new THREE.Color() }, uSeed: { value: 0 } },
+        vertexShader: `varying vec2 vP;void main(){vP=position.xz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+        fragmentShader: `${GLSL_NOISE}
+uniform float uT,uA,uSeed;uniform vec3 uC;varying vec2 vP;
+void main(){float r=length(vP)+(nzN(vP*2.+uSeed)-.5)*.35;float e=1.-smoothstep(.55,1.,r);
+float pit=step(.86,nzH(floor(vP*90.+vec2(uT*7.,uT*5.3))));
+float a=uA*e*(.22+.12*pit+.08*nzN(vP*6.+uT*.4));if(a<.003)discard;gl_FragColor=vec4(uC*(1.+.25*pit),a);}`,
+      }),
+    );
+    pm.visible = false;
+    pm.frustumCulled = false;
+    scene.add(pm);
+    return { m, pm, fl: 0, next: 0, key: "" };
   };
   const cells = Array.from({ length: NC }, mk);
   // 落雷の光の筋：雲の底から地面・水面へ、折れ曲がりながら（枝分かれ1〜2本）
@@ -99,6 +127,31 @@ void main(){
   bolt.visible = false;
   scene.add(bolt);
   let boltT = 0;
+  // 落雷の水面の映り込み：落ちた所から自分の側へ伸びる、白く揺れる筋
+  const bRef = new THREE.Mesh(
+    new THREE.PlaneGeometry(1, 1).translate(0, -0.5, 0).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({
+      map: cvTex(32, 128, (x, w, hh) => {
+        for (let y = 0; y < hh; y += 2) {
+          x.fillStyle = `rgba(255,255,255,${((1 - y / hh) * (0.3 + Math.random() * 0.7)).toFixed(2)})`;
+          const ww = w * (0.3 + Math.random() * 0.7);
+          x.fillRect((w - ww) / 2, y, ww, 1);
+        }
+      }),
+      color: 0xdcdcff,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      fog: false,
+    }),
+  );
+  bRef.visible = false;
+  bRef.frustumCulled = false;
+  scene.add(bRef);
+  let bWater = false,
+    bx_ = 0,
+    bz_ = 0;
   function strike(cx, cz, top, bottom, w) {
     let n = 0;
     const seg = (x0, y0, z0, x1, y1, z1) => {
@@ -119,7 +172,13 @@ void main(){
         (px = nx), (py = ny), (pz = nz);
       }
     };
-    path(cx + (Math.random() - 0.5) * w, top, cz + (Math.random() - 0.5) * w, bottom, 18, w * 0.12);
+    const sx0 = cx + (Math.random() - 0.5) * w,
+      sz0 = cz + (Math.random() - 0.5) * w;
+    path(sx0, top, sz0, bottom, 18, w * 0.12);
+    // 落ちた所（最後の線の先）が湖の上なら、水面に映す
+    bx_ = bPos[(n - 1) * 6 + 3];
+    bz_ = bPos[(n - 1) * 6 + 5];
+    bWater = inLake(bx_ / S, bz_ / S);
     bGeo.setDrawRange(0, n * 2);
     bGeo.attributes.position.needsUpdate = true;
     bolt.visible = true;
@@ -141,7 +200,7 @@ void main(){
       const q = on ? cc.q : null,
         u = q ? (c.phase - q.p0) / q.dur : -1;
       if (!q || u < 0 || u > 1) {
-        cc.m.visible = false;
+        cc.m.visible = cc.pm.visible = false;
         return;
       }
       // 育って、最も盛んになり、崩れて消える
@@ -155,9 +214,23 @@ void main(){
         inside = Math.min(1, Math.max(0, (d - R * 0.6) / (R * 0.8))); // 真下に近いほど消す
       const m = cc.m,
         U = m.material.uniforms,
-        Ht = 1000 + 500 * grow,
+        Ht = 1100 + 800 * grow,
         W = R * 2.8;
       m.visible = A * inside > 0.01;
+      // 湖面の荒れ：雨雲の真ん中が湖の上のときだけ（真下に入っても見える）
+      {
+        const pm = cc.pm,
+          pu = pm.material.uniforms;
+        pm.visible = A > 0.01 && inLake(x / S, z / S) && d < 6000;
+        if (pm.visible) {
+          pm.position.set(x, water.position.y + 0.05, z);
+          pm.scale.set(R * 0.9, 1, R * 0.9);
+          pu.uT.value = t;
+          pu.uA.value = A;
+          pu.uSeed.value = q.seed;
+          pu.uC.value.copy(dk).multiplyScalar(0.85);
+        }
+      }
       if (!m.visible) return;
       m.position.set(x, water.position.y - 2, z);
       m.rotation.set(0, Math.atan2(cp.x - x, cp.z - z), 0);
@@ -170,6 +243,11 @@ void main(){
       U.uW.value = W / 2;
       U.uR.value = R;
       U.uLean.value = 0.25 * (q.dx * Math.cos(m.rotation.y) - q.dy * Math.sin(m.rotation.y));
+      U.uAnv.value = Math.min(1, Math.max(0, (u - 0.2) / 0.3)); // 育ちきると、てっぺんが広がる
+      {
+        const sy = G.sunY || 0; // 太陽の高さ（sin）。低いほど雲の上が赤い
+        U.uWarmA.value = sy > -0.04 && sy < 0.28 ? Math.min(1, (0.28 - sy) / 0.2) * Math.min(1, (sy + 0.04) / 0.06) * 0.75 : 0;
+      }
       U.uLit.value.copy(lit);
       U.uDk.value.copy(dk);
       U.uFogC.value.copy(scene.fog.color);
@@ -195,9 +273,18 @@ void main(){
       // 稲光はちらつく（1回の光に2〜3度）
       U.uFl.value = cc.fl > 0 ? cc.fl * (0.55 + 0.45 * Math.sin(cc.fl * 40)) : 0;
     });
+    bRef.visible = false;
     if (bolt.visible) {
       boltT -= dt;
       bolt.material.opacity = boltT > 0 ? (0.6 + 0.4 * Math.sin(boltT * 70)) * Math.min(1, boltT * 6) : 0;
+      if (bWater && boltT > 0) {
+        const dd = Math.hypot(cp.x - bx_, cp.z - bz_);
+        bRef.visible = true;
+        bRef.position.set(bx_, water.position.y + 0.08, bz_);
+        bRef.rotation.set(0, Math.atan2(cp.x - bx_, cp.z - bz_), 0);
+        bRef.scale.set(14 + dd * 0.01, 1, Math.min(dd * 0.7, 700));
+        bRef.material.opacity = bolt.material.opacity * 0.55;
+      }
       if (boltT <= 0) bolt.visible = false;
     }
   }

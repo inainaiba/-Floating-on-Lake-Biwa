@@ -10,6 +10,51 @@ const b64 = (o) => {
   for (let i = 0; i < o.length; i += 32768) s += String.fromCharCode.apply(null, o.subarray(i, i + 32768));
   return btoa(s);
 };
+// 多角形の列（湖岸線・島・川。tools/acpack.py の enc_pl）：多角形 → 輪 → 点 [x, y]。点は前の点との差
+function unpackPL(p) {
+  const z = Uint8Array.from(atob(p.$j), (c) => c.charCodeAt(0));
+  let zi = 0,
+    rng = 0xffffffff,
+    code = 0;
+  for (let k = 0; k < 5; k++) code = ((code << 8) | z[zi++]) >>> 0;
+  const P = new Uint16Array(21 * 256).fill(2048);
+  const bit = (i) => {
+    const q = P[i],
+      bound = (rng >>> 12) * q;
+    let b;
+    if (code < bound) (rng = bound), (P[i] = q + ((4096 - q) >> 5)), (b = 0);
+    else (code -= bound), (rng -= bound), (P[i] = q - (q >> 5)), (b = 1);
+    while (rng < 16777216) (rng = (rng << 8) >>> 0), (code = ((code << 8) | (z[zi++] | 0)) >>> 0);
+    return b;
+  };
+  const int = (b) => {
+    let node = 1;
+    for (let k = 0; k < 6; k++) node = node * 2 + bit(b * 256 + node);
+    const n = node - 64;
+    let v = n ? 1 : 0;
+    for (let i = n - 2; i >= 0; i--) v = v * 2 + bit((b + 1) * 256 + n * 16 + Math.min(i, 15));
+    return v & 1 ? -(v + 1) / 2 : v / 2;
+  };
+  let px = 0,
+    py = 0;
+  const out = [];
+  for (let a = int(0); a > 0; a--) {
+    const poly = [];
+    for (let r = int(3); r > 0; r--) {
+      const ring = [],
+        n = int(6);
+      for (let k = 0; k < n; k++) {
+        const c = k ? 15 : 9;
+        px += int(c);
+        py += int(c + 3);
+        ring.push([px, py]);
+      }
+      poly.push(ring);
+    }
+    out.push(poly);
+  }
+  return out;
+}
 function unpackAC(p) {
   const z = Uint8Array.from(atob(p.$a), (c) => c.charCodeAt(0));
   let zi = 0,
@@ -51,7 +96,10 @@ function unpackAC(p) {
         c = y ? o[i - w] : a,
         d = y && x ? o[i - w - 1] : c,
         f = y && x + 1 < w ? o[i - w + 1] : c,
-        pr = Math.min(255, Math.max(0, Math.floor((3 * a + 3 * c - 2 * d + f + 2) / 5))),
+        a2 = x > 1 ? o[i - 2] : a,
+        c2 = y > 1 ? o[i - 2 * w] : c,
+        f2 = y && x + 2 < w ? o[i - w + 2] : f,
+        pr = Math.min(255, Math.max(0, (792 * a + 625 * c - 245 * d + 169 * f - 148 * a2 - 210 * c2 + 41 * f2 + 512) >> 10)),
         g = Math.abs(a - d) + Math.abs(c - d) + Math.abs(c - f),
         ea = x ? err[i - 1] : 0;
       let k = 0;
@@ -111,6 +159,31 @@ function unpackAC(p) {
       o[at + 4] = w;
       o[at + 5] = sym(P, (771 + w) * 256, 8, 5);
       o[at + 6] = sym(P, 1027 * 256, 8, 5);
+      o[at + 7] = t;
+    }
+  } else if (m === "tw2") {
+    // 家（地図の上の並び順）：位置は前の家との差（ビットの長さと各ビット）
+    const P = M(520),
+      int = (b) => {
+        let node = 1;
+        for (let k = 0; k < 6; k++) node = node * 2 + bit(P, b * 256 + node, 5);
+        const n = node - 64;
+        let v = n ? 1 : 0;
+        for (let i = n - 2; i >= 0; i--) v = v * 2 + bit(P, (b + 1) * 256 + n * 16 + Math.min(i, 15), 5);
+        return v & 1 ? -(v + 1) / 2 : v / 2;
+      };
+    let px = 0,
+      py = 0;
+    for (let at = 0; at < p.n; at += 8) {
+      px += int(0);
+      py += int(3);
+      dv.setInt16(at, px, true);
+      dv.setInt16(at + 2, py, true);
+      const t = sym(P, 6 * 256, 8, 5),
+        w = sym(P, (7 + t) * 256, 8, 5);
+      o[at + 4] = w;
+      o[at + 5] = sym(P, (263 + w) * 256, 8, 5);
+      o[at + 6] = sym(P, 519 * 256, 8, 5);
       o[at + 7] = t;
     }
   } else if (m === "lu") {
@@ -177,6 +250,7 @@ async function unpackData(v) {
   if (Array.isArray(v)) return Promise.all(v.map(unpackData));
   if (v && typeof v === "object") {
     if (v.$a !== undefined) return unpackAC(v);
+    if (v.$j !== undefined) return unpackPL(v);
     if (v.$p !== undefined) return unpackBlob(v);
     const out = {};
     for (const k in v) out[k] = await unpackData(v[k]);

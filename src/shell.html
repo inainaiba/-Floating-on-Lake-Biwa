@@ -35,7 +35,11 @@ body:not(.lake) #snd{display:none}
 @media (pointer:coarse){#joy{display:block}}
 #ab{position:fixed;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom));text-align:center;color:rgba(255,255,255,.7);font:300 11px "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;letter-spacing:.2em;cursor:pointer;z-index:5}body.lake #ab{display:none}#about{position:fixed;inset:0;z-index:20;display:none;place-items:center;background:rgba(10,14,24,.55);padding:20px;box-sizing:border-box}#about.on{display:grid}#about .in{max-width:520px;background:#f6f5f0;color:#1b1b1b;padding:26px 24px;font:14px/1.9 "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif}#about h2{margin:0 0 8px;font-weight:300;letter-spacing:.2em}#about h3{display:none}#about .src{margin-top:22px;font-size:10.5px;line-height:1.8;opacity:.55}#about p{margin:0 0 6px;font-size:12.5px}#about a{color:#1b1b1b}#about .cl{text-align:right;margin-top:14px;cursor:pointer;letter-spacing:.2em;opacity:.7}
 #ld{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;color:rgba(255,255,255,.8);font:300 15px "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;letter-spacing:.3em;animation:ldp 2.4s ease-in-out infinite}#ld span{display:block;margin-top:8px;font-size:10px;letter-spacing:.2em;opacity:.7}@keyframes ldp{50%{opacity:.35}}
-#veil{position:fixed;inset:0;background:#000;pointer-events:none;transition:opacity 2s ease}
+#veil{position:fixed;inset:0;pointer-events:none;transition:opacity 2s ease;background:linear-gradient(180deg,#0a1220 0%,#1b2c40 38%,#3a4d60 49.6%,#9fb0bc 50%,#2a3a48 50.4%,#141f2a 70%,#070b10 100%)}
+#veil:before{content:"";position:absolute;left:0;right:0;top:50.4%;bottom:0;background:repeating-linear-gradient(180deg,rgba(190,210,225,.07) 0 1px,transparent 1px 9px);animation:ldw 6s linear infinite}
+#veil:after{content:"";position:absolute;left:0;right:0;top:41%;height:9%;background:linear-gradient(180deg,transparent,rgba(12,20,30,.75));clip-path:polygon(0 70%,8% 45%,16% 60%,27% 20%,36% 55%,45% 35%,55% 62%,66% 15%,75% 50%,84% 38%,92% 58%,100% 40%,100% 100%,0 100%)}
+@keyframes ldw{to{background-position:0 18px}}
+#ldb{display:block;width:140px;height:1px;margin:14px auto 0;background:rgba(255,255,255,.6);transform:scaleX(.02);transform-origin:left;transition:transform .4s ease}
 
 #ui{position:fixed;inset:0;pointer-events:none;color:#fff;font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif}
 #ui>*{pointer-events:auto}
@@ -98,7 +102,21 @@ body.far #rest{display:none}
 <div id="hint">ドラッグで見回す・ピンチで寄る<br><span style="font-size:11px;opacity:.8">Drag to look, pinch to zoom</span></div>
 </div>
 <div id="ab">この作品について</div><div id="about"><div class="in"><h2>Floating</h2><p>琵琶湖に、建築を浮かべる。</p><p class="how">見回す：ドラッグ　寄る：ピンチ・ホイール<br>舵：左下の円・矢印キー（離すとまた漂う）<br>行き先：右上の地図でタップ<br>写真：右上のカメラ（いま見ている景色を保存）<br>映像：赤いブイに近づいてタップ</p><p class="replay" id="replayHint">案内をもう一度見る</p><p class="src">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a><br><a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a> ／ <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></p><p class="cl">閉じる</p></div></div>
-<div id="veil"><div id="ld">湖を描いています<span>Drawing the lake</span></div></div>
+<div id="veil"><div id="ld">湖を描いています<span>Drawing the lake</span><i id="ldb"></i></div></div>
+<script>
+// 読み込みの進み具合：組み立て（build.py）が、部品の間に await __ld(進み具合) を入れる。
+// 線を伸ばしてから、画面に描かれるのを待って次へ（隠れたタブでも止まらないよう、時間でも先へ進む）
+window.__ld = (f) => {
+  const b = document.getElementById("ldb");
+  if (b) b.style.transform = "scaleX(" + Math.max(0.02, f) + ")";
+  return new Promise((r) => {
+    let d = 0;
+    const k = () => d || ((d = 1), r());
+    requestAnimationFrame(k);
+    setTimeout(k, 40);
+  });
+};
+</script>
 <script type="module">
 __SCRIPT__
 </script>

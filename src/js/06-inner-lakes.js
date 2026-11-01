@@ -72,7 +72,7 @@ const inMain = (x, y) => {
 };
 const inLake = (x, y) => inMain(x, y) || inInner(x, y);
 // 陸の川と池（tools/rivers.py → data/rivers.json）：内湖と重なるものは除く。家・田・木を川の上に置かないための判定
-const RIVERS = (__RIVERS__ || []).filter((p) => !p[0].some(([x, y]) => inInner(x, y)));
+const RIVERS = (DATA.shape.rivers || []).filter((p) => !p[0].some(([x, y]) => inInner(x, y)));
 const RIV_CELL = 1000,
   rivIdx = new Map();
 RIVERS.forEach((p, i) => {

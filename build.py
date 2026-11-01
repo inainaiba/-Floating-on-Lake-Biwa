@@ -125,6 +125,8 @@ def ac(m, s, **kw):
         z, out['c'] = acpack.enc_st(b)
     elif m == 'tw':
         z = acpack.enc_tw(b)
+    elif m == 'tw2':
+        z = acpack.enc_tw2(b)
     elif m == 'lu':
         z = acpack.enc_lu(b)
     out['$a'] = base64.b64encode(z).decode()
@@ -133,23 +135,76 @@ def ac(m, s, **kw):
     return out
 
 
+DEM_FAR = 7000  # 湖岸からこれより遠い山は、標高の目を200m→400mにする（間の値は、まわりの値から直線で埋める）
+
+
+def dem_far(dem, lake):
+    """湖から遠い山の奥だけ、標高の格子を一つおきにし、間を補間した値に置き換える（base64 で返す）。
+    補間した値は予測とほぼ一致するので、算術符号でほとんど場所を取らない。遠くの稜線はなめらかにつながり、近くの山肌と湖岸はそのまま"""
+    import numpy as np
+    import shapely
+    from shapely.geometry import Polygon
+    w, h = dem['w'], len(base64.b64decode(dem['d'])) // dem['w']
+    g = np.frombuffer(base64.b64decode(dem['d']), dtype=np.uint8).reshape(h, w).astype(np.int32)
+    xs, ys = np.meshgrid(dem['x0'] + np.arange(w) * dem['step'], dem['y0'] + np.arange(h) * dem['step'])
+    far = shapely.distance(Polygon(lake['outer']), shapely.points(xs.ravel(), ys.ravel())).reshape(h, w) > DEM_FAR
+    o = g.copy()
+    for j in range(h):
+        for i in range(w):
+            if not far[j, i] or (i % 2 == 0 and j % 2 == 0):
+                continue
+            L_, R_ = g[j, max(i - 1, 0)], g[j, min(i + 1, w - 1)]
+            U_, D_ = g[max(j - 1, 0), i], g[min(j + 1, h - 1), i]
+            if i % 2 and j % 2 == 0:
+                o[j, i] = (L_ + R_ + 1) // 2
+            elif j % 2 and i % 2 == 0:
+                o[j, i] = (U_ + D_ + 1) // 2
+            else:
+                o[j, i] = (g[max(j - 1, 0), max(i - 1, 0)] + g[max(j - 1, 0), min(i + 1, w - 1)] + g[min(j + 1, h - 1), max(i - 1, 0)] + g[min(j + 1, h - 1), min(i + 1, w - 1)] + 2) // 4
+    return base64.b64encode(o.astype(np.uint8).tobytes()).decode()
+
+
 def data():
     """作品のコードが DATA として読むデータ（00a-data.js）"""
     sys.path.insert(0, str(r / 'tools'))
     import acpack, struct
     L = lambda n: json.loads((r / f'data/{n}.json').read_text())
     dem, depth, near, towns, lu, isles = L('dem'), L('depth'), L('near'), L('towns'), L('landuse'), L('isles')
-    dem['d'] = ac('g', dem['d'], w=dem['w'])
+    dem['d'] = ac('g', dem_far(dem, L('lake')), w=dem['w'])
     depth['d'] = ac('g', depth['d'], w=depth['w'])
     near['d'], near['idx'] = ac('n4', near['d'], bs=near['bs']), pack(near['idx'], 'raw')
-    towns['b'], towns['r'] = ac('tw', towns['b']), ac('st', towns['r'])
+    # 家：画質ごとの数の上限（12-renderer.js の towns：低3000・中4500・高9000）までの順は岸に近い順のまま、
+    # その段の中では地図の上の並び（256mの帯ごとに西から東・東から西と折り返す）に並べ替え、前の家との差で詰める。
+    # 置かれる家の顔ぶれは変わらない（家ごとの屋根の色や高さの割り振りは入れ替わる）
+    hb = base64.b64decode(towns['b'])
+    recs = [hb[i * 8:(i + 1) * 8] for i in range(towns['n'])]
+    def key(i):
+        x, y = struct.unpack_from('<hh', recs[i])
+        tier = 0 if i < 3000 else 1 if i < 4500 else 2
+        row = y // 128
+        return (tier, row, x if row % 2 == 0 else -x)
+    towns['b'] = ac('tw2', base64.b64encode(b''.join(recs[i] for i in sorted(range(len(recs)), key=key))).decode())
+    # 道：座標を5m単位から10m単位に（この縮尺では見分けられない。読む側は20-villages-layout.js で ×10）
+    rb, o, out = base64.b64decode(towns['r']), 0, bytearray()
+    while o < len(rb):
+        w_, k = rb[o], rb[o + 1]
+        out += rb[o:o + 2]
+        o += 2
+        pts = struct.unpack_from('<%dh' % (k * 2), rb, o)
+        o += 4 * k
+        out += struct.pack('<%dh' % (k * 2), *[(v + (1 if v >= 0 else -1)) // 2 if v >= 0 else -((-v + 1) // 2) for v in pts])
+    towns['r'] = ac('st', base64.b64encode(bytes(out)).decode())
     # 地図記号は、種類ごと・帯ごとに並べ替えてから詰める（近い点どうしが並んで差が小さくなる。読む側は並び順に頼らない）
     b = base64.b64decode(lu['d'])
     pts = acpack.lu_order(struct.unpack_from('<Bhh', b, i * 5) for i in range(lu['n']))
     lu['d'] = ac('lu', base64.b64encode(b''.join(struct.pack('<Bhh', *q) for q in pts)).decode())
     for q in isles:
         q['d'] = pack(q['d'], 'delta')
-    return {'dem': dem, 'depth': depth, 'near': near, 'towns': towns, 'landuse': lu, 'isles': isles}
+    # 湖岸線・島・川の形（多角形の列）。湖岸線の残り（港・橋・河口）は __LAKE__ のまま
+    L2 = L('lake')
+    pl = lambda polys: {'$j': base64.b64encode(acpack.enc_pl(polys)).decode()}
+    shape = {'outer': pl([[L2['outer']]]), 'islands': pl([L2['islands']]), 'rivers': pl(L('rivers'))}
+    return {'dem': dem, 'depth': depth, 'near': near, 'towns': towns, 'landuse': lu, 'isles': isles, 'shape': shape}
 
 
 GLSL_HINT = re.compile(r'gl_|vec[234]|uniform |varying |#include|void main')
@@ -206,23 +261,29 @@ def build():
             print('エラー：', e)
         raise SystemExit('部品の名前が重なっています（src/DEPENDENCIES.md 参照）')
     parts = sorted((r / 'src/js').glob('*.js'))
-    script = bundle('\n'.join(glsl_comments(p.read_text()) for p in parts))
+    # 読み込みの進み具合：重い部品のあと（およそ8か所）で一息つき、読み込み中の線を伸ばす（src/shell.html の __ld）
+    step = max(1, len(parts) // 8)
+    js = []
+    for i, p in enumerate(parts):
+        js.append(glsl_comments(p.read_text()))
+        if i % step == step - 1 and i < len(parts) - 1:
+            js.append(f'if (window.__ld) await window.__ld({(i + 1) / len(parts):.2f});')
+    script = bundle('\n'.join(js))
     html = (r / 'src/shell.html').read_text().replace('__SCRIPT__', script)
     B = buoys()
     # 湖岸線などのうち、作品で使わないもの（OpenStreetMap の川の線・灯台）は埋め込まない
     lake = json.loads((r / 'data/lake.json').read_text())
-    for k in ('rivers', 'lights'):
+    for k in ('rivers', 'lights', 'outer', 'islands'):  # 湖岸線と島の形は DATA.shape へ（算術符号で詰める）
         lake.pop(k, None)
     html = (html.replace('__LAKE__', json.dumps(lake, ensure_ascii=False, separators=(',', ':')))
                 .replace('__RAIL__', (r / 'data/rail.json').read_text())
-                .replace('__RIVERS__', (r / 'data/rivers.json').read_text())
                 .replace('__DATA__', json.dumps(data(), separators=(',', ':')))
                 .replace('__BUOYS__', json.dumps(B, ensure_ascii=False)))
     # 文法の確認：node があれば、組み立てたコードを読み込めるか確かめる（壊れたまま公開しないため）
     import subprocess, shutil, tempfile
     if shutil.which('node'):
         with tempfile.NamedTemporaryFile('w', suffix='.mjs', delete=False) as f:
-            f.write(script.replace('__LAKE__', '{}').replace('__RAIL__', '{}').replace('__RIVERS__', '[]').replace('__DATA__', '{}').replace('__BUOYS__', '[]'))
+            f.write(script.replace('__LAKE__', '{}').replace('__RAIL__', '{}').replace('__DATA__', '{}').replace('__BUOYS__', '[]'))
         res = subprocess.run(['node', '--check', f.name], capture_output=True, text=True)
         if res.returncode:
             print(res.stderr.split('SyntaxError')[0][-400:] + 'SyntaxError' + res.stderr.split('SyntaxError')[-1][:200])

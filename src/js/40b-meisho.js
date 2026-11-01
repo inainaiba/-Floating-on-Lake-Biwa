@@ -375,6 +375,7 @@ G.meisho = (() => {
       const ok = (mm) => [[x0 - mm, y0 - mm], [x1 + mm, y0 - mm], [x1 + mm, y1 + mm], [x0 - mm, y1 + mm]].every(([x, y]) => !inLake(p.x + x / S, p.y + y / S));
       while (m > 3 && !ok(m)) m -= 3;
       const lot = mesh(new THREE.PlaneGeometry(x1 - x0 + 2 * m, y1 - y0 + 2 * m).rotateX(-Math.PI / 2), parkLot(x1 - x0 + 2 * m, y1 - y0 + 2 * m), (x0 + x1) / 2, 0.12, (y0 + y1) / 2);
+      lot.userData.keep = lot.userData.near = true; // 駐車場と車は近くに来たときだけ描く（下の update）
       g.add(lot);
       // 車：建物の外の駐車場に並べる
       const inPolyL = (x, y) => {
@@ -403,7 +404,7 @@ G.meisho = (() => {
           I.setMatrixAt(i, Mx);
           I.setColorAt(i, cc.setHex(CAR[Math.floor(r * 1000) % CAR.length]));
         });
-        I.userData.keep = true;
+        I.userData.keep = I.userData.near = true;
         g.add(I);
       }
     }
@@ -533,6 +534,8 @@ G.meisho = (() => {
       if (o.isMesh) o.castShadow = o.receiveShadow = true;
     });
     mergeStatic(site); // 材質ごとに束ねて描画の回数を減らす
+    site.userData.near = [];
+    site.traverse((o) => o.userData.near && site.userData.near.push(o));
   }
   const NIGHT = new THREE.Color(0xffe6c4);
   return {
@@ -541,7 +544,11 @@ G.meisho = (() => {
     update(day) {
       // 9km（作品の中で1800）より遠い名所は描かない（霞に溶けて見えず、描画の回数だけが増えるため）
       const cp = camera.position;
-      for (const g of root.children) g.visible = Math.hypot(g.userData.c[0] - cp.x, g.userData.c[1] - cp.z) < 1800;
+      for (const g of root.children) {
+        const d = Math.hypot(g.userData.c[0] - cp.x, g.userData.c[1] - cp.z);
+        g.visible = d < 1800;
+        for (const o of g.userData.near) o.visible = d < 700; // 商業施設の駐車場と車（約3.5kmより遠いと見分けられない）
+      }
       const k = Math.min(1, Math.max(0, (0.2 - day) / 0.12));
       castleWall.emissive.copy(NIGHT).multiplyScalar(0.55 * k);
       castleStone.emissive.copy(NIGHT).multiplyScalar(0.12 * k);

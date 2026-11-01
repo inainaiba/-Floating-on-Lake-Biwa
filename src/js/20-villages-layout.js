@@ -228,7 +228,7 @@ if (TOWNS && TOWNS.n) {
       n = rb[o + 1],
       p = [];
     o += 2;
-    for (let k = 0; k < n; k++, o += 4) p.push([rv.getInt16(o, true) * 5, rv.getInt16(o + 2, true) * 5]);
+    for (let k = 0; k < n; k++, o += 4) p.push([rv.getInt16(o, true) * 10, rv.getInt16(o + 2, true) * 10]); // 10m単位（build.py）
     streets.push({ w, p });
   }
 }

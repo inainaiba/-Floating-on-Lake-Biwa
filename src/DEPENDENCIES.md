@@ -12,10 +12,12 @@
   - 31-ui.js（後ろの部品・要注意）：`$`
 
 ## 00a-data.js
-- 作る：`DATA`、`b64`、`unpackAC`、`unpackBlob`、`unpackData`
+- 作る：`DATA`、`b64`、`unpackAC`、`unpackBlob`、`unpackData`、`unpackPL`
 
 ## 01-settings.js
 - 作る：`LAKE`、`Q`、`RAIL`、`RM`、`S`、`SPEED`
+- 使う：
+  - 00a-data.js：`DATA`
 
 ## 02-season.js
 - 作る：`LOOK`、`PALETTE`、`SEASON`、`glf`、`v3`
@@ -43,6 +45,7 @@
 ## 06-inner-lakes.js
 - 作る：`INNER`、`LAKE_MASK`、`RECLAIMED`、`RIVERS`、`RIV_CELL`、`blob`、`bridgeY`、`channel`、`inInner`、`inLake`、`inMain`、`inMainPoly`、`inRiver`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`、`rivIdx`
 - 使う：
+  - 00a-data.js：`DATA`
   - 01-settings.js：`LAKE`
   - 03-coords.js：`ll`
   - 05-lake.js：`inPoly`、`islands`、`outer`
@@ -335,14 +338,6 @@
   - 19-boats.js：`PORT_SITES`、`boatMeshes`
   - 29-controls.js：`isFar`、`yaw`
 
-## 30d-debussy.js
-- 作る：（なし）
-- 使う：
-  - 00-head.js：`G`
-  - 02-season.js：`LOOK`
-  - 29-controls.js：`isFar`
-  - 30-audio.js：`SND`
-
 ## 31-ui.js
 - 作る：`$`、`MAT_ICONS`、`dots`、`hex`、`mats`、`pick`、`replayWanted`、`restBtn`、`runHints`、`showName`
 - 使う：
@@ -579,7 +574,7 @@
   - 12-renderer.js：`camera`、`scene`
   - 13-sky-dome.js：`skyU`
   - 14-water.js：`water`
-  - 20-villages-layout.js：`landY`
+  - 20-villages-layout.js：`cvTex`、`landY`
   - 29-controls.js：`isFar`
   - 30-audio.js：`thunder`
 
@@ -602,7 +597,7 @@
 ## 44b-bass.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`mergeStatic`
+  - 00-head.js：`G`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 06-inner-lakes.js：`inMain`
@@ -795,7 +790,6 @@
 - `G.chunks`：00-head.js
 - `G.city`：47-city.js
 - `G.dbg`：53-frame.js
-- `G.deb`：30d-debussy.js
 - `G.dotTex`：00-head.js
 - `G.eri`：46-shore-life.js
 - `G.exp`：12-renderer.js

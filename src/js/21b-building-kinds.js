@@ -167,7 +167,44 @@ vMapUv=abs(normal.y)>.5?vec2(.5):vec2(uv.x*(abs(normal.x)>.5?sz_:sx_)/3.,uv.y*sy
     mr.setColorAt(i, c.setHex(ROOF_M[Math.floor(v * 113) % ROOF_M.length]));
   });
   mw.count = mr.count = mt.length;
-  for (const m of [rcW, par, roofIn, topI, mw, mr]) {
+  // ---- 正面の細部：工場のシャッター・高窓の帯・看板、鉄筋の建物の入口のガラスと庇・店の看板、物置の戸、納屋の大きな引き戸 ----
+  const parts = [],
+    front = (h, off, y, w, hh, dz, col) => {
+      // 正面（h.rot から決まる向き）の、横 off・高さ y の位置に、幅 w・高さ hh・厚さ dz の板
+      const fx = -Math.sin(h.rot),
+        fz = Math.cos(h.rot),
+        lx = Math.cos(h.rot),
+        lz = Math.sin(h.rot);
+      parts.push([h.x * S + fx * (h.d / 2 + dz / 2) + lx * off, y, h.y * S + fz * (h.d / 2 + dz / 2) + lz * off, w, hh, dz, h.rot, col]);
+    };
+  for (const h of houses) {
+    const y0 = gy(h),
+      v = bHash(h.x - 5, h.y + 9);
+    if (h.kind === "factory") {
+      const n = h.w > 26 ? 2 : 1;
+      for (let k = 0; k < n; k++) front(h, (k - (n - 1) / 2) * h.w * 0.4, y0, 4.6, Math.min(4.6, h.h - 1.2), 0.15, 0x8e9396); // シャッター
+      front(h, 0, y0 + h.h - 2.4, h.w * 0.82, 0.9, 0.08, 0x46525c); // 高窓の帯
+      if (v < 0.6) front(h, -h.w * 0.25, y0 + h.h - 1.25, Math.min(10, h.w * 0.3), 1.1, 0.18, [0xf2f2ee, 0x2f5f9a, 0xe8e0c8][Math.floor(v * 5) % 3]); // 社名の看板
+    } else if (h.kind === "rc" || h.kind === "rcBig") {
+      front(h, h.w * 0.2, y0, 2.6, 2.6, 0.12, 0x3c4a54); // 入口のガラス戸
+      front(h, h.w * 0.2, y0 + 2.75, 3.6, 0.22, 1.4, 0xd8d8d2); // 庇
+      if (h.kind === "rc" && v < 0.35) front(h, -h.w * 0.15, y0 + 3.4, Math.min(8, h.w * 0.5), 0.9, 0.2, [0xc84a3c, 0x2e6fa8, 0xe8c040, 0x3f8f5a][Math.floor(v * 40) % 4]); // 店の看板
+    } else if (h.kind === "shed") front(h, 0, y0, Math.min(1.8, h.w * 0.5), Math.min(1.9, h.h - 0.3), 0.08, v < 0.5 ? 0x5a4a3a : 0x9aa2a6); // 物置の戸
+    else if (h.kind === "barn") front(h, h.w * 0.15, y0, 3.6, Math.min(3.2, h.h - 0.8), 0.12, 0x3a2e26); // 納屋の大きな引き戸
+  }
+  const stripeTx = cvTex(16, 32, (x, w, hh) => {
+    x.fillStyle = "#fff";
+    x.fillRect(0, 0, w, hh);
+    for (let i = 0; i < hh; i += 4) (x.fillStyle = "rgba(0,0,0,.12)"), x.fillRect(0, i, w, 1);
+  });
+  const pI = new THREE.InstancedMesh(box, new THREE.MeshLambertMaterial({ color: 0xffffff, map: stripeTx }), Math.max(1, parts.length));
+  parts.forEach(([x, y, z, w, hh, dz, r, col], i) => {
+    M.compose(V.set(x, y, z), Qq.setFromEuler(E.set(0, -r, 0)), Sc.set(w, hh, dz));
+    pI.setMatrixAt(i, M);
+    pI.setColorAt(i, c.setHex(col));
+  });
+  pI.count = parts.length;
+  for (const m of [rcW, par, roofIn, topI, mw, mr, pI]) {
     m.castShadow = m.receiveShadow = QUALITY.treeShadow;
     g.add(m);
   }
