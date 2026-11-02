@@ -196,7 +196,7 @@ G.boats = (() => {
     const cx = camera.position.x,
       cz = camera.position.z;
     for (const g of tabune) {
-      g.position.y = -0.12 + Math.sin(t * 0.8 + g.userData.ph) * 0.03;
+      g.position.y = water.position.y - 0.12 + Math.sin(t * 0.8 + g.userData.ph) * 0.03;
       g.rotation.z = Math.sin(t * 0.6 + g.userData.ph) * 0.02;
     }
     for (const w of wakes) {
@@ -281,7 +281,7 @@ G.boats = (() => {
           ship.on = false;
           ship.g.visible = false;
         } else {
-          ship.g.position.set(ship.x, waveH(ship.x, ship.z, t) * 0.3 - 0.2, ship.z);
+          ship.g.position.set(ship.x, water.position.y + waveH(ship.x, ship.z, t) * 0.3 - 0.2, ship.z);
           ship.g.rotation.set(0, -Math.atan2(ship.dz, ship.dx), Math.sin(t * 0.5) * 0.008);
         }
       }
@@ -290,7 +290,7 @@ G.boats = (() => {
       const k = t * 0.5 + g.userData.ph;
       g.userData.arm.rotation.x = 0.85 + Math.sin(k) * 0.18;
       g.userData.arm.rotation.z = Math.sin(k * 0.5) * 0.15;
-      g.position.y = -0.1 + Math.sin(t * 0.9 + g.userData.ph) * 0.03;
+      g.position.y = water.position.y - 0.1 + Math.sin(t * 0.9 + g.userData.ph) * 0.03;
       g.visible = day > 0.15;
     }
   }

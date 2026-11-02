@@ -106,7 +106,7 @@
   - 02-season.js：`PALETTE`
   - 06-inner-lakes.js：`maxX`、`maxY`、`minX`、`minY`
   - 07-depth.js：`CELL`、`GH`、`GW`、`depthG`
-  - 12-renderer.js：`QUALITY`、`scene`
+  - 12-renderer.js：`QUALITY`、`camera`、`scene`
 
 ## 15-land-base.js
 - 作る：（なし）
@@ -162,7 +162,7 @@
   - 07-depth.js：`CELL`、`GH`、`GW`、`depth`、`depthG`、`shoreSnap`
   - 11-state.js：`B`
   - 12-renderer.js：`camera`、`scene`
-  - 14-water.js：`waveH`
+  - 14-water.js：`water`、`waveH`
   - 18-buildings.js：`house`
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
 
@@ -554,7 +554,7 @@
   - 10-start.js：`rnd`
   - 11-state.js：`STATE`
   - 12-renderer.js：`QUALITY`、`camera`、`scene`
-  - 14-water.js：`waveH`
+  - 14-water.js：`water`、`waveH`
   - 20-villages-layout.js：`landY`、`paddies`
   - 29-controls.js：`distT`、`isFar`、`pitch`、`yawT`
 
@@ -693,7 +693,7 @@
   - 06-inner-lakes.js：`inMain`
   - 07-depth.js：`depth`
   - 12-renderer.js：`camera`、`scene`
-  - 14-water.js：`waveH`
+  - 14-water.js：`water`、`waveH`
   - 29-controls.js：`isFar`
 
 ## 44c-floating-halls.js
@@ -725,7 +725,7 @@
   - 10-start.js：`rnd`、`rndFor`
   - 11-state.js：`B`
   - 12-renderer.js：`camera`、`scene`
-  - 14-water.js：`waterU`、`waveH`
+  - 14-water.js：`water`、`waterU`、`waveH`
   - 16-terrain.js：`reedPts`
 
 ## 46-shore-life.js

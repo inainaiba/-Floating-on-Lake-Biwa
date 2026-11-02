@@ -39,13 +39,21 @@ function setWaves(W) {
   });
 }
 function waveH(x, z, t) {
+  // 描かれる水面（下の頂点の計算）とそろえる：向きのゆらぎ・高さのむら・カメラから遠いほど平らになる分も同じに
+  //（そろえないと、遠くの舟が平らに描かれた水面から浮いて、跳ねて見えた）
+  const dc = Math.hypot(camera.position.x - x, camera.position.z - z),
+    att = 1 - Math.min(1, Math.max(0, (dc - 120) / 380)) ** 2 * (3 - 2 * Math.min(1, Math.max(0, (dc - 120) / 380)));
+  if (att <= 0) return 0;
   let h = 0;
   for (let i = 0; i < 3; i++) {
-    const v = waves[i];
-    h +=
-      v.A * Math.sin(v.k * (v.dx * x + v.dz * z) - v.w * t + Math.sin((x * 0.013 + z * 0.017) * (1 + i)) * 2);
+    const v = waves[i],
+      ra = 0.28 * Math.sin(x * 0.0017 + i * 1.7) * Math.sin(z * 0.0013 + i * 2.3),
+      dx = Math.cos(ra) * v.dx + Math.sin(ra) * v.dz, // シェーダの mat2 と同じ回し方
+      dz = -Math.sin(ra) * v.dx + Math.cos(ra) * v.dz,
+      A = v.A * (0.62 + 0.38 * Math.sin((x * 0.0021 + z * 0.0016) * (1 + i * 0.7) + i * 2) * Math.sin((-x * 0.0014 + z * 0.0023) * (1 + i * 0.4) + i));
+    h += A * Math.sin(v.k * (dx * x + dz * z) - v.w * t + Math.sin((x * 0.013 + z * 0.017) * (1 + i)) * 2);
   }
-  return h;
+  return h * att;
 } // 水面のシェーダと同じ式（長い3波）
 function waveTop(x, z, t, r) {
   let m = -1e9;
