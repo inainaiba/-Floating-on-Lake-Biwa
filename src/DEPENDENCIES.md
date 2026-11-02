@@ -707,7 +707,7 @@
   - 07-depth.js：`depth`、`shoreSnap`
   - 10-start.js：`rndFor`
   - 12-renderer.js：`camera`、`scene`
-  - 14-water.js：`water`
+  - 14-water.js：`water`、`waterU`
   - 18-buildings.js：`inReeds`
   - 20-villages-layout.js：`cvTex`、`houseNear`、`landY`
   - 29-controls.js：`isFar`

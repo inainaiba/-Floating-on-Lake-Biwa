@@ -88,6 +88,8 @@ const waterU = {
   uT2: { value: 0 },
   uHouse: { value: new THREE.Vector3(0, 0, 8) },
   uHV: { value: new THREE.Vector3(1, 0, 0) }, // 建物の進む向き x, z と速さ（0〜1）。八の字の航跡に使う
+  uHW: { value: new THREE.Vector4(0, 0, 8, 0) }, // 漂う水上建築（カメラに近い1つ）：位置 x, z・大きさ・航跡の強さ（44c-floating-halls.js）
+  uHD: { value: new THREE.Vector2(1, 0) }, // その進む向き
   uWd: { value: new THREE.Vector2(1, 0) },
   uRefl: { value: null },
   uTM: { value: new THREE.Matrix4() },
@@ -131,6 +133,7 @@ uniform float uRainR;
 uniform float uT2;
 uniform vec3 uHouse;
 uniform vec3 uHV;
+uniform vec4 uHW;uniform vec2 uHD;
 float WKE; // 八の字の航跡の波頭の明るさ（下の合成で使う）
 uniform vec2 uWd;
 uniform sampler2D uRefl;
@@ -149,7 +152,16 @@ uniform float uT;
 uniform vec4 uW[${NW}];
 uniform vec2 uA[${NW}];
 varying vec3 vP;
-varying vec3 vP0;`;
+varying vec3 vP0;
+// 八の字の航跡：中心 c、進む向き dv、幅 W0、強さ st。約20°で開く斜めの波（縁）と内側の横波。形は置かず、水面の計算だけで描く
+void wake(vec2 c,vec2 dv,float W0,float st,inout vec2 g){if(st<.01)return;vec2 pv=vec2(-dv.y,dv.x),rel=vP.xz-c;float s_=-dot(rel,dv),l_=dot(rel,pv);
+ if(s_<=0.)return;float al=abs(l_),edge=s_*.354+W0*.45,k_=6.2832/(W0*.8),
+  fade=exp(-s_/(W0*14.))*smoothstep(0.,W0*.8,s_)*st;
+  if(fade<.002)return;
+  float ed=exp(-pow((al-edge)/(W0*.4+s_*.05),2.)),ins=smoothstep(edge,edge*.55,al)*smoothstep(0.,W0*.3,al+W0*.3);
+  float phd=k_*(s_*.94+al*.34)-uT2*3.,pht=k_*1.15*s_-uT2*2.4;
+  g+=normalize(-dv*.94+pv*sign(l_)*.34)*sin(phd)*.45*fade*ed+(-dv)*sin(pht)*.15*fade*ins;
+  WKE+=fade*(ed*smoothstep(.3,1.,sin(phd))+ins*.35*smoothstep(.5,1.,sin(pht)));} // 波頭がうっすら光る`;
 // 波の法線：うねり・小波・航跡のさざなみ
 const W_FS_NORMAL = `vec3 V=normalize(cameraPosition-vP);
 float dc=length(cameraPosition-vP);
@@ -210,13 +222,8 @@ g+=d/(dd+1e-3)*cos(ph)*env*.55;
 wf+=exp(-dd*dd/(.5+tr.z*.9))*exp(-tr.z*.28)*tr.w*.55;
 }
 // 八の字の航跡：建物が進むと、後ろに約20°の角度で開く斜めの波（縁）と、その内側の横波が残る。形は置かず、水面の計算だけで描く
-WKE=0.;if(uHV.z>.01){vec2 dv=uHV.xy,pv=vec2(-dv.y,dv.x),rel=vP.xz-uHouse.xy;float s_=-dot(rel,dv),l_=dot(rel,pv);
- if(s_>0.){float W0=max(uHouse.z,2.),al=abs(l_),edge=s_*.354+W0*.45,k_=6.2832/(W0*.8),
-  fade=exp(-s_/(W0*14.))*smoothstep(0.,W0*.8,s_)*uHV.z*(1.-smoothstep(.2,.5,fwR/(W0*.8)));
-  float ed=exp(-pow((al-edge)/(W0*.4+s_*.05),2.)),ins=smoothstep(edge,edge*.55,al)*smoothstep(0.,W0*.3,al+W0*.3);
-  float phd=k_*(s_*.94+al*.34)-uT2*3.,pht=k_*1.15*s_-uT2*2.4;
-  g+=normalize(-dv*.94+pv*sign(l_)*.34)*sin(phd)*.45*fade*ed+(-dv)*sin(pht)*.15*fade*ins;
-  WKE=fade*(ed*smoothstep(.3,1.,sin(phd))+ins*.35*smoothstep(.5,1.,sin(pht)));}} // 波頭がうっすら光る
+WKE=0.;wake(uHouse.xy,uHV.xy,max(uHouse.z,2.),uHV.z*(1.-smoothstep(.2,.5,fwR/(max(uHouse.z,2.)*.8))),g);
+if(uHW.w>.01)wake(uHW.xy,uHD,uHW.z,uHW.w*(1.-smoothstep(.2,.5,fwR/(uHW.z*.8))),g); // 漂う水上建築の航跡（うっすら）
  float bk=.55+.9*nzN(vP0.xz*.004)*.5+.45*sin(vP0.x*.0031+sin(vP0.z*.0023)*2.)*.5;
 g*=bk;
 vec3 N=normalize(n*vec3(1.-uCalm*.5,1.,1.-uCalm*.5)+vec3(-g.x,0.,-g.y)*(1.+uFoam)*(1.-uCalm*.45)*(1.-.6*smoothstep(.0,-.2,uSun.y)));

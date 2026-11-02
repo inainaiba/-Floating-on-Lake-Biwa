@@ -126,7 +126,7 @@
     plumeM.color.setScalar(br);
     // 小魚の波紋：ヨシの近くの水面に。朝夕に多く、真夜中や雨の日は少ない
     const h = f.c.phase * 24,
-      rate = (0.4 + 1.2 * Math.max(0, 1 - Math.abs(h - 6.5) / 2.5) + 1.2 * Math.max(0, 1 - Math.abs(h - 18) / 2.5)) * (f.wxNow.rain > 0.3 ? 0.3 : 1) * (h < 4 || h > 22 ? 0.2 : 1);
+      rate = (0.55 + 1.3 * Math.max(0, 1 - Math.abs(h - 6.5) / 2.5) + 1.2 * Math.max(0, 1 - Math.abs(h - 18) / 2.5)) * (f.wxNow.rain > 0.3 ? 0.3 : 1) * (h < 4 || h > 22 ? 0.2 : 1);
     if (!isFar && near.length && f.t > nextFish && mo >= 3 && mo <= 10) {
       nextFish = f.t + (1.5 + Math.random() * 4) / rate / (mo === 4 || mo === 5 ? 2.5 : 1); // 5〜6月は産卵で浅瀬の波紋が増える
       const r = rs.find((q) => q.a < 0);
