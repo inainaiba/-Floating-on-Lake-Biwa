@@ -73,6 +73,11 @@
     c = new THREE.Color(),
     STEM = { summer: 0x58733d, spring: 0x86a85a, autumn: 0xa58c56, winter: 0xc8a96c, cut: 0x9c8a66, burnt: 0x5a4c3e },
     PLUME = { summer: 0x7a6a50, autumn: 0x8f6e55, winter: 0xe2d2ac };
+  // ヨシの先から落ちたしずくの輪（43f-fragments.js から）
+  G.dropRing = (x, z) => {
+    const r = rs.find((q) => q.a < 0);
+    if (r) (r.x = x), (r.z = z), (r.a = 0.25);
+  };
   let at = null,
     kindNow = "",
     near = [],
@@ -123,7 +128,7 @@
     const h = f.c.phase * 24,
       rate = (0.4 + 1.2 * Math.max(0, 1 - Math.abs(h - 6.5) / 2.5) + 1.2 * Math.max(0, 1 - Math.abs(h - 18) / 2.5)) * (f.wxNow.rain > 0.3 ? 0.3 : 1) * (h < 4 || h > 22 ? 0.2 : 1);
     if (!isFar && near.length && f.t > nextFish && mo >= 3 && mo <= 10) {
-      nextFish = f.t + (1.5 + Math.random() * 4) / rate;
+      nextFish = f.t + (1.5 + Math.random() * 4) / rate / (mo === 4 || mo === 5 ? 2.5 : 1); // 5〜6月は産卵で浅瀬の波紋が増える
       const r = rs.find((q) => q.a < 0);
       if (r) {
         const p = near[Math.floor(Math.random() * near.length)],
@@ -137,7 +142,7 @@
     let n = 0;
     for (const r of rs) {
       if (r.a < 0) continue;
-      r.a += f.dt / 2.6;
+      r.a += f.dt / 3.6; // 波紋はゆっくり広がって消える
       if (r.a >= 1) {
         r.a = -1;
         continue;

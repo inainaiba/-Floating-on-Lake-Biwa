@@ -70,6 +70,8 @@ float gk=mix(1.,.3,uDay*(1.-uWarm)); // 昼の明るい空まで光らせない�
 c+=bl*vec3(.15,.14,.13)*glowT+bl2*.02*glowT*gk;
 // 太陽を向いたときのレンズの光のにじみ（ごく控えめに）
 if(uSunS.z>.01){vec2 d=(vU-uSunS.xy)*vec2(uAsp,1.);float r=length(d);c+=vec3(1.,.93,.82)*(exp(-r*r*18.)*.05+exp(-r*5.)*.018)*uSunS.z;vec2 gp=vec2(1.)-uSunS.xy;float g2=length((vU-mix(uSunS.xy,gp,.7))*vec2(uAsp,1.));c+=vec3(.7,.85,1.)*smoothstep(.06,.04,g2)*smoothstep(.02,.04,g2)*.008*uSunS.z;}
+// 逆光のとき、太陽の側の画面の縁から、ごくわずかに光がさしこむ（ほんの僅か）
+if(uSunS.z>.01){vec2 sd_=(vU-uSunS.xy)*vec2(uAsp,1.);float ed_=length(sd_);c+=vec3(1.,.95,.86)*exp(-ed_*2.2)*.018*uSunS.z;c=mix(c,c+vec3(.012,.01,.008),uSunS.z*smoothstep(1.4,.2,ed_));}
 c=pow(c,vec3(1./2.2));
     float l=dot(c,vec3(.299,.587,.114));
     c=mix(vec3(l),c,.86);

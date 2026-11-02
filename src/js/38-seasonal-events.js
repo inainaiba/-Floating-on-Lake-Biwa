@@ -179,7 +179,7 @@ G.EV = (() => {
     for (const s of smoke) {
       const u = s.userData;
       if (u.a < 0) continue;
-      u.a += dt / 30;
+      u.a += dt / 40; // 煙は長く、ゆっくり崩れて消える
       if (u.a >= 1) {
         u.a = -1;
         s.visible = false;
