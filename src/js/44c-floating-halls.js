@@ -30,6 +30,17 @@
     while (off < 900 && (inReeds(sx + Math.cos(a) * off, sy + Math.sin(a) * off) || nearWall(sx + Math.cos(a) * off, sy + Math.sin(a) * off))) off += 40;
     return { x: sx + Math.cos(a) * off, y: sy + Math.sin(a) * off, sx, sy, a };
   }
+  // 集落のある岸だけ：岸の点から2km以内の家（22b-town-glow.js の家の集まり。画質によらない）が120軒以上ある所に着く。
+  // 北の集落のない入江や、家の少ない浜には着かない
+  const villageSites = (cands, off) =>
+    cands
+      .filter(([lo, la]) => {
+        const [x, y] = shoreSnap(...ll(lo, la));
+        let n = 0;
+        for (const t of G.towns ? G.towns.list : []) if (Math.hypot(t.x - x, t.y - y) < 2000) n += t.n;
+        return n >= 120;
+      })
+      .map(([lo, la]) => spot(lo, la, off));
   const LAMS = new Map(),
     lam = (c, o) => {
       if (o) return new THREE.MeshLambertMaterial({ color: c, ...o });
@@ -206,7 +217,8 @@
   }
   // ---------- 1. 水上子ども図書館 ----------
   // 着く岸（湖西の浜を北から南へ、また戻る）：萩の浜 → 北小松 → 近江舞子の浜（白砂と松並木）→ 和邇の浜 → 堅田
-  const libSites = [spot(136.062, 35.335, 110), spot(135.987, 35.285, 110), spot(135.9755, 35.2575, 110), spot(135.952, 35.195, 110), spot(135.925, 35.125, 110)];
+  // 湖西の浜を北から南へ（集落のある所だけ）：萩の浜・安曇川・北小松・近江舞子・和邇・堅田
+  const libSites = villageSites([[136.062, 35.335], [136.075, 35.3], [135.987, 35.285], [135.9755, 35.2575], [135.952, 35.195], [135.925, 35.125]], 110);
   CUR = "lib";
   {
     const g = new THREE.Group(),
@@ -308,7 +320,8 @@
   // ---------- 2. 水上映画館 ----------
   // 湖に浮かぶ大きな幕の舟。岸に着くと、陸に並んだ椅子のほうへ幕を向け、陸の映写台から光の筋が届く。人は陸から観る
   // 湖東の岸を北から南へ：尾上 → 長浜 → 米原の磯 → 彦根の松原 → 新海浜
-  const cinSites = [spot(136.2, 35.455, 140), spot(136.258, 35.392, 140), spot(136.272, 35.335, 140), spot(136.243, 35.283, 140), spot(136.19, 35.22, 140)];
+  // 湖東の岸を北から南へ（集落のある所だけ）：尾上・長浜・米原の磯・彦根・新海浜・守山
+  const cinSites = villageSites([[136.2, 35.455], [136.258, 35.392], [136.272, 35.335], [136.243, 35.283], [136.19, 35.22], [135.97, 35.12]], 140);
   CUR = "cin";
   let placeScreen = null;
   const screenU = { uT: { value: 0 }, uOn: { value: 0 } };
@@ -418,7 +431,8 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
   // ---------- 3. 水上音楽堂 ----------
   // 着く岸：菅浦の入江 → 海津の浜 → 月出の入江
   // 奥琵琶湖の入江を西から東へ：海津の浜 → 大浦 → 菅浦の入江 → 月出の入江 → 片山
-  const musSites = [spot(136.072, 35.462, 120), spot(136.115, 35.495, 120), spot(136.1335, 35.4795, 120), spot(136.165, 35.468, 120), spot(136.198, 35.455, 120)];
+  // 湖北の岸（集落のある所だけ）：今津・海津・大浦・菅浦・片山・塩津
+  const musSites = villageSites([[136.03, 35.41], [136.072, 35.462], [136.115, 35.495], [136.1335, 35.4795], [136.198, 35.455], [136.155, 35.515]], 120);
   CUR = "mus";
   {
     const g = new THREE.Group();
@@ -487,7 +501,45 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
         r = 11 + R() * 5;
       add(g, box(0.6, 0.6, 0.6), lantM, Math.cos(a) * r, 0.45, Math.sin(a) * r, R());
     }
-    var musH = moor(g, musSites);
+    // 舞台の口を陸（浜の客席）へ向ける：中身を半回転させて、外の器に入れる
+    const g2 = new THREE.Group();
+    g.rotation.y = Math.PI;
+    g2.add(g);
+    var musH = moor(g2, musSites);
+    // 浜の客席：湖の舞台を向いた長椅子の列・敷物・提灯の列（人の姿はなく、置かれた物だけ）。舞台が着いている浜にだけ出す
+    const bg = new THREE.Group(),
+      benchM = lam(0x8a6a48),
+      lantM2 = glowMat(0xffb070, 2.2);
+    for (let r = 0; r < 4; r++)
+      for (let k = 0; k < 4; k++) {
+        const x = (k - 1.5) * 5.2 + (r % 2) * 1.2,
+          z = -5 - r * 2.4;
+        add(bg, box(4.2, 0.08, 0.45), benchM, x, 0.45, z);
+        add(bg, box(4.2, 0.4, 0.05), benchM, x, 0.68, z - 0.22);
+        for (const dx of [-1.9, 0, 1.9]) add(bg, box(0.05, 0.45, 0.4), M.dark, x + dx, 0.22, z);
+      }
+    for (const [x, z, c] of [[-12, -6, 0xd8634f], [12, -8, 0x5b8fc4]]) add(bg, box(2.4, 0.03, 1.7), lam(c), x, 0.03, z, 0.15);
+    for (let k = 0; k < 7; k++) {
+      add(bg, new THREE.CylinderGeometry(0.03, 0.03, 2.2, 4), M.post, (k - 3) * 4, 1.1, -2.8);
+      add(bg, new THREE.SphereGeometry(0.2, 8, 6), lantM2, (k - 3) * 4, 2.3, -2.8);
+    }
+    mergeStatic(bg);
+    scene.add(bg);
+    const benchD = (q) => {
+      const onLand = (dd) => [25, 45, 65].every((k) => [-1, 0, 1].every((w) => !inLake(q.sx - Math.cos(q.a) * (dd + k) - Math.sin(q.a) * w * 40, q.sy - Math.sin(q.a) * (dd + k) + Math.cos(q.a) * w * 40)));
+      let d = 6;
+      while (d < 200 && !onLand(d)) d += 10;
+      return d;
+    };
+    placeLog("水上音楽堂の客席", "land", musSites.map((q) => [q.sx - Math.cos(q.a) * (benchD(q) + 45), q.sy - Math.sin(q.a) * (benchD(q) + 45)]));
+    var placeBenches = (q) => {
+      const d = benchD(q),
+        sx = q.sx - Math.cos(q.a) * d,
+        sy = q.sy - Math.sin(q.a) * d;
+      bg.position.set(sx * S, landY(sx - Math.cos(q.a) * 40, sy - Math.sin(q.a) * 40), sy * S);
+      bg.rotation.y = Math.PI / 2 - q.a; // 長椅子を湖（+Z）へ向ける
+    };
+    G.musSeats = bg;
   }
 
   G.halls = { lib: libH, cin: cinH, mus: musH }; // 確認用（いまの位置・岸に着いているか）
@@ -500,7 +552,8 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
       ["mus", musH],
     ].map(([k, H]) => (place(H, ct), { k, x: H.px, y: H.py, moored: H.moored, rot: H.rot }));
   };
-  let scrSite = -1;
+  let scrSite = -1,
+    musSite = -1;
   // 毎フレーム：波にゆっくり揺れ、日暮れに灯り、夏の夜は上映、近づくと音
   const OFF = new THREE.Color(0x3a3630);
   let nextPage = 0,
@@ -528,6 +581,8 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     // 映画館：着いた岸に客席を出す
     if (cinH.moored && cinH.site !== scrSite) placeScreen(cinH.sites[(scrSite = cinH.site)]);
     G.cinParts.sg.visible = cinH.moored; // 陸の客席は、幕の舟が着いている岸にだけ
+    if (musH.moored && musH.site !== musSite) placeBenches(musH.sites[(musSite = musH.site)]);
+    G.musSeats.visible = musH.moored;
     // 上映：夏（6〜9月）の夜、19時半〜22時半
     const show = (c.month >= 5 && c.month <= 8 && h > 19.5 && h < 22.5 ? Math.min(1, (h - 19.5) / 0.15, (22.5 - h) / 0.15) * lt : 0) * cinH.use;
     screenU.uT.value = t;

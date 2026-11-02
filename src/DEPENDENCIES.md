@@ -929,6 +929,7 @@
 - `G.moments`：43-moments.js
 - `G.moonLit`：49-frame-sky-light.js
 - `G.morning`：49-frame-sky-light.js
+- `G.musSeats`：44c-floating-halls.js
 - `G.nearPatch`：16-terrain.js
 - `G.netTx2`：18-buildings.js
 - `G.noRefl`：52-frame-render.js
