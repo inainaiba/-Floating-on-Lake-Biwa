@@ -802,7 +802,7 @@ function buildHouse() {
   const bb2 = new THREE.Box3().setFromObject(g),
     s2 = bb2.getSize(new THREE.Vector3()),
     fp = Math.max(s2.x, s2.z),
-    k = Math.min(1, 11 / fp, 8.5 / Math.max(1, bb2.max.y));
+    k = Math.min(1, 11 / fp, 8.5 / Math.max(1, bb2.max.y)) * (CUST.b <= 1 ? 0.85 : 1); // 01・02（浮かぶ学校・漏斗の舞台）は少し小さく
   g.scale.setScalar(k);
   house.add(g);
   house.size = fp * k;

@@ -171,6 +171,7 @@
   const STAY = DAY * 1.0, // 岸に着いている長さ（作品の一日）
     MOVE = DAY * 0.6; // 次の岸へ移る長さ
   function moor(g, sites, extraY = 0) {
+    g.scale.multiplyScalar(1.2); // 3つの水上建築は少し大きく（部材の太さも一緒に）
     mergeStatic(g); // 部品を材質ごとに1つの形にまとめて、描く回数を減らす（00-head.js）
     scene.add(g);
     const legs = sites.map((A, i) => coastPath(A, sites[(i + 1) % sites.length]));
@@ -419,7 +420,7 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
       sg.rotation.y = Math.PI / 2 - q.a; // 椅子を湖へ向ける（+Z が湖）
       sg.updateMatrixWorld();
       const pr = new THREE.Vector3(0, 1.3, -15.45).applyMatrix4(sg.matrixWorld),
-        sc = new THREE.Vector3(q.x * S, 7.4, q.y * S);
+        sc = new THREE.Vector3(q.x * S, 7.4 * 1.2, q.y * S);
       beam.position.copy(pr);
       beam.scale.set(1, 1, pr.distanceTo(sc));
       beam.lookAt(sc);
