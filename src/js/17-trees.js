@@ -212,7 +212,7 @@ function cardForest(kind, list, hgt, wid, near, far, shadow, tint) {
     g2.setAttribute(
       "aGdy",
       new THREE.InstancedBufferAttribute(
-        Float32Array.from(sel, ([x, y, gy]) => (nearAt(x, y) === null ? 0 : 0.6 + Math.max(0, terrGrid(x, y)) * S * VEX - gy)),
+        Float32Array.from(sel, ([x, y, gy]) => (nearAt(x, y) === null ? 0 : 0.6 + Math.max(0, terrGrid(x, y, terrHD)) * S * VEX - gy)),
         1,
       ),
     );
