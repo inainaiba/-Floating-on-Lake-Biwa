@@ -746,7 +746,7 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
       }
       const u = waterU.uHW.value,
         k = Math.min(1, f.dt * 1.5);
-      if (best !== wkH && u.w > 0.02) u.w -= u.w * k;
+      if (best !== wkH && u.w > 0.02) u.w = Math.max(0, u.w - f.dt * 0.8);
       else {
         wkH = best;
         u.w += ((best ? best.mv * 0.85 : 0) - u.w) * k;
