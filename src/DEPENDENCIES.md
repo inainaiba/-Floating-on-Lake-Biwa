@@ -332,7 +332,7 @@
   - 20-villages-layout.js：`houses`
 
 ## 29-controls.js
-- 作る：`dist`、`distT`、`gl`、`isFar`、`joy`、`joyEnd`、`joyId`、`kIn`、`keys`、`knob`、`lastTap`、`pinch0`、`pitch`、`ptrs`、`setFar`、`up`、`yaw`、`yawT`
+- 作る：`FAR_AT`、`dist`、`distT`、`gl`、`isFar`、`joy`、`joyEnd`、`joyId`、`kIn`、`keys`、`knob`、`lastTap`、`pinch0`、`pitch`、`ptrs`、`setFar`、`up`、`yaw`、`yawT`
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`

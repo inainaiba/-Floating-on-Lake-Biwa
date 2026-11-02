@@ -110,6 +110,10 @@ c=mix(c,vec3(.86,.9,.88),uMorn*.45*smoothstep(.55,.95,vU.y));
     c*=mix(vec3(1.),vec3(.93,.95,.99),uVeil);
     // 夜更け：全体をわずかに暗く、静かに
     c*=1.-.12*uDeep;
+    // 淡く明るい調子（ほんの少し）：明るい昼ほど、明るい所を上でやわらかく白へ寄せ、暗い所をわずかに持ち上げ、全体を乳白に少しだけ
+    {float lp=dot(c,vec3(.299,.587,.114)),dk=uDay*(1.-uWarm*.6);
+    c=mix(c,vec3(1.,.995,.985),smoothstep(.62,1.05,lp)*.1*dk);
+    c=c*(1.-.035*dk)+vec3(.035,.035,.034)*dk;}
     float v=distance(vU,vec2(.5));
 c=mix(c,c*1.04+.03,smoothstep(.3,.75,v)*uDay*.6);
 {float gr=fract(sin(dot(floor(vU*vec2(1920.,1080.)),vec2(12.9898,78.233))+uTm*7.13)*43758.5453)-.5;
