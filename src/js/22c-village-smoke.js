@@ -66,7 +66,7 @@ void main(){
   float eve=smoothstep(aS.z,aS.z+.3,h)*(1.-smoothstep(aS.w-.4,aS.w,h));
   float mor=uMorn*step(.01,aM.x)*smoothstep(aM.x,aM.x+.3,h)*(1.-smoothstep(aM.y-.4,aM.y,h));
   float on=max(eve,mor)*step(aS.y,uAmt);
-  float age=fract(uT*.045+aS.x+aS.y*7.3);
+  float age=fract(uT*.032+aS.x+aS.y*7.3);
   float ws=length(uWind);
   vec3 p=position;
   // 立ちのぼり、風下へ曲がる。風が強いほど低く横に流れる。ゆるい揺らぎ

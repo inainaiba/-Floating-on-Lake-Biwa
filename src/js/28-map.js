@@ -337,7 +337,8 @@ function drawFar(boats = [], wxNow = null, W = null) {
       }
     fx.restore();
   }
-  fx.strokeStyle = "#d9542b";
+  // 自分（操作する建物）は濃い藍色：赤いブイ・橙の水上建築・青緑の出来事と見分けやすく
+  fx.strokeStyle = "rgba(35,72,168,.75)";
   fx.lineWidth = 1.8 * dpr;
   fx.beginPath();
   B.trail.forEach(([x, y], i) =>
@@ -367,7 +368,7 @@ function drawFar(boats = [], wxNow = null, W = null) {
     const px = X(B.x),
       py = Y(B.y),
       pu = ((performance.now() / 1000) % 2) / 2;
-    fx.strokeStyle = `rgba(217,84,43,${1 - pu})`;
+    fx.strokeStyle = `rgba(35,72,168,${1 - pu})`;
     fx.lineWidth = 2 * dpr;
     fx.beginPath();
     fx.arc(px, py, (6 + pu * 16) * dpr, 0, 7);
@@ -375,14 +376,14 @@ function drawFar(boats = [], wxNow = null, W = null) {
     fx.save();
     fx.translate(px, py);
     fx.rotate(B.yaw);
-    fx.fillStyle = "#d9542b";
+    fx.fillStyle = "#2348a8";
     fx.strokeStyle = "#fff";
     fx.lineWidth = 1.5 * dpr;
     fx.beginPath();
-    fx.moveTo(8 * dpr, 0);
-    fx.lineTo(-6 * dpr, -5 * dpr);
-    fx.lineTo(-3 * dpr, 0);
-    fx.lineTo(-6 * dpr, 5 * dpr);
+    fx.moveTo(10 * dpr, 0);
+    fx.lineTo(-7 * dpr, -6 * dpr);
+    fx.lineTo(-3.5 * dpr, 0);
+    fx.lineTo(-7 * dpr, 6 * dpr);
     fx.closePath();
     fx.fill();
     fx.stroke();

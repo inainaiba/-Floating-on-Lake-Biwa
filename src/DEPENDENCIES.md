@@ -641,7 +641,7 @@
 ## 43e-reed-near.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`onFrame`、`placeLog`
+  - 00-head.js：`G`、`onFrame`、`placeLog`
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inLake`、`inRiver`、`minX`、`minY`
   - 07-depth.js：`CELL`、`GH`、`GW`
@@ -650,6 +650,22 @@
   - 14-water.js：`water`、`waterU`
   - 16-terrain.js：`REED_CUT`、`REED_MONTH`、`reedPts`、`reedU`
   - 20-villages-layout.js：`bHash`、`houses`、`landY`
+  - 29-controls.js：`isFar`
+
+## 43f-fragments.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`、`onFrame`
+  - 01-settings.js：`S`
+  - 05-lake.js：`outer`
+  - 06-inner-lakes.js：`inLake`
+  - 10-start.js：`rnd`
+  - 11-state.js：`B`
+  - 12-renderer.js：`camera`、`scene`
+  - 14-water.js：`water`、`waveH`
+  - 16-terrain.js：`reedPts`
+  - 18-buildings.js：`house`
+  - 20-villages-layout.js：`landY`
   - 29-controls.js：`isFar`
 
 ## 44-life.js
@@ -900,11 +916,13 @@
 - `G.dbg`：53-frame.js
 - `G.deepNight`：49-frame-sky-light.js
 - `G.dotTex`：00-head.js
+- `G.dropRing`：43e-reed-near.js
 - `G.eri`：46-shore-life.js
 - `G.exp`：12-renderer.js
 - `G.fest`：38c-festivals.js
 - `G.forest`：17-trees.js
 - `G.fountain`：37b-fountain.js
+- `G.frag`：43f-fragments.js
 - `G.frameWaiters`：53-frame.js
 - `G.gc`：52-frame-render.js
 - `G.glowMat`：18-buildings.js

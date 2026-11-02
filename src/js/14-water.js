@@ -363,7 +363,7 @@ c=mix(c,vec3(dot(c,vec3(.3,.59,.11)))*vec3(.92,.97,1.06),${glf(LOOK.waterCalmGra
 // 真昼の水面に流れる細かな光の網目
 {vec2 cq=vP0.xz*.35;float ca=abs(sin(cq.x+sin(cq.y*1.3+uT2*.7)*1.6+uT2*.5)*sin(cq.y*1.1+sin(cq.x*1.4-uT2*.6)*1.5-uT2*.4));c+=uSunC*pow(1.-ca,10.)*.05*smoothstep(.45,.8,uSun.y)*smoothstep(250.,20.,dc)*(.4+.6*uCalm);}
 c*=.97+.06*sin(vP.x*.002+sin(vP.z*.0017)*2.);
-float csh=smoothstep(.35,.8,.5+.5*sin((vP.x+uT2*4.)*.0045+sin(vP.z*.0031)*2.)*sin((vP.z+uT2*2.)*.0038+sin(vP.x*.0027)*1.7));
+float csh=smoothstep(.35,.8,.5+.5*sin((vP.x+uT2*2.6)*.0045+sin(vP.z*.0031)*2.)*sin((vP.z+uT2*1.3)*.0038+sin(vP.x*.0027)*1.7));
 c*=1.-csh*${glf(LOOK.cloudShadowWater)}*clamp(uSun.y*3.,0.,1.)*uCSh;
 if(uHL.w>.001){vec2 dh=vP.xz-uHL.xz;
 float dl=length(dh);
