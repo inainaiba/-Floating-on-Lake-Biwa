@@ -357,15 +357,24 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
       for (const z of [-2.9, 2.9]) add(g, box(main ? 0.06 : 0.025, 0.9, main ? 0.06 : 0.025), M.post, x, 1.3, z); // 細い格子の手すり
     }
     for (const z of [-2.9, 2.9]) for (const y of [1.75, 1.3]) add(g, box(20, y > 1.5 ? 0.06 : 0.03, y > 1.5 ? 0.06 : 0.03), M.post, 0, y, z);
-    const scr = add(g, new THREE.PlaneGeometry(16, 9), scrM, 0, 7.4, 0.3);
+    // 幕と枠：岸に着いている間だけ立てる。漂って移る間は、風に煽られないよう床の上へたたむ（rig を床の高さで縦に縮める）
+    const rig = new THREE.Group();
+    rig.position.y = 0.8;
+    g.add(rig);
+    const scr = add(rig, new THREE.PlaneGeometry(16, 9), scrM, 0, 6.6, 0.3);
     scr.rotation.y = Math.PI; // 表を岸へ
     for (const s of [-8.4, -5, -1.7, 1.7, 5, 8.4]) {
-      add(g, new THREE.CylinderGeometry(0.06, 0.08, 11.6, 6), M.post, s, 6.4, 0.5);
-      const b1 = add(g, box(0.04, 6.2, 0.04), M.post, s, 3.6, 2.2);
+      add(rig, new THREE.CylinderGeometry(0.06, 0.08, 11.6, 6), M.post, s, 5.6, 0.5);
+      const b1 = add(rig, box(0.04, 6.2, 0.04), M.post, s, 2.8, 2.2);
       b1.rotation.x = 0.55; // 後ろ（沖側）の細い筋交い
     }
-    for (const y of [12.1, 2.85]) add(g, box(17, 0.06, 0.06), M.post, 0, y, 0.45);
-    for (let k = 0; k < 17; k++) add(g, box(0.012, 9.2, 0.012), M.rope, -8 + k, 7.4, 0.4); // 幕を留める細い紐
+    for (const y of [11.3, 2.05]) add(rig, box(17, 0.06, 0.06), M.post, 0, y, 0.45);
+    for (let k = 0; k < 17; k++) add(rig, box(0.012, 9.2, 0.012), M.rope, -8 + k, 6.6, 0.4); // 幕を留める細い紐
+    rig.traverse((o) => o.isMesh && (o.userData.keep = true)); // 動かすので束ねない
+    // たたんだ幕を巻いた筒（たたんでいる間だけ見える）
+    const roll = add(g, new THREE.CylinderGeometry(0.35, 0.35, 16.4, 10), lam(0xe9e6dc), 0, 1.2, 0.4, 0, 0, Math.PI / 2);
+    roll.userData.keep = true;
+    G.cinRig = { rig, roll };
     // 幕の舟の、小さな舵小屋と灯り
     add(g, box(2.2, 2, 1.8), lam(0x2f3a44, { emissive: 0x0c0f12 }), 8.2, 1.8, 1.6);
     add(g, new THREE.SphereGeometry(0.2, 8, 6), glowMat(0xffd59a, 2), 8.2, 3.0, 0.6);
@@ -526,17 +535,37 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     }
     mergeStatic(bg);
     scene.add(bg);
-    const benchD = (q) => {
-      const onLand = (dd) => [25, 45, 65].every((k) => [-1, 0, 1].every((w) => !inLake(q.sx - Math.cos(q.a) * (dd + k) - Math.sin(q.a) * w * 40, q.sy - Math.sin(q.a) * (dd + k) + Math.cos(q.a) * w * 40)));
-      let d = 6;
-      while (d < 200 && !onLand(d)) d += 10;
-      return d;
+    // 客席の置き場所：陸の上で、家や港の防波堤・建物に重ならず、舞台から見える所。岸に沿って左右にもずらして探す（実寸 m）
+    const wallNear = (x, y, r) =>
+      (G.harb || []).some(([x1, y1, x2, y2]) => {
+        const dx = x2 - x1,
+          dy = y2 - y1,
+          u = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy || 1)));
+        return Math.hypot(x - x1 - u * dx, y - y1 - u * dy) < r;
+      });
+    const seatSpot = (q) => {
+      if (q._seat) return q._seat;
+      const ca = Math.cos(q.a),
+        sa = Math.sin(q.a),
+        clear = (d, l) =>
+          [20, 40, 60].every((k) =>
+            [-1, 0, 1].every((w) => {
+              const x = q.sx - ca * (d + k) - sa * (l + w * 50),
+                y = q.sy - sa * (d + k) + ca * (l + w * 50);
+              return !inLake(x, y) && !inRiver(x, y) && !houseNear(x, y, 22, true) && !wallNear(x, y, 40);
+            }),
+          );
+      let best = null;
+      for (const l of [0, 60, -60, 120, -120, 180, -180])
+        for (let d = 6; d < 200 && !best; d += 10) if (clear(d, l)) best = [d, l];
+      if (!best) best = [6, 0];
+      return (q._seat = best);
     };
-    placeLog("水上音楽堂の客席", "land", musSites.map((q) => [q.sx - Math.cos(q.a) * (benchD(q) + 45), q.sy - Math.sin(q.a) * (benchD(q) + 45)]));
+    placeLog("水上音楽堂の客席", "land", musSites.map((q) => { const [d, l] = seatSpot(q); return [q.sx - Math.cos(q.a) * (d + 40) - Math.sin(q.a) * l, q.sy - Math.sin(q.a) * (d + 40) + Math.cos(q.a) * l]; }));
     var placeBenches = (q) => {
-      const d = benchD(q),
-        sx = q.sx - Math.cos(q.a) * d,
-        sy = q.sy - Math.sin(q.a) * d;
+      const [d, l] = seatSpot(q),
+        sx = q.sx - Math.cos(q.a) * d - Math.sin(q.a) * l,
+        sy = q.sy - Math.sin(q.a) * d + Math.cos(q.a) * l;
       bg.position.set(sx * S, landY(sx - Math.cos(q.a) * 40, sy - Math.sin(q.a) * 40), sy * S);
       bg.rotation.y = Math.PI / 2 - q.a; // 長椅子を湖（+Z）へ向ける
     };
@@ -582,6 +611,14 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     // 映画館：着いた岸に客席を出す
     if (cinH.moored && cinH.site !== scrSite) placeScreen(cinH.sites[(scrSite = cinH.site)]);
     G.cinParts.sg.visible = cinH.moored; // 陸の客席は、幕の舟が着いている岸にだけ
+    {
+      // 幕を立てる・たたむ：着いてしばらくして立ち上がり、離れる前にたたむ（use の0→1に合わせて）
+      const u = cinH.use,
+        e = u * u * (3 - 2 * u);
+      G.cinRig.rig.scale.y = Math.max(0.02, e);
+      G.cinRig.rig.visible = e > 0.03;
+      G.cinRig.roll.visible = e < 0.6;
+    }
     if (musH.moored && musH.site !== musSite) placeBenches(musH.sites[(musSite = musH.site)]);
     G.musSeats.visible = musH.moored;
     // 上映：夏（6〜9月）の夜、19時半〜22時半

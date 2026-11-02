@@ -117,7 +117,7 @@
   - 12-renderer.js：`scene`
 
 ## 16-terrain.js
-- 作る：`DEM`、`DEM_D`、`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_DEM`、`ISLE_H`、`MIST_U`、`NEAR`、`NEAR_U`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`REED_CUT`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`SNOW`、`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_NIGHT`、`TERR_FS_ROCK`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleGrid`、`isleH`、`isleShape`、`landContours`、`landH`、`nearAt`、`nearBlk`、`nearRes`、`okiZone`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`tdx`、`tdy`、`terr`、`terrB`、`terrColor`、`terrGeo`、`terrGeo_`、`terrGrid`、`terrH`、`terrHD`、`terrMat`、`terrShape`、`terrShapeB`、`tx0`、`ty0`、`vnoise`
+- 作る：`DEM`、`DEM_D`、`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_DEM`、`ISLE_H`、`MIST_U`、`NEAR`、`NEAR_U`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`REED_CUT`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`SNOW`、`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_NIGHT`、`TERR_FS_ROCK`、`TERR_FS_SEASON`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleGrid`、`isleH`、`isleShape`、`landContours`、`landH`、`nearAt`、`nearBlk`、`nearRes`、`okiZone`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`tdx`、`tdy`、`terr`、`terrB`、`terrColor`、`terrGeo`、`terrGeo_`、`terrGrid`、`terrH`、`terrHD`、`terrMat`、`terrShape`、`terrShapeB`、`tx0`、`ty0`、`vnoise`
 - 使う：
   - 00-head.js：`G`、`GLSL_NOISE`
   - 00a-data.js：`DATA`
@@ -687,13 +687,13 @@
   - 01-settings.js：`RM`、`S`
   - 04-clock.js：`DAY`、`clock`
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`inLake`
+  - 06-inner-lakes.js：`inLake`、`inRiver`
   - 07-depth.js：`depth`、`shoreSnap`
   - 10-start.js：`rndFor`
   - 12-renderer.js：`camera`、`scene`
   - 14-water.js：`water`
   - 18-buildings.js：`inReeds`
-  - 20-villages-layout.js：`cvTex`、`landY`
+  - 20-villages-layout.js：`cvTex`、`houseNear`、`landY`
   - 29-controls.js：`isFar`
   - 30-audio.js：`SND`、`nburst`、`panV`
 
@@ -895,6 +895,7 @@
 - `G.cards`：17-trees.js
 - `G.chunks`：00-head.js
 - `G.cinParts`：44c-floating-halls.js
+- `G.cinRig`：44c-floating-halls.js
 - `G.city`：47-city.js
 - `G.dbg`：53-frame.js
 - `G.deepNight`：49-frame-sky-light.js

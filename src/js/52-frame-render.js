@@ -166,7 +166,7 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
   }
   {
     if (!G.rf) {
-      G.rf = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+      G.rf = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType }); // 映り込みは波でにじむので、画面の6割ほどの解像度で描く（画質の表の reflection）
       G.rc = new THREE.PerspectiveCamera();
     }
     const w = renderer.domElement.width,

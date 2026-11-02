@@ -323,6 +323,13 @@ diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.9,.92,.94)*(.85+.15*mic),uSL*(1.-smo
 diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.93,.94,.96),uSnow*smoothstep(${(600 * S * VEX).toFixed(2)},${(800 * S * VEX).toFixed(2)},vH+(fract(sin(dot(floor(vXZ*.6),vec2(3.,7.)))*91.)-.5)*${(120 * S * VEX).toFixed(2)}));
 `;
 // 遠くの霞・雲の影・朝夕の山の縁の光
+// 山肌の季節のむら（控えめに）：4月は斜面に点々と山桜の淡い桃色、5〜6月は新緑の明るい黄緑の濃淡、
+// 12〜2月は中腹から上に薄く雪がまだらに残る（山頂の雪とは別に）
+const TERR_FS_SEASON = `{float lnd=smoothstep(30.,90.,vH)*(1.-smoothstep(${(900 * S * VEX).toFixed(2)},${(1100 * S * VEX).toFixed(2)},vH));
+ if(uSea.x>0.){float sk=smoothstep(.72,.86,nzN(vXZ*.09))*smoothstep(.4,.6,nzN(vXZ*.011+5.1));diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.93,.82,.84),sk*lnd*uSea.x*.55);}
+ if(uSea.y>0.){float sh=nzN(vXZ*.018+2.3)*.65+nzN(vXZ*.07)*.35;diffuseColor.rgb*=mix(vec3(1.),mix(vec3(1.12,1.16,.92),vec3(.92,.98,.9),sh),lnd*uSea.y*.5);}
+ if(uSea.z>0.){float dz=smoothstep(.55,.75,nzN(vXZ*.03+9.)*.6+nzN(vXZ*.12)*.4)*smoothstep(${(300 * S * VEX).toFixed(2)},${(550 * S * VEX).toFixed(2)},vH);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.88,.9,.93),dz*uSea.z*.45);}
+}`;
 const TERR_FS_HAZE = `// 遠くの霞、雲の影、朝夕の山の縁の光
 {float dc_=length(cameraPosition.xz-vXZ);
 float hz=1.-exp(-dc_/${glf(LOOK.hazeDist)});
@@ -356,6 +363,7 @@ terrMat.onBeforeCompile = (sh) => {
   terrMat.userData.haze = sh.uniforms.uHaze;
   sh.uniforms.uSnow = { value: 0 };
   sh.uniforms.uSpr = { value: 0 };
+  sh.uniforms.uSea = { value: new THREE.Vector3(0, 0, 0) }; // 山肌の季節のむら：山桜・新緑・薄雪（49-frame-sky-light.js）
   sh.uniforms.uCT = { value: 0 };
   sh.uniforms.uCSh = { value: 1 };
   sh.uniforms.uSunT = { value: new THREE.Vector3(0, 1, 0) };
@@ -380,12 +388,12 @@ terrMat.onBeforeCompile = (sh) => {
   sh.fragmentShader = sh.fragmentShader
     .replace(
       "#include <common>",
-      "#include <common>\n" + GLSL_NOISE + "\nvarying float vH;varying vec2 vXZ;varying float vCv;varying vec3 vWN;varying float vNear;uniform vec4 uNear;uniform float uMist;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;uniform vec3 uMoonT;uniform float uMoonL;uniform float uNt;",
+      "#include <common>\n" + GLSL_NOISE + "\nvarying float vH;varying vec2 vXZ;varying float vCv;varying vec3 vWN;varying float vNear;uniform vec4 uNear;uniform float uMist;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform vec3 uSea;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;uniform vec3 uMoonT;uniform float uMoonL;uniform float uNt;",
     )
     .replace(
       "#include <color_fragment>",
       `#include <color_fragment>
-${TERR_FS_SLOPE}${TERR_FS_ROCK}${TERR_FS_SHORE}${TERR_FS_FOREST}${TERR_FS_AUTUMN}${TERR_FS_WINTER}${TERR_FS_HAZE}`,
+${TERR_FS_SLOPE}${TERR_FS_ROCK}${TERR_FS_SHORE}${TERR_FS_FOREST}${TERR_FS_AUTUMN}${TERR_FS_WINTER}${TERR_FS_SEASON}${TERR_FS_HAZE}`,
     )
     .replace("#include <fog_fragment>", "#include <fog_fragment>\n" + TERR_FS_NIGHT);
 };
