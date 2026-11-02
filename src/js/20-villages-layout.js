@@ -126,7 +126,7 @@ function houseNear(x, y, r, box = false) {
 // 家を建ててよいか：陸の上で、内湖・川・急な斜面でなく、四隅が湖に出ず、敷地に川が通らない
 function houseOk(hs) {
   const { x, y } = hs;
-  if (!isLand(x, y) || inInner(x, y) || distShore(x, y) < 55) return false;
+  if (!isLand(x, y) || inInner(x, y) || distShore(x, y, 55 + 10) < 55) return false;
   const th = terrainAt(x, y);
   if (th > 60) return false;
   for (let k = 0; k < 8; k++) {
@@ -269,7 +269,7 @@ if (TOWNS && TOWNS.n) {
       const back = (R() < 0.45 ? 65 : 120) + Math.pow(R(), 1.5) * 400,
         x = px + nx * back,
         y = py + ny * back;
-      if (!isLand(x, y) || inInner(x, y) || distShore(x, y) < 55) continue;
+      if (!isLand(x, y) || inInner(x, y) || distShore(x, y, 55 + 10) < 55) continue;
       const th = terrainAt(x, y);
       if (th > 45) continue;
       {
@@ -398,7 +398,7 @@ if (luPts.length) {
           y = my + a * s + b * c;
         if (Math.floor(x / 2000) !== cu || Math.floor(y / 2000) !== cv) continue; // 隣の升の格子と重ねない
         const p = luNearest(x, y, 75, [0, 1]);
-        if (!p || !isLand(x, y) || inInner(x, y) || inRiver(x, y) || distShore(x, y) < 60 || terrainAt(x, y) > 40 || houseNear(x, y, 45)) continue;
+        if (!p || !isLand(x, y) || inInner(x, y) || inRiver(x, y) || distShore(x, y, 60 + 10) < 60 || terrainAt(x, y) > 40 || houseNear(x, y, 45)) continue;
         const v = R();
         paddies.push({ x, y, rot, v: p[0] === 1 ? 0.15 * v : v, field: p[0] === 1 });
       }

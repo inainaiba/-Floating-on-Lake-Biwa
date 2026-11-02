@@ -386,7 +386,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
   H.material.color.set(0x5a7a46);
   const M = new THREE.Matrix4();
   hd.forEach(([x, y, r], i) => {
-    if (inLake(x, y) || distShore(x, y) < 25) {
+    if (inLake(x, y) || distShore(x, y, 25 + 10) < 25) {
       M.makeScale(0, 0, 0);
     } else
       M.compose(
@@ -434,7 +434,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
     ),
     M = new THREE.Matrix4();
   pl.forEach(([x, y], i) => {
-    if (inLake(x, y) || distShore(x, y) < 20) {
+    if (inLake(x, y) || distShore(x, y, 20 + 10) < 20) {
       M.makeScale(0, 0, 0);
       P.setMatrixAt(i, M);
       return;
@@ -577,7 +577,7 @@ for (const o of [walls, walls2, roofs, roofs2, skirt]) {
     ),
     M = new THREE.Matrix4();
   sw.forEach(([x, y, r, L], i) => {
-    if (inLake(x, y) || distShore(x, y) < 20) {
+    if (inLake(x, y) || distShore(x, y, 20 + 10) < 20) {
       M.makeScale(0, 0, 0);
       I.setMatrixAt(i, M);
       return;

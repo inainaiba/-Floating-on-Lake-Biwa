@@ -896,6 +896,7 @@
 - `G.lastInput`：42-ambience.js
 - `G.life`：44-life.js
 - `G.lock`：53-frame.js
+- `G.lodC`：53-frame.js
 - `G.lt`：49-frame-sky-light.js
 - `G.meisho`：40b-meisho.js
 - `G.moments`：43-moments.js
@@ -910,6 +911,7 @@
 - `G.pm`：29-controls.js
 - `G.prof`：53-frame.js
 - `G.rc`：52-frame-render.js
+- `G.resUp`：53-frame.js
 - `G.resetSky`：49-frame-sky-light.js
 - `G.resetTrail`：50-frame-float.js
 - `G.rf`：52-frame-render.js

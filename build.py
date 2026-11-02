@@ -299,6 +299,10 @@ def build():
     step = max(1, len(parts) // 8)
     js = []
     for i, p in enumerate(parts):
+        if os.environ.get('PROFILE'):  # 計測用：この部品で作った物に印を付ける（tools/profile.py が部品ごとの重さを数える）
+            js.append(f'globalThis.__mod = {p.stem!r};')
+            if i == 1:
+                js.append('{const a=THREE.Object3D.prototype.add;THREE.Object3D.prototype.add=function(...o){for(const c of o)if(c&&c.userData&&!c.userData.__mod)c.userData.__mod=globalThis.__mod;return a.apply(this,o)}}')
         js.append(glsl_comments(p.read_text()))
         if os.environ.get('PROFILE'):  # 計測用（PROFILE=1 python3 build.py）：部品ごとの終わりに印。tools/.profile.html へ書き、公開ファイルは変えない
             js.append(f'performance.mark({p.name!r});')
