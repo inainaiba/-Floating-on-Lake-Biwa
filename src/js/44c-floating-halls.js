@@ -376,7 +376,7 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     }
     mergeStatic(sg);
     scene.add(sg);
-    placeLog("水上映画館の客席（陸）", "land", cinSites.map((q) => [q.sx - Math.cos(q.a) * 14, q.sy - Math.sin(q.a) * 14]));
+
     // 光の筋：陸の映写機から、湖の幕まで（夜の上映中だけ）。長さ1の形を伸ばして向ける
     beam = new THREE.Mesh(
       new THREE.CylinderGeometry(0.15, 5.5, 1, 16, 1, true).translate(0, -0.5, 0).rotateX(-Math.PI / 2), // 映写機で細く、幕で広い
@@ -384,13 +384,18 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     );
     beam.userData.noRefl = true;
     scene.add(beam);
+    // 客席（岸から実寸30〜80m奥）が陸の上に収まるまで、少しずつ奥へ
+    const seatD = (q) => {
+      const onLand = (dd) => [30, 55, 80].every((k) => [-1, 0, 1].every((w) => !inLake(q.sx - Math.cos(q.a) * (dd + k) - Math.sin(q.a) * w * 40, q.sy - Math.sin(q.a) * (dd + k) + Math.cos(q.a) * w * 40)));
+      let d = 6;
+      while (d < 200 && !onLand(d)) d += 10;
+      return d;
+    };
+    placeLog("水上映画館の客席", "land", cinSites.map((q) => [q.sx - Math.cos(q.a) * (seatD(q) + 55), q.sy - Math.sin(q.a) * (seatD(q) + 55)]));
     // 着いた岸に、客席と光の筋を置く（客席の前が岸。陸の上の高さに合わせる）
     placeScreen = (q) => {
-      // 客席（岸から実寸30〜80m奥）が陸の上に収まるまで、少しずつ奥へ
-      let d = 6;
-      const onLand = (dd) => [30, 55, 80].every((k) => [-1, 0, 1].every((w) => !inLake(q.sx - Math.cos(q.a) * (dd + k) - Math.sin(q.a) * w * 40, q.sy - Math.sin(q.a) * (dd + k) + Math.cos(q.a) * w * 40)));
-      while (d < 200 && !onLand(d)) d += 10;
-      const sx = q.sx - Math.cos(q.a) * d,
+      const d = seatD(q),
+        sx = q.sx - Math.cos(q.a) * d,
         sy = q.sy - Math.sin(q.a) * d,
         gy = landY(sx - Math.cos(q.a) * 50, sy - Math.sin(q.a) * 50);
       sg.position.set(sx * S, gy, sy * S);
