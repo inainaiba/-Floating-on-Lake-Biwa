@@ -685,7 +685,7 @@
 - 使う：
   - 00-head.js：`G`、`mergeStatic`、`onFrame`、`placeLog`
   - 01-settings.js：`RM`、`S`
-  - 04-clock.js：`DAY`
+  - 04-clock.js：`DAY`、`clock`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inLake`
   - 07-depth.js：`depth`、`shoreSnap`
@@ -912,6 +912,7 @@
 - `G.grass`：21-villages-walls-roofs.js
 - `G.groundH`：53-frame.js
 - `G.gs`：52-frame-render.js
+- `G.hallMarks`：44c-floating-halls.js
 - `G.halls`：44c-floating-halls.js
 - `G.harb`：25-harbors.js
 - `G.innerMeshes`：16-terrain.js

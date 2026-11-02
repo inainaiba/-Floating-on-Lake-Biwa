@@ -491,6 +491,15 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
   }
 
   G.halls = { lib: libH, cin: cinH, mus: musH }; // 確認用（いまの位置・岸に着いているか）
+  // 全体地図の印（28-map.js）：地図を開いている間は毎コマの更新が止まるので、ここで共有時計から位置を求め直す
+  G.hallMarks = () => {
+    const ct = clock().t;
+    return [
+      ["lib", libH],
+      ["cin", cinH],
+      ["mus", musH],
+    ].map(([k, H]) => (place(H, ct), { k, x: H.px, y: H.py, moored: H.moored, rot: H.rot }));
+  };
   let scrSite = -1;
   // 毎フレーム：波にゆっくり揺れ、日暮れに灯り、夏の夜は上映、近づくと音
   const OFF = new THREE.Color(0x3a3630);
