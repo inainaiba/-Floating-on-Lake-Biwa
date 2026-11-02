@@ -23,6 +23,7 @@ const skyU = {
   uVenus: { value: 0 },
   uHzS: { value: 0 },
   uMw: { value: 1 },
+  uMwA: { value: 0 }, // 天の川が北極星のまわりを回る角度（時刻と季節から）
   uMoonD: { value: new THREE.Vector3(0, 1, 0) },
   uVeil: { value: 0 },
   uWin: { value: 0 },
@@ -31,7 +32,7 @@ const skyU = {
 /* 空の描画（フラグメント）：処理の順に区切った部品。一つの main の中で上から順につながる。
    前の部品で作った値（y, sd, cp, cl, nt など）を後の部品が使うので、順番は入れ替えない。 */
 const SKY_FS_HEAD = `uniform vec3 uTop,uHor,uSunD,uSunC2;
-uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;uniform float uMw;uniform vec3 uMoonD;uniform float uVeil,uWin;uniform vec3 uCity;uniform float uMoonL;
+uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;uniform float uMw;uniform float uMwA;uniform vec3 uMoonD;uniform float uVeil,uWin;uniform vec3 uCity;uniform float uMoonL;
 uniform vec3 uLd;
 varying vec3 vD;
 ${GLSL_NOISE}
@@ -173,7 +174,8 @@ float h1=fract(sin(dot(floor(sp_*160.),vec2(12.9,78.2)))*43758.5),h2=fract(sin(d
  vec2 f1=fract(sp_*160.)-.5,f2=fract(sp_*70.)-.5;
 float tw_=.55+.45*sin(uT*(3.+fract(h1*53.)*5.)+h1*90.);tw_=mix(1.,tw_,1.-smoothstep(.05,.45,y));
 float st=tw_*step(mix(.992,.984,uWin),h1)*(.3+.7*fract(h1*91.))*smoothstep(.25,.0,length(f1))+step(mix(.997,.993,uWin),h2)*(1.3+uWin*.8)*smoothstep(.22,.0,length(f2));
- vec3 mwd=normalize(vec3(.55,.35,-.75));
+ // 天の川：天の北極（北の空、高さ35°）のまわりを、夜の時刻と季節でゆっくり回る
+ vec3 pol_=normalize(vec3(0.,.574,-.819)),m0_=normalize(vec3(.55,.35,-.75));vec3 mwd=m0_*cos(uMwA)+cross(pol_,m0_)*sin(uMwA)+pol_*dot(pol_,m0_)*(1.-cos(uMwA));
 float mw=exp(-pow(dot(vD,mwd)*4.,2.))*(.55+.45*nzF5(vD.xz*9.+vD.y*4.))*uMw*(.75+.5*smoothstep(.35,.75,nzF5(vD.xz*22.+3.)));
  st+=step(.97,h1)*mw*.9*smoothstep(.25,.0,length(f1));
 c+=vec3(.55,.6,.8)*mw*.06*nt*(1.-uDark);

@@ -175,6 +175,8 @@ function chunkify(mesh) {
     groups = new Map();
   for (let i = 0; i < mesh.count; i++) {
     mesh.getMatrixAt(i, M);
+    // 大きさ0で隠した物（その形を使わない家など）は、区画に入れない。描かなくても頂点の計算はかかるため（見た目は同じ）
+    if (Math.abs(M.determinant()) < 1e-12) continue;
     const k = chunkOf(M.elements[12] / S + mesh.position.x / S, M.elements[14] / S + mesh.position.z / S);
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k).push(i);

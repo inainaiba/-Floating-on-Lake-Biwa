@@ -46,7 +46,12 @@ G.settings = (() => {
       if (CFG.q === v) return;
       CFG.q = v;
       save();
-      // 画質は組み立てのときに決まるので、読み込み直す（?q= があれば外す）
+      // 画質は組み立てのときに決まるので、読み込み直す（?q= があれば外す）。
+      // 湖に出ていたら、いまの位置・向き・建物を覚えておき、読み込み直したあと同じ所から続ける（31-ui.js の resumeLake）
+      if (STATE === "lake")
+        try {
+          sessionStorage.setItem("floating.resume", JSON.stringify({ x: B.x, y: B.y, yaw: B.yaw || 0, cy: yaw, pitch, dist, cust: { ...CUST }, at: Date.now() }));
+        } catch (e) {}
       const u = new URL(location.href);
       u.searchParams.delete("q");
       location.href = u.toString();
