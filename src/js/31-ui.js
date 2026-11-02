@@ -238,3 +238,15 @@ function resumeLake() {
   B.trail = [[B.x, B.y]];
   return true;
 }
+
+// ボタンを控えめに：触れる・動かす・キーを押すと、上のボタンと舵の円を数秒だけはっきり見せる（src/shell.html の body.awake）
+{
+  let tid = 0;
+  const wake = () => {
+    document.body.classList.add("awake");
+    clearTimeout(tid);
+    tid = setTimeout(() => document.body.classList.remove("awake"), 4000);
+  };
+  for (const ev of ["pointerdown", "pointermove", "keydown", "wheel"]) addEventListener(ev, (e) => (ev !== "pointermove" || e.pointerType === "mouse" ? wake() : 0), { passive: true });
+  wake();
+}

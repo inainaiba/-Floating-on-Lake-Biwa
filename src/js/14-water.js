@@ -70,6 +70,7 @@ const waterU = {
   uSun: { value: new THREE.Vector3() },
   uSunC: { value: new THREE.Color() },
   uDepth: { value: depthTex },
+  uReedC: { value: new THREE.DataTexture(new Uint8Array(4), 1, 1) }, // ヨシ原の近さ（43e-reed-near.js が作る。水が澄んで見える）
   uBox: {
     value: new THREE.Vector4(minX * S, minY * S, (maxX - minX) * S + CELL * S, (maxY - minY) * S + CELL * S),
   },
@@ -108,6 +109,7 @@ const waterU = {
    どの部品も前の部品で作った値（V, dc, N, body, skyR, foam, c など）を使うので、順番は入れ替えない。 */
 const W_FS_HEAD = `uniform vec3 uSky,uDeep,uShal,uSun,uSunC,uFogC;
 uniform sampler2D uDepth;
+uniform sampler2D uReedC;
 uniform vec4 uBox;
 uniform vec2 uFog;
 uniform float uMurk;
@@ -247,7 +249,9 @@ for(int i=0;
 i<16;
 i++){vec2 d=vP.xz-uMouth[i].xy;
 tb+=uMouth[i].w*exp(-dot(d,d)/(uMouth[i].z*uMouth[i].z));
-}body=mix(body,${v3(PALETTE.riverSilt)},clamp(tb,0.,.85));`;
+}body=mix(body,${v3(PALETTE.riverSilt)},clamp(tb,0.,.85));
+// ヨシ原のそばの水：ヨシが水をきれいにするので、わずかに澄んで、明るい青緑に（言葉ではなく見た目で）
+{float rc=texture2D(uReedC,uv).r;body=mix(body,body*vec3(.94,1.04,1.06)+vec3(.0,.02,.025),rc*.55);}`;
 // 反射：空・太陽・月
 const W_FS_REFLECT = `// ── 反射：空の色・太陽のきらめき・月の照り返し ──
 vec3 R=reflect(-V,N);

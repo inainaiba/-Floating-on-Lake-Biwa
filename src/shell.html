@@ -28,6 +28,10 @@ body.far .ico svg{stroke:#1b1b1b}
 body:not(.lake) #watch,body.far #watch{display:none}
 /* 鑑賞：ボタンや案内を消し、カメラがゆっくり湖を漂う。どこかに触れると戻る */
 body.watch #bar,body.watch #ui,body.watch #joy,body.watch #hint{opacity:0!important;pointer-events:none!important}
+/* 余白を大切に：湖に出ている間、上のボタンと舵の円は、ふだんはほとんど見えないほど淡く。画面に触れると数秒だけはっきり現れる（31-ui.js） */
+body.lake:not(.awake) #bar{opacity:.14}
+body.lake:not(.awake) #joy{opacity:.3}
+#joy{transition:opacity .8s}
 body.watch{cursor:none}
 body:not(.lake) #save,body.far #save{display:none}
 #shot{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.6);display:none;place-items:center;padding:24px;box-sizing:border-box}

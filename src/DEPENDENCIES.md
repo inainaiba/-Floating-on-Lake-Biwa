@@ -638,6 +638,20 @@
   - 16-terrain.js：`REED_SITES`、`VEX`
   - 20-villages-layout.js：`bHash`、`cvTex`、`houses`、`landY`
 
+## 43e-reed-near.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`onFrame`、`placeLog`
+  - 01-settings.js：`S`
+  - 06-inner-lakes.js：`inLake`、`inRiver`、`minX`、`minY`
+  - 07-depth.js：`CELL`、`GH`、`GW`
+  - 10-start.js：`rnd`、`rndFor`
+  - 12-renderer.js：`MOBILE`、`QUALITY`、`camera`、`scene`
+  - 14-water.js：`water`、`waterU`
+  - 16-terrain.js：`REED_CUT`、`REED_MONTH`、`reedPts`、`reedU`
+  - 20-villages-layout.js：`bHash`、`houses`、`landY`
+  - 29-controls.js：`isFar`
+
 ## 44-life.js
 - 作る：（なし）
 - 使う：

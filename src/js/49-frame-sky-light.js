@@ -116,6 +116,7 @@ function updateSkyLight(dt, t, c, W) {
     waterU.uLowSun.value = (c.month >= 8 && c.month <= 11 ? 1 : 0.75) * Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 3) * (day > 0 ? 1 : 0) * (1 - wxNow.gray);
     skyU.uMp.value = ((((c.t / DAY) % 29.53) + 29.53) % 29.53) / 29.53;
     // 天の川：夏の、月の細い晴れた夜ほど濃い
+    skyU.uMwA.value = -(c.phase * 2 * Math.PI + (c.month * Math.PI) / 6); // 一晩で東から西へ、季節でひと回り
     skyU.uMw.value = (0.55 + 0.9 * Math.max(0, 1 - Math.abs(c.month - 7) / 2.5)) * (0.3 + 0.7 * Math.abs(skyU.uMp.value - 0.5) * 2);
     skyU.uCu.value = SEASON.cumulus[c.month] * (1 - wxNow.gray * 0.8) * (wxNow.rain > 0.3 ? 0 : 1);
     skyU.uDark.value = wxNow.dark;
