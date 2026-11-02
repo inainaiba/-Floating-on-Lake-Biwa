@@ -7,6 +7,12 @@ G.resetSky = () => {
   skyU.uMet.value.w = 0;
   skyU.uCon.value.w = 0;
 };
+// 毎コマ使う色とベクトルの置き場（毎コマ新しく作って捨てると、ブラウザの片付けで画面がときどき止まる）
+const KC_ = new Map(),
+  KC = (hex) => KC_.get(hex) || (KC_.set(hex, new THREE.Color(hex)), KC_.get(hex)), // 決まった色（読むだけ）
+  TC = Array.from({ length: 8 }, () => new THREE.Color()),
+  TV = Array.from({ length: 6 }, () => new THREE.Vector3()),
+  NIGHT_TINT = new THREE.Color(0.8, 0.88, 1.1);
 function updateSkyLight(dt, t, c, W) {
   // 波・空・光
   G.W = W;
@@ -22,7 +28,7 @@ function updateSkyLight(dt, t, c, W) {
   const AS = astro(c),
     sunAngle = AS.sunAngle,
     day = Math.max(0, Math.sin(sunAngle));
-  const sunDirSky = AS.sun.clone();
+  const sunDirSky = TV[0].copy(AS.sun);
   skyU.uMoonD.value.copy(AS.moon);
   waterU.uMoonD.value.copy(AS.moon);
   G.sunY = sunDirSky.y;
@@ -35,17 +41,14 @@ function updateSkyLight(dt, t, c, W) {
     const nt0 = Math.max(0, 1 - day * 8),
       dk = nt0 * (1 - G.moonLit),
       l = sky.r * 0.3 + sky.g * 0.59 + sky.b * 0.11;
-    sky.lerp(new THREE.Color(l, l, l * 1.08), dk * 0.6).multiplyScalar(1 - dk * 0.45);
+    sky.lerp(TC[0].setRGB(l, l, l * 1.08), dk * 0.6).multiplyScalar(1 - dk * 0.45);
   }
   {
-    const g = new THREE.Color(
-      sky.r * 0.3 + sky.g * 0.59 + sky.b * 0.11,
-      sky.r * 0.3 + sky.g * 0.59 + sky.b * 0.11,
-      sky.r * 0.3 + sky.g * 0.59 + sky.b * 0.11,
-    );
+    const gl_ = sky.r * 0.3 + sky.g * 0.59 + sky.b * 0.11,
+      g = TC[1].setRGB(gl_, gl_, gl_);
     sky.lerp(g, wxNow.gray).multiplyScalar(1 - wxNow.dark * 0.5);
     if (wxNow.white)
-      sky.lerp(new THREE.Color(0xdcdfe0).multiplyScalar(0.35 + 0.65 * Math.min(1, day * 3 + 0.2)), wxNow.white);
+      sky.lerp(TC[2].set(0xdcdfe0).multiplyScalar(0.35 + 0.65 * Math.min(1, day * 3 + 0.2)), wxNow.white);
   }
   if (wxNow.storm > 0.5 && t > nextFlash && !isFar && !RM) { // 動きを抑えるときは、空全体が光る稲光を出さない
     flash = 1;
@@ -53,13 +56,13 @@ function updateSkyLight(dt, t, c, W) {
   }
   flash = Math.max(0, flash - dt * 1.2);
   const fl = Math.sin(Math.min(1, flash) * Math.PI) * 0.35;
-  sky.lerp(new THREE.Color(0xd8dcf0), fl);
+  sky.lerp(KC(0xd8dcf0), fl);
   {
-    const top = sky
-      .clone()
-      .lerp(new THREE.Color(0x2f73c8), 0.6 * Math.min(1, day * 2) * (1 - wxNow.gray))
-      .lerp(new THREE.Color(0x7d8fc0), 0.85 * (1 - Math.min(1, day * 2.5)));
-    const hor = sky.clone().lerp(new THREE.Color(0xe9eef2), 0.5 * Math.min(1, day * 2) * (1 - wxNow.gray * 0.5));
+    const top = TC[3]
+      .copy(sky)
+      .lerp(KC(0x2f73c8), 0.6 * Math.min(1, day * 2) * (1 - wxNow.gray))
+      .lerp(KC(0x7d8fc0), 0.85 * (1 - Math.min(1, day * 2.5)));
+    const hor = TC[4].copy(sky).lerp(KC(0xe9eef2), 0.5 * Math.min(1, day * 2) * (1 - wxNow.gray * 0.5));
     skyU.uTop.value.copy(top);
     skyU.uHor.value.copy(hor);
     skyU.uSunD.value.copy(sunDirSky);
@@ -153,7 +156,7 @@ function updateSkyLight(dt, t, c, W) {
   }
   renderer.toneMappingExposure = 1.04 + (1 - Math.min(1, day * 3)) * 0.25;
   renderer.setClearColor(sky);
-  scene.fog.color.copy(skyU.uHor.value).lerp(new THREE.Color(0x8fa6bd), 0.15);
+  scene.fog.color.copy(skyU.uHor.value).lerp(KC(0x8fa6bd), 0.15);
   const mist =
     c.phase > 0.22 && c.phase < 0.33
       ? (1 - Math.abs(c.phase - 0.27) / 0.06) * SEASON.morningMist[c.month]
@@ -216,23 +219,23 @@ function updateSkyLight(dt, t, c, W) {
     {
       const br = (0.07 + 0.61 * Math.min(1, day * 2.5)) * (1 - wxNow.gray * 0.25) + fl;
       {
-        const st = new THREE.Color(FOREST_TINT[c.month]);
+        const st = TC[5].set(FOREST_TINT[c.month]);
         for (const m of G.cards || []) {
           m.color.setScalar(br * 1.05);
           if (m.userData.kind !== "cedar" && m.userData.kind !== "pine") m.color.multiply(st);
-          else if (SNOW[c.month] > 0.6) m.color.lerp(new THREE.Color(br, br, br * 1.05), 0.25);
+          else if (SNOW[c.month] > 0.6) m.color.lerp(TC[6].setRGB(br, br, br * 1.05), 0.25);
         }
       }
       for (const r of [reeds, innerReeds]) {
         r.material.color.setScalar(br);
-        if (day < 0.05) r.material.color.multiply(new THREE.Color(0.8, 0.88, 1.1));
+        if (day < 0.05) r.material.color.multiply(NIGHT_TINT);
       }
     }
     reedU.uW.value.set(W.x * 0.09, W.y * 0.09);
   }
   waterU.uSky.value.copy(sky);
   waterU.uFogC.value.copy(skyU.uHor.value);
-  const sd = AS.sun.clone();
+  const sd = TV[1].copy(AS.sun);
   sd.y = Math.max(0.05, sd.y);
   sd.normalize();
   waterU.uSun.value.copy(sd);
@@ -240,8 +243,8 @@ function updateSkyLight(dt, t, c, W) {
   //（地平すれすれの向きのままだと、夜に建物の影が湖を横切るほど長い黒い帯になるため）
   {
     const nt = Math.min(1, Math.max(0, (0.06 - AS.sun.y) / 0.12)),
-      md = AS.moon.y > 0.2 ? AS.moon.clone() : new THREE.Vector3(0.2, 1, 0.1),
-      ld = sd.clone().lerp(md.normalize(), nt);
+      md = AS.moon.y > 0.2 ? TV[2].copy(AS.moon) : TV[2].set(0.2, 1, 0.1),
+      ld = TV[3].copy(sd).lerp(md.normalize(), nt);
     ld.y = Math.max(ld.y, 0.05 + 0.5 * nt);
     ld.normalize();
     sun.position.copy(ld).multiplyScalar(100).add(house.position);
@@ -260,13 +263,13 @@ function updateSkyLight(dt, t, c, W) {
     sun.shadow.radius = 1.2 + (1 - Math.min(1, day * 1.6)) * 4 + wxNow.gray * 5;
   }
   hemi.color.set(day < 0.1 ? 0x8a9ac8 : 0xb9d3f2); // 晴れた日の影は空の青を映す
-  if (day < 0.1) hemi.color.lerp(new THREE.Color(0x6a6e78), 1 - G.moonLit); // 月のない夜は青みのない暗さ
+  if (day < 0.1) hemi.color.lerp(KC(0x6a6e78), 1 - G.moonLit); // 月のない夜は青みのない暗さ
   if (day < 0.05) sun.color.setRGB(0.7, 0.78, 1);
   waterU.uSunC.value.copy(sun.color).multiplyScalar((day > 0 ? 0.9 : 0.35) * (1 - wxNow.gray));
   if (terrMat.userData.haze)
     terrMat.userData.haze.value
       .copy(skyU.uHor.value)
-      .lerp(new THREE.Color(0x7f9cc8), 0.35)
+      .lerp(KC(0x7f9cc8), 0.35)
       .multiplyScalar(day < 0.15 ? 0.55 : 1);
   if (terrMat.userData.low) terrMat.userData.low.value = 1 - Math.min(1, day * 4);
   if (terrMat.userData.sh) {
@@ -301,8 +304,8 @@ function updateSkyLight(dt, t, c, W) {
   const flick = 0.95 + LOOK.flicker[0] * Math.sin(t * 7.1) + LOOK.flicker[1] * Math.sin(t * 13.7 + Math.sin(t * 2.3));
   house.light.intensity = night ? 9 * CUST.bright * flick : 0;
   {
-    const hp = house.lamp.getWorldPosition(new THREE.Vector3()),
-      lc = new THREE.Color(LIGHT_COLORS[CUST.light]);
+    const hp = house.lamp.getWorldPosition(TV[4]),
+      lc = TC[7].set(LIGHT_COLORS[CUST.light]);
     waterU.uHL.value.set(hp.x, hp.y, hp.z, night ? CUST.bright : 0);
     waterU.uHLc.value.set(lc.r, lc.g, lc.b);
   }

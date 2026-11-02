@@ -7,7 +7,8 @@ function hideEmpty() {
     INST = [];
     scene.traverse((o) => o.isInstancedMesh && INST.push(o));
   }
-  const hid = [];
+  const hid = G._hid || (G._hid = []);
+  hid.length = 0;
   // 区画ごとの子に分けた物（00-head.js の chunkify）の親は数が0でも隠さない（隠すと子の区画もすべて消える）
   for (const o of INST)
     if (o.visible && o.count === 0 && !o.children.length) {
@@ -175,7 +176,7 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
     const rc = G.rc;
     const wy = water.position.y;
     camera.updateMatrixWorld();
-    const dir = new THREE.Vector3();
+    const dir = G._dir || (G._dir = new THREE.Vector3()); // 毎コマ新しく作らない
     camera.getWorldDirection(dir);
     rc.position.set(camera.position.x, 2 * wy - camera.position.y, camera.position.z);
     rc.up.set(0, 1, 0);
@@ -207,13 +208,16 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
         if (o.geometry.boundingSphere.radius < 1.3) G.noRefl.push(o);
       });
     }
-    const nrVis = G.noRefl.map((o) => o.visible);
+    const nrVis = G._nrVis || (G._nrVis = []);
+    nrVis.length = 0;
+    for (const o of G.noRefl) nrVis.push(o.visible);
     for (const o of G.noRefl) o.visible = false;
     // 映り込みには遠い区画の景物（家・森・ヨシなど）を描かない。水面では波でにじんで見分けられないため（山並みと空は描く）
     const far2 = (QUALITY.reflFar * S) ** 2,
       cp = camera.position,
-      v3 = new THREE.Vector3(),
-      farHid = [];
+      v3 = G._v3r || (G._v3r = new THREE.Vector3()),
+      farHid = G._farHid || (G._farHid = []);
+    farHid.length = 0;
     for (const c of G.chunks) {
       if (!c.visible) continue;
       v3.copy(c.boundingSphere.center).applyMatrix4(c.matrixWorld);
@@ -224,14 +228,16 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
         farHid.push(c);
       }
     }
-    const cc = renderer.getClearColor(new THREE.Color()),
+    const cc = renderer.getClearColor(G._cc || (G._cc = new THREE.Color())),
       ca = renderer.getClearAlpha();
     renderer.setClearColor(0, 0);
-    renderer.clippingPlanes = [new THREE.Plane(new THREE.Vector3(0, 1, 0), -wy + 0.05)];
+    if (!G._clip) G._clip = [new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)];
+    G._clip[0].constant = -wy + 0.05;
+    renderer.clippingPlanes = G._clip;
     renderer.setRenderTarget(G.rf);
     renderer.clear();
     renderer.render(scene, rc);
-    renderer.clippingPlanes = [];
+    renderer.clippingPlanes = G._noClip || (G._noClip = []);
     renderer.setRenderTarget(null);
     renderer.setClearColor(cc, ca);
     water.visible = vis[0];
@@ -278,7 +284,7 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
     const u = G.gq.material.uniforms;
     u.uAsp.value = camera.aspect;
     {
-      const sp = sun.position.clone().sub(house.position).normalize().multiplyScalar(500).add(camera.position).project(camera);
+      const sp = (G._sp || (G._sp = new THREE.Vector3())).copy(sun.position).sub(house.position).normalize().multiplyScalar(500).add(camera.position).project(camera);
       const vis = sp.z < 1 && Math.abs(sp.x) < 1.2 && Math.abs(sp.y) < 1.2 ? Math.min(1, day * 2) * (1 - wxNow.gray) : 0;
       u.uSunS.value.set(sp.x * 0.5 + 0.5, sp.y * 0.5 + 0.5, vis);
     }
