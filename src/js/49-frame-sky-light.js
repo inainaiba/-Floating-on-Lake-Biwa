@@ -284,6 +284,7 @@ function updateSkyLight(dt, t, c, W) {
       su.uCSh.value = waterU.uCSh.value;
     }
     terrMat.userData.sh.uniforms.uSpr.value = SEASON.greenery[c.month];
+    terrMat.userData.sh.uniforms.uSea.value.set(c.month === 3 ? 1 : 0, c.month === 4 ? 1 : c.month === 5 ? 0.6 : 0, c.month === 11 || c.month === 1 ? 0.7 : c.month === 0 ? 1 : 0);
     waterU.uCSh.value = Math.max(0, skyU.uCu.value * 1.2 + 0.3) * (1 - wxNow.gray * 0.7);
     waterU.uMist.value =
       Math.max(0, 1 - Math.abs(c.phase - 0.27) / 0.06) *
