@@ -1,11 +1,11 @@
 /* ---------- 湖に浮かぶ建築（2026年11月）：水上子ども図書館・水上映画館・水上音楽堂 ----------
    人の姿は出さず、置かれた物と灯りと音で、そこで過ごす誰かの気配を見せる。
    3つとも、決まった岸に着いて使われる時と、湖を漂って次の岸へ移る時がある（共有時計で決まり、見る人みな同じ）。
-   岸に着いている間だけ灯りが灯り、音がし、映画館は幕を張る。漂う間は灯りを落として、岸沿いの沖をゆっくり進む
+   岸に着いている間だけ灯りが灯り、音がし、映画館は陸に客席を出す。漂う間は灯りを落として、岸沿いの沖をゆっくり進む
    ・水上子ども図書館（近江舞子の浜）：ヨシ葺きの大きな八角屋根の、壁のない読書の間。本棚・丸い卓・座布団・ハンモック、
      屋根から岸の柱へ渡した三角旗、夕方は吊り灯籠が灯る。近づくと、ページをめくる音と風鈴
-   ・水上映画館（長浜の岸）：岸に白い幕を張り、湖に浮かぶ映写小屋から光の筋が届く。幕の前の水面に、浮かぶ座布団の席が並ぶ。
-     夏（6〜9月）の夜（19時半〜22時半）だけ、幕に古い湖の映像がぼんやり映り、映写機のカタカタという音
+   ・水上映画館（湖東の岸）：大きな白い幕を立てた舟。岸に着くと、陸に並んだ椅子のほうへ幕を向け、陸の映写台から光の筋が届く。
+     夏（6〜9月）の夜（19時半〜22時半）だけ、幕に古い湖の映像がぼんやり映り、陸では映写機のカタカタという音
    ・水上音楽堂（菅浦の入江）：貝殻のように反った屋根の、六角の舞台。譜面台・琴・和太鼓・椅子。夕方は舞台の灯り。
      ときどき、遠くで練習の音（笛と琴の短い旋律）が流れて、すぐ止む */
 {
@@ -19,6 +19,15 @@
       const d = inLake(sx + Math.cos(k) * 200, sy + Math.sin(k) * 200) ? depth(sx + Math.cos(k) * 200, sy + Math.sin(k) * 200) : -1;
       if (d > bd) (bd = d), (a = k);
     }
+    // ヨシ原や港の防波堤に重なるときは、重ならない所まで沖へ出す
+    const nearWall = (x, y) =>
+      (G.harb || []).some(([x1, y1, x2, y2]) => {
+        const dx = x2 - x1,
+          dy = y2 - y1,
+          u = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy || 1)));
+        return Math.hypot(x - x1 - u * dx, y - y1 - u * dy) < 90;
+      });
+    while (off < 900 && (inReeds(sx + Math.cos(a) * off, sy + Math.sin(a) * off) || nearWall(sx + Math.cos(a) * off, sy + Math.sin(a) * off))) off += 40;
     return { x: sx + Math.cos(a) * off, y: sy + Math.sin(a) * off, sx, sy, a };
   }
   const LAMS = new Map(),
@@ -89,13 +98,20 @@
       const a = (k / sides) * Math.PI * 2;
       add(g, new THREE.CylinderGeometry(0.55, 0.55, rad * 0.5, 8), M.float, Math.cos(a) * rad * 0.75, 0.15, Math.sin(a) * rad * 0.75, -a, 0, Math.PI / 2);
     }
-    // 縁の手すり
-    for (let k = 0; k < sides * 2; k++) {
-      const a = (k / (sides * 2)) * Math.PI * 2;
-      add(g, box(0.12, 0.9, 0.12), M.post, Math.cos(a) * (rad - 0.2), 1.3, Math.sin(a) * (rad - 0.2));
+    // 縁の手すり：細い格子（細い縦桟を密に、上と中ほどに細い横木）
+    const nb = Math.round(rad * 9);
+    for (let k = 0; k < nb; k++) {
+      const a = (k / nb) * Math.PI * 2,
+        main = k % 6 === 0;
+      add(g, box(main ? 0.07 : 0.03, 0.9, main ? 0.07 : 0.03), M.post, Math.cos(a) * (rad - 0.2), 1.3, Math.sin(a) * (rad - 0.2));
     }
-    const rail = new THREE.TorusGeometry(rad - 0.2, 0.06, 4, sides * 4);
-    add(g, rail, M.post, 0, 1.75, 0, 0, Math.PI / 2);
+    add(g, new THREE.TorusGeometry(rad - 0.2, 0.035, 4, sides * 8), M.post, 0, 1.75, 0, 0, Math.PI / 2);
+    add(g, new THREE.TorusGeometry(rad - 0.2, 0.018, 3, sides * 8), M.post, 0, 1.3, 0, 0, Math.PI / 2);
+    // 床板の目地（細い線を放射状に）
+    for (let k = 0; k < sides * 4; k++) {
+      const a = (k / (sides * 4)) * Math.PI * 2;
+      add(g, box(rad * 0.9, 0.01, 0.02), M.dark, Math.cos(a) * rad * 0.45, 0.86, Math.sin(a) * rad * 0.45, -a);
+    }
   }
   const halls = [];
   // 岸沿いの沖の道：岸の線（outer）を、湖の側へ約500m離してなぞる。A の岸から B の岸まで、近い向きに
@@ -185,21 +201,41 @@
     H.rot = lerpA(lerpA(rotFor(H.sites[k].a), hd, Math.min(1, u0 / 0.12)), rotFor(H.sites[(k + 1) % n].a), Math.max(0, (u0 - 0.88) / 0.12));
   }
   // ---------- 1. 水上子ども図書館 ----------
-  // 着く岸：近江舞子の浜（白砂と松並木）→ 萩の浜 → 和邇の浜
-  const libSites = [spot(135.9755, 35.2575, 110), spot(136.062, 35.335, 110), spot(135.952, 35.195, 110)];
+  // 着く岸（湖西の浜を北から南へ、また戻る）：萩の浜 → 北小松 → 近江舞子の浜（白砂と松並木）→ 和邇の浜 → 堅田
+  const libSites = [spot(136.062, 35.335, 110), spot(135.987, 35.285, 110), spot(135.9755, 35.2575, 110), spot(135.952, 35.195, 110), spot(135.925, 35.125, 110)];
   CUR = "lib";
   {
     const g = new THREE.Group(),
       Rr = 9;
     pontoon(g, Rr, 8);
     // 柱8本と、ヨシ葺きの大きな八角屋根（軒が深く、反り気味）
-    for (let k = 0; k < 8; k++) {
-      const a = (k / 8) * Math.PI * 2 + Math.PI / 8;
-      add(g, new THREE.CylinderGeometry(0.16, 0.2, 3.6, 6), M.post, Math.cos(a) * 6.5, 2.65, Math.sin(a) * 6.5);
+    // 柱は細く（主柱8本＋間柱16本）、上に細い桁をまわし、軒裏に細い垂木を密に並べる
+    for (let k = 0; k < 24; k++) {
+      const a = (k / 24) * Math.PI * 2 + Math.PI / 8,
+        main = k % 3 === 0;
+      add(g, new THREE.CylinderGeometry(main ? 0.08 : 0.04, main ? 0.1 : 0.05, 3.6, 6), M.post, Math.cos(a) * 6.5, 2.65, Math.sin(a) * 6.5);
+    }
+    add(g, new THREE.TorusGeometry(6.5, 0.06, 4, 48), M.post, 0, 4.4, 0, 0, Math.PI / 2);
+    for (let k = 0; k < 64; k++) {
+      const a = (k / 64) * Math.PI * 2,
+        r0 = 1.4,
+        r1 = 10.3,
+        y0 = 8.6,
+        y1 = 4.45,
+        L = Math.hypot(r1 - r0, y1 - y0);
+      const o = add(g, box(L, 0.05, 0.05), M.post, Math.cos(a) * (r0 + r1) / 2, (y0 + y1) / 2 - 0.08, Math.sin(a) * (r0 + r1) / 2, -a);
+      o.rotateZ(-Math.atan2(y0 - y1, r1 - r0));
+    }
+    // 腰の高さの細い格子（読書の間の縁、柱の間の半分ほど）
+    for (let k = 0; k < 96; k++) {
+      const a = (k / 96) * Math.PI * 2;
+      if (Math.sin(a * 2 + 1) < -0.3) continue; // ところどころ開けて、出入りの口に
+      add(g, box(0.025, 0.55, 0.025), M.post, Math.cos(a) * 6.5, 1.15, Math.sin(a) * 6.5);
     }
     add(g, new THREE.ConeGeometry(10.5, 4.6, 8, 1, true), M.thatch, 0, 6.6, 0, Math.PI / 8);
     add(g, new THREE.CylinderGeometry(10.5, 10.6, 0.5, 8, 1, true), M.thatch, 0, 4.3, 0, Math.PI / 8); // 軒の厚み
     add(g, new THREE.ConeGeometry(1.2, 1.4, 8), M.dark, 0, 9.3, 0); // 棟の押さえ
+    add(g, new THREE.CylinderGeometry(0.03, 0.03, 1.6, 4), M.dark, 0, 10.6, 0); // 細い頂の竿
     // 本棚：外向きに4面、色とりどりの背表紙
     const bookTx = cvTex(64, 64, (c, w, h) => {
       c.fillStyle = "#5b4330";
@@ -266,15 +302,14 @@
   }
 
   // ---------- 2. 水上映画館 ----------
-  // 着く岸：長浜 → 米原の磯 → 彦根の松原（幕は着いた岸にだけ張る）
-  const cinSites = [spot(136.258, 35.392, 160), spot(136.272, 35.335, 160), spot(136.243, 35.283, 160)];
+  // 湖に浮かぶ大きな幕の舟。岸に着くと、陸に並んだ椅子のほうへ幕を向け、陸の映写台から光の筋が届く。人は陸から観る
+  // 湖東の岸を北から南へ：尾上 → 長浜 → 米原の磯 → 彦根の松原 → 新海浜
+  const cinSites = [spot(136.2, 35.455, 140), spot(136.258, 35.392, 140), spot(136.272, 35.335, 140), spot(136.243, 35.283, 140), spot(136.19, 35.22, 140)];
   CUR = "cin";
   let placeScreen = null;
   const screenU = { uT: { value: 0 }, uOn: { value: 0 } };
   let beam = null;
   {
-    // 岸の幕：2本の柱に白い大きな幕（16m×9m）。幕の面は湖の映写小屋へ向ける
-    const sg = new THREE.Group();
     const scrM = new THREE.ShaderMaterial({
       uniforms: screenU,
       side: THREE.DoubleSide,
@@ -293,75 +328,93 @@ img*=smoothstep(0.,.08,u.x)*smoothstep(0.,.08,1.-u.x)*smoothstep(0.,.1,u.y)*smoo
 vec3 off=vec3(.9,.9,.86);vec3 on=vec3(1.,.93,.8)*img*1.25;
 gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     });
-    add(sg, new THREE.PlaneGeometry(16, 9), scrM, 0, 7.5, 0);
-    for (const s of [-8.4, 8.4]) add(sg, new THREE.CylinderGeometry(0.2, 0.25, 12, 6), M.post, s, 6, -0.2);
-    add(sg, box(17, 0.3, 0.3), M.post, 0, 12.1, -0.2);
-    // 岸に並ぶ空の椅子（数脚）
-    for (let k = 0; k < 6; k++) {
-      const x = -6 + k * 2.4;
-      add(sg, box(0.9, 0.12, 0.9), lam(0x9a6b44), x, 0.75, 6, 0);
-      add(sg, box(0.9, 0.9, 0.1), lam(0x9a6b44), x, 1.2, 6.45, 0);
+    // 幕の舟：細長い浮き床（20m×6m）に、白い大きな幕（16m×9m）を細い枠で立てる。幕の表は岸（-Z）へ
+    const g = new THREE.Group();
+    add(g, box(20, 0.5, 6), M.deck, 0, 0.55, 0);
+    for (const x of [-8, -4, 0, 4, 8]) for (const z of [-2.2, 2.2]) add(g, new THREE.CylinderGeometry(0.5, 0.5, 3.4, 8), M.float, x, 0.15, z, 0, Math.PI / 2);
+    for (let k = 0; k < 40; k++) add(g, box(0.02, 0.01, 5.8), M.dark, -9.75 + k * 0.5, 0.81, 0); // 床板の目地
+    for (let k = 0; k <= 80; k++) {
+      const x = -10 + k * 0.25,
+        main = k % 8 === 0;
+      for (const z of [-2.9, 2.9]) add(g, box(main ? 0.06 : 0.025, 0.9, main ? 0.06 : 0.025), M.post, x, 1.3, z); // 細い格子の手すり
+    }
+    for (const z of [-2.9, 2.9]) for (const y of [1.75, 1.3]) add(g, box(20, y > 1.5 ? 0.06 : 0.03, y > 1.5 ? 0.06 : 0.03), M.post, 0, y, z);
+    const scr = add(g, new THREE.PlaneGeometry(16, 9), scrM, 0, 7.4, 0.3);
+    scr.rotation.y = Math.PI; // 表を岸へ
+    for (const s of [-8.4, -5, -1.7, 1.7, 5, 8.4]) {
+      add(g, new THREE.CylinderGeometry(0.06, 0.08, 11.6, 6), M.post, s, 6.4, 0.5);
+      const b1 = add(g, box(0.04, 6.2, 0.04), M.post, s, 3.6, 2.2);
+      b1.rotation.x = 0.55; // 後ろ（沖側）の細い筋交い
+    }
+    for (const y of [12.1, 2.85]) add(g, box(17, 0.06, 0.06), M.post, 0, y, 0.45);
+    for (let k = 0; k < 17; k++) add(g, box(0.012, 9.2, 0.012), M.rope, -8 + k, 7.4, 0.4); // 幕を留める細い紐
+    // 幕の舟の、小さな舵小屋と灯り
+    add(g, box(2.2, 2, 1.8), lam(0x2f3a44, { emissive: 0x0c0f12 }), 8.2, 1.8, 1.6);
+    add(g, new THREE.SphereGeometry(0.2, 8, 6), glowMat(0xffd59a, 2), 8.2, 3.0, 0.6);
+    var cinH = moor(g, cinSites);
+    // 陸の客席：映写台（小さな卓と映写機）と、湖へ向いた椅子の列・敷物・提灯。人の姿はなく、置かれた物だけ
+    const sg = new THREE.Group(),
+      chairM = lam(0x9a6b44),
+      lens = glowMat(0xfff1d0, 3),
+      lantern = glowMat(0xffb070, 2.2);
+    add(sg, box(1.2, 1.0, 0.8), M.dark, 0, 0.5, -16);
+    add(sg, box(0.6, 0.45, 0.9), lam(0x2a2a2c), 0, 1.25, -16);
+    add(sg, new THREE.CylinderGeometry(0.16, 0.16, 0.25, 10), lens, 0, 1.3, -15.45, 0, Math.PI / 2);
+    for (let r = 0; r < 4; r++)
+      for (let k = 0; k < 8; k++) {
+        const x = (k - 3.5) * 1.6 + (r % 2) * 0.4,
+          z = -6 - r * 2.2;
+        add(sg, box(0.55, 0.05, 0.5), chairM, x, 0.45, z);
+        add(sg, box(0.55, 0.55, 0.04), chairM, x, 0.75, z - 0.25);
+        for (const dx of [-0.24, 0.24]) add(sg, box(0.03, 0.45, 0.03), M.dark, x + dx, 0.22, z);
+      }
+    for (const [x, z, c] of [[-9, -5, 0xd8634f], [9.5, -6, 0x5b8fc4], [-10, -9, 0xe9c25a]]) add(sg, box(2.2, 0.03, 1.6), lam(c), x, 0.03, z, 0.2); // 敷物
+    for (let k = 0; k < 9; k++) {
+      const x = (k - 4) * 3;
+      add(sg, new THREE.CylinderGeometry(0.03, 0.03, 2.4, 4), M.post, x, 1.2, -3.2);
+      add(sg, new THREE.SphereGeometry(0.22, 8, 6), lantern, x, 2.5, -3.2);
     }
     mergeStatic(sg);
     scene.add(sg);
-    placeLog("水上映画館の幕", "shore", cinSites.map((q) => [q.sx - Math.cos(q.a) * 8, q.sy - Math.sin(q.a) * 8]));
-    // 湖の映写小屋：小さな浮き小屋。屋根の上に丸い映写の窓
-    const g = new THREE.Group();
-    pontoon(g, 4.2, 6, 0.5);
-    add(g, box(4.4, 3, 3.6), lam(0x2f3a44, { emissive: 0x0c0f12 }), 0, 2.4, 0);
-    add(g, box(5, 0.25, 4.2), M.dark, 0, 4.0, 0, 0, 0, 0.08);
-    const lens = glowMat(0xfff1d0, 3);
-    add(g, new THREE.CylinderGeometry(0.35, 0.35, 0.4, 12), lens, 0, 2.8, -1.85, 0, Math.PI / 2); // 岸の幕のほうへ
-    var cinH = moor(g, cinSites);
-    // 光の筋：映写窓から幕まで（夜の上映中だけ）。加算の淡い円錐。長さ1の形を、着いた岸ごとに伸ばして向ける
+
+    // 光の筋：陸の映写機から、湖の幕まで（夜の上映中だけ）。長さ1の形を伸ばして向ける
     beam = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.3, 5.5, 1, 16, 1, true).translate(0, -0.5, 0).rotateX(-Math.PI / 2), // 映写窓で細く、幕で広い
+      new THREE.CylinderGeometry(0.15, 5.5, 1, 16, 1, true).translate(0, -0.5, 0).rotateX(-Math.PI / 2), // 映写機で細く、幕で広い
       new THREE.MeshBasicMaterial({ color: 0xfff0d0, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }),
     );
     beam.userData.noRefl = true;
     scene.add(beam);
-    // 幕の前の水面：浮かぶ座布団の席（3列）
-    const seatG = new THREE.CylinderGeometry(0.9, 0.9, 0.35, 10),
-      seats = new THREE.InstancedMesh(seatG, lam(0xffffff), 21),
-      Mx = new THREE.Matrix4(),
-      c = new THREE.Color(),
-      cols = [0xd8634f, 0xe9c25a, 0x5b8fc4, 0xe9e2cf];
-    seats.userData.noChunk = true; // 岸を移るので区画に分けない
-    scene.add(seats);
-    // 着いた岸に、幕・光の筋・座布団の席を置く
+    // 客席（岸から実寸30〜80m奥）が陸の上に収まるまで、少しずつ奥へ
+    const seatD = (q) => {
+      const onLand = (dd) => [30, 55, 80].every((k) => [-1, 0, 1].every((w) => !inLake(q.sx - Math.cos(q.a) * (dd + k) - Math.sin(q.a) * w * 40, q.sy - Math.sin(q.a) * (dd + k) + Math.cos(q.a) * w * 40)));
+      let d = 6;
+      while (d < 200 && !onLand(d)) d += 10;
+      return d;
+    };
+    placeLog("水上映画館の客席", "land", cinSites.map((q) => [q.sx - Math.cos(q.a) * (seatD(q) + 55), q.sy - Math.sin(q.a) * (seatD(q) + 55)]));
+    // 着いた岸に、客席と光の筋を置く（客席の前が岸。陸の上の高さに合わせる）
     placeScreen = (q) => {
-      const sx = q.sx - Math.cos(q.a) * 8,
-        sy = q.sy - Math.sin(q.a) * 8,
-        gy = landY(sx, sy);
+      const d = seatD(q),
+        sx = q.sx - Math.cos(q.a) * d,
+        sy = q.sy - Math.sin(q.a) * d,
+        gy = landY(sx - Math.cos(q.a) * 50, sy - Math.sin(q.a) * 50);
       sg.position.set(sx * S, gy, sy * S);
-      sg.rotation.y = Math.PI / 2 - q.a; // 幕の表（と椅子）を湖へ向ける
-      beam.position.set(q.x * S, 2.8, q.y * S);
-      beam.scale.set(1, 1, Math.hypot(q.x - sx, q.y - sy) * S);
-      beam.lookAt(sx * S, gy + 7.5, sy * S);
-      let n = 0;
-      for (let r = 0; r < 3; r++)
-        for (let k = 0; k < 7; k++) {
-          const t = 0.35 + r * 0.12,
-            px = q.x + (sx - q.x) * t + Math.cos(q.a + Math.PI / 2) * (k - 3) * 4.5,
-            py = q.y + (sy - q.y) * t + Math.sin(q.a + Math.PI / 2) * (k - 3) * 4.5;
-          if (!inLake(px, py)) continue;
-          Mx.makeTranslation(px * S, 0.25, py * S);
-          seats.setMatrixAt(n, Mx);
-          seats.setColorAt(n++, c.set(cols[(r + k) % 4]));
-        }
-      seats.count = n;
-      seats.instanceMatrix.needsUpdate = true;
-      if (seats.instanceColor) seats.instanceColor.needsUpdate = true;
-      seats.computeBoundingSphere();
+      sg.rotation.y = Math.PI / 2 - q.a; // 椅子を湖へ向ける（+Z が湖）
+      sg.updateMatrixWorld();
+      const pr = new THREE.Vector3(0, 1.3, -15.45).applyMatrix4(sg.matrixWorld),
+        sc = new THREE.Vector3(q.x * S, 7.4, q.y * S);
+      beam.position.copy(pr);
+      beam.scale.set(1, 1, pr.distanceTo(sc));
+      beam.lookAt(sc);
     };
     placeScreen(cinSites[0]);
-    G.cinParts = { sg, seats };
+    G.cinParts = { sg, seats: sg };
   }
-
 
   // ---------- 3. 水上音楽堂 ----------
   // 着く岸：菅浦の入江 → 海津の浜 → 月出の入江
-  const musSites = [spot(136.1335, 35.4795, 120), spot(136.072, 35.462, 120), spot(136.165, 35.468, 120)];
+  // 奥琵琶湖の入江を西から東へ：海津の浜 → 大浦 → 菅浦の入江 → 月出の入江 → 片山
+  const musSites = [spot(136.072, 35.462, 120), spot(136.115, 35.495, 120), spot(136.1335, 35.4795, 120), spot(136.165, 35.468, 120), spot(136.198, 35.455, 120)];
   CUR = "mus";
   {
     const g = new THREE.Group();
@@ -380,8 +433,28 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
       shell.rotateY(Math.PI / 2); // 開いた口を湖（前）へ
     }
     add(g, shell, lam(0xf3efe4, { side: THREE.DoubleSide, emissive: 0x1c1b18 }), 0, 0.9, 0);
+    // 殻の外の細い肋骨（殻と同じ曲がり方で、21本）と、殻を受ける細い柱
+    for (let k = 0; k <= 20; k++) {
+      const ph = Math.PI * 0.32 + (Math.PI * 1.36 * k) / 20,
+        pts = [];
+      for (let j = 0; j <= 12; j++) {
+        const th = (Math.PI * 0.5 * j) / 12,
+          x = -8.08 * Math.cos(ph) * Math.sin(th),
+          z = 8.08 * Math.sin(ph) * Math.sin(th);
+        let y = 8.08 * Math.cos(th);
+        y = y * (0.8 + 0.2 * (x / 8)) + Math.max(0, -x) * 0.25;
+        pts.push(new THREE.Vector3(z, y + 0.9, -x)); // 殻と同じく、口を前へ回す
+      }
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, 0.04, 4), M.post));
+      if (k % 4 === 0) {
+        const p0 = pts[12];
+        add(g, new THREE.CylinderGeometry(0.05, 0.06, Math.max(0.5, p0.y - 1.1), 5), M.post, p0.x * 0.97, (p0.y + 1.1) / 2, p0.z * 0.97);
+      }
+    }
     // 舞台の床（一段高い木の床）
     add(g, new THREE.CylinderGeometry(6.2, 6.2, 0.3, 6), M.deck, 0, 1.0, 0, Math.PI / 6);
+    // 舞台の縁の細い段（2段の細い框）
+    add(g, new THREE.TorusGeometry(6.25, 0.03, 3, 36), M.post, 0, 1.15, 0, 0, Math.PI / 2);
     // 譜面台と椅子（半円に5つ）
     for (let k = 0; k < 5; k++) {
       const a = Math.PI * (0.2 + 0.15 * k) + Math.PI;
@@ -439,9 +512,9 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     }
     const useOf = { lib: libH.use, cin: cinH.use, mus: musH.use };
     for (const m of lit) m.color.lerpColors(OFF, m.userData.on, lt * late * (0.2 + 0.8 * useOf[m.userData.owner])); // 漂う間は灯りを落とす
-    // 映画館の幕：着いた岸にだけ張る
+    // 映画館：着いた岸に客席を出す
     if (cinH.moored && cinH.site !== scrSite) placeScreen(cinH.sites[(scrSite = cinH.site)]);
-    G.cinParts.sg.visible = G.cinParts.seats.visible = cinH.moored;
+    G.cinParts.sg.visible = cinH.moored; // 陸の客席は、幕の舟が着いている岸にだけ
     // 上映：夏（6〜9月）の夜、19時半〜22時半
     const show = (c.month >= 5 && c.month <= 8 && h > 19.5 && h < 22.5 ? Math.min(1, (h - 19.5) / 0.15, (22.5 - h) / 0.15) * lt : 0) * cinH.use;
     screenU.uT.value = t;
