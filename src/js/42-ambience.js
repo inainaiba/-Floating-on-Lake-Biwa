@@ -92,7 +92,7 @@ G.ambience = (() => {
         b.a += b.sp * dt * 6;
         const x = b.cx + Math.cos(b.a) * b.r,
           z = b.cz + Math.sin(b.a) * b.r;
-        b.g.position.set(x, waveH(x, z, t) * 0.8, z);
+        b.g.position.set(x, water.position.y + waveH(x, z, t) * 0.8, z);
         b.g.rotation.set(0, -b.a - Math.PI / 2 + Math.PI, Math.sin(t * 1.3 + b.a) * 0.04);
       }
     }

@@ -201,7 +201,7 @@ G.bass = (() => {
       b.z += Math.sin(b.hd) * b.v * dt;
       const sp = Math.min(1, b.v / 12),
         plane = Math.min(1, Math.max(0, (b.v - 2) / 4)) * (1 - sp * 0.5); // 走りはじめに舳先が最も持ち上がる
-      b.g.position.set(b.x, waveH(b.x, b.z, t) * (1 - sp * 0.7) * 0.8 + sp * 0.12, b.z);
+      b.g.position.set(b.x, water.position.y + waveH(b.x, b.z, t) * (1 - sp * 0.7) * 0.8 + sp * 0.12, b.z);
       b.g.rotation.set(0, -b.hd, 0);
       b.body.rotation.set(Math.sin(t * 1.5 + i) * 0.03 * (1 - sp), 0, 0.03 + plane * 0.1 + Math.sin(t * 7 + i) * 0.01 * sp);
       b.spM.opacity = sp * 0.85;

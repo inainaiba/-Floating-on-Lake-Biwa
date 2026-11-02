@@ -508,7 +508,7 @@ function updateBoats(boats, dt, t, night) {
     avoid.set(b.id, av);
     z += nz * av;
     const hy = waveH(x, z, t);
-    m.position.set(x, hy * 0.5, z);
+    m.position.set(x, water.position.y + hy * 0.5, z);
     m.rotation.set(0, -b.h, 0);
     if (m.wheel) m.wheel.rotation.y += dt * (b.moving ? 2 : 0);
     m.lamp.intensity = night ? 3 : 0;
