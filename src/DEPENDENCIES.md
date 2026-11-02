@@ -5,7 +5,7 @@
 部品は番号順に1つのモジュールとしてつながる。後ろの部品で作る名前は、前の部品の「読み込み時に動く処理」からは使えない（関数の中や毎フレームの処理からは使える）。
 
 ## 00-head.js
-- 作る：`CHUNK`、`FRAME_HOOKS`、`G`、`GLSL_NOISE`、`LEAFTX`、`MAP_MARKS`、`NEAR_TREE_MAT`、`PLACE_LOG`、`TRUE_RANDOM`、`chunkOf`、`chunkify`、`mapMark`、`mergeStatic`、`mkLeaf`、`onFrame`、`placeLog`
+- 作る：`CHUNK`、`FRAME_HOOKS`、`G`、`GLSL_NOISE`、`LEAFTX`、`NEAR_TREE_MAT`、`PLACE_LOG`、`TRUE_RANDOM`、`chunkOf`、`chunkify`、`mergeStatic`、`mkLeaf`、`onFrame`、`placeLog`
 - 使う：
   - 01-settings.js（後ろの部品・要注意）：`S`
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
@@ -320,10 +320,9 @@
 ## 28-map.js
 - 作る：`FZ`、`contours`、`drawFar`、`far`、`fx`、`fzAt`
 - 使う：
-  - 00-head.js：`G`、`MAP_MARKS`
+  - 00-head.js：`G`
   - 01-settings.js：`LAKE`、`S`
   - 03b-meisho-sites.js：`MEISHO`
-  - 04-clock.js：`clock`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`RECLAIMED`、`RIVERS`、`innerChan`、`innerPolys`、`maxX`、`maxY`、`minX`、`minY`
   - 07-depth.js：`CELL`、`GH`、`GW`、`depthG`
@@ -413,7 +412,7 @@
 ## 36-fireworks.js
 - 作る：`FW`
 - 使う：
-  - 00-head.js：`G`、`mapMark`、`onFrame`
+  - 00-head.js：`G`、`onFrame`
   - 01-settings.js：`Q`、`S`
   - 03-coords.js：`ll`
   - 04-clock.js：`DAY`、`PH`
@@ -439,7 +438,7 @@
 ## 37b-fountain.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`mapMark`、`onFrame`、`placeLog`
+  - 00-head.js：`G`、`onFrame`、`placeLog`
   - 01-settings.js：`S`
   - 06-inner-lakes.js：`inLake`
   - 07-depth.js：`shoreSnap`
@@ -468,7 +467,7 @@
 ## 38b-birdman.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`mapMark`、`onFrame`、`placeLog`
+  - 00-head.js：`G`、`onFrame`、`placeLog`
   - 01-settings.js：`S`
   - 04-clock.js：`DAY`
   - 07-depth.js：`depth`、`shoreSnap`
@@ -481,7 +480,7 @@
 ## 38c-festivals.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`mapMark`、`mergeStatic`、`onFrame`、`placeLog`
+  - 00-head.js：`G`、`mergeStatic`、`onFrame`、`placeLog`
   - 01-settings.js：`S`
   - 03-coords.js：`ll`
   - 06-inner-lakes.js：`inLake`、`inRiver`
@@ -611,12 +610,11 @@
 ## 43c-showers.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`mapMark`、`onFrame`
+  - 00-head.js：`G`、`onFrame`
   - 01-settings.js：`RM`、`S`
   - 04-clock.js：`DAY`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inLake`
-  - 08-weather.js：`weather`
   - 10-start.js：`rndFor`
   - 12-renderer.js：`camera`、`scene`
   - 13-sky-dome.js：`skyU`

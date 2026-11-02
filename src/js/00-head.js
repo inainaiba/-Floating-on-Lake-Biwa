@@ -20,10 +20,6 @@ function onFrame(order, fn) {
   FRAME_HOOKS.push([order, fn]);
   FRAME_HOOKS.sort((a, b) => a[0] - b[0]);
 }
-// 全体地図に出す「いま行われていること」：部品は mapMark(関数) で登録する。関数は時計 c を受け取り、
-// [{ x, y, ja, en }]（実寸の位置と名前）を返す（28-map.js が、波打つ輪と名前で描く）
-const MAP_MARKS = [];
-const mapMark = (fn) => MAP_MARKS.push(fn);
 // 部品をまたいで使う共有の値はここに集める。
 // URL に ?debug を付けたときだけ、確認用に window.__floating として外から見えるようにする（公開時は閉じておく）
 const G = /[?&]debug(?:[=&]|$)/.test(location.search) ? (window.__floating = {}) : {};

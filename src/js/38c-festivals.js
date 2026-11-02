@@ -403,17 +403,6 @@ void main(){
     otsu.update(c, t, show, night);
     sagi.update(c, t, show, night);
   }
-  // 全体地図：開いている祭り
-  mapMark((c) => {
-    const out = [];
-    if (c.month === 7 && c.phase > 0.62 && c.phase < 0.86) {
-      const [x, y] = ll(135.9055, 35.0015);
-      out.push({ x, y, ja: "船幸祭", en: "Senko-sai boat festival" });
-    }
-    if (c.month === 9 && ((c.phase > 0.38 && c.phase < 0.64) || (c.phase > 0.74 && c.phase < 0.92)) && otsu.route.length) out.push({ x: otsu.route[0][0], y: otsu.route[0][1], ja: "大津祭", en: "Otsu Festival" });
-    if (c.month === 0 && c.phase > 0.7 && c.phase < 0.84 && sagi.sites.length) for (const q of sagi.sites) out.push({ x: q.x, y: q.y, ja: "左義長", en: "Sagicho fires" });
-    return out;
-  });
   return { update, g, sagi, street: otsu.route };
 })();
 onFrame(160, (f) => G.fest.update(f.dt, f.t, f.c, f.day)); // 毎フレームの更新（湖の祭り。順番は 00-head.js の onFrame）
