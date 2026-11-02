@@ -30,8 +30,7 @@ function treeFade(m, near, far) {
     if (inLake(x, y)) continue;
     const h = terrainAt(x, y);
     if (h > 1100) continue;
-    const ds = distShore(x, y);
-    if (ds < 250) continue;
+    if (distShore(x, y, 260) < 250) continue; // 上限を付けて、遠い所で全部の岸線を調べないように（読み込みを速く）
     if (h < 40 && R() < 0.75) continue;
     if (
       innerPolys.some((p) => {

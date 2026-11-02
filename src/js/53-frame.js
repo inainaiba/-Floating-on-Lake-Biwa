@@ -11,12 +11,13 @@ function frame(now) {
   last = now;
   fpsN++;
   fpsT += dt;
-  if (fpsT > 3 && !G.prof) {
-    // 描画が重いときは解像度を下げる（確認用 ?debug のときは、撮影の条件をそろえるため変えない）
+  if (fpsT > (G.resUp ? 3 : 1.5) && !G.prof) {
+    // 描画が重いときは解像度を下げる（1.5秒ごとに見て、重ければすぐ下げる。軽くなったら3秒ずつ様子を見て少しずつ戻す）。
+    // 確認用 ?debug のときは、撮影の条件をそろえるため変えない
     const f = fpsN / fpsT;
     const old = resScale;
-    if (f < 38) resScale = Math.max(0.5, resScale - 0.1);
-    else if (f > 57) resScale = Math.min(QUALITY.resMax, resScale + 0.05);
+    if (f < 42) (resScale = Math.max(0.5, resScale - (f < 30 ? 0.15 : 0.08))), (G.resUp = 0);
+    else if (f > 57) (resScale = Math.min(QUALITY.resMax, resScale + 0.05)), (G.resUp = 1);
     if (old !== resScale) resize();
     fpsN = 0;
     fpsT = 0;
@@ -74,6 +75,33 @@ function frame(now) {
       v3.copy(I.boundingSphere.center).applyMatrix4(I.matrixWorld);
       const r = I.userData.far + I.boundingSphere.radius;
       I.visible = (v3.x - cp.x) ** 2 + (v3.z - cp.z) ** 2 < r * r;
+    }
+    // 小さな物の区画（石・柵・生け垣・小物など）は、画面で約1.5点より小さくなる距離から先は描かない（見た目は変わらない）。
+    // 距離は、区画の中の物ひとつの大きさ（形の大きさ × 置いた大きさ）の約650倍。家のような大きな物は遠くまで描く
+    if (!G.lodC) {
+      G.lodC = [];
+      const M = new THREE.Matrix4(),
+        sc = new THREE.Vector3(),
+        q = new THREE.Quaternion(),
+        p = new THREE.Vector3();
+      for (const c of G.chunks) {
+        if ((G.forest || []).includes(c) || !c.isInstancedMesh || !c.count) continue;
+        if (!c.geometry.boundingSphere) c.geometry.computeBoundingSphere();
+        let m = 0;
+        const n = Math.min(c.count, 8);
+        for (let i = 0; i < n; i++) {
+          c.getMatrixAt(Math.floor((i * c.count) / n), M);
+          M.decompose(p, q, sc);
+          m = Math.max(m, sc.x, sc.y, sc.z);
+        }
+        const far = 650 * c.geometry.boundingSphere.radius * m;
+        if (far < 9000) G.lodC.push([c, far]), (c.userData.lodFar = far);
+      }
+    }
+    for (const [c, far] of G.lodC) {
+      v3.copy(c.boundingSphere.center).applyMatrix4(c.matrixWorld);
+      const r = far + c.boundingSphere.radius;
+      c.visible = (v3.x - cp.x) ** 2 + (v3.z - cp.z) ** 2 < r * r;
     }
   }
   const pC = performance.now();

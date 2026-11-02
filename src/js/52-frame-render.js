@@ -217,7 +217,9 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
     for (const c of G.chunks) {
       if (!c.visible) continue;
       v3.copy(c.boundingSphere.center).applyMatrix4(c.matrixWorld);
-      if ((v3.x - cp.x) ** 2 + (v3.z - cp.z) ** 2 > far2) {
+      const d2 = (v3.x - cp.x) ** 2 + (v3.z - cp.z) ** 2,
+        lf = c.userData.lodFar ? (c.userData.lodFar * 0.4 + c.boundingSphere.radius) ** 2 : Infinity; // 小さな物は、映り込みではもっと近くまで（波でにじむ）
+      if (d2 > far2 || d2 > lf) {
         c.visible = false;
         farHid.push(c);
       }

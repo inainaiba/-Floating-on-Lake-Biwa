@@ -84,8 +84,12 @@
   // 夜に灯る材質（灯籠・窓・舞台の灯り）：日暮れに灯る
   const lit = [];
   let CUR = null; // いま作っている建築（灯りの持ち主）
+  const GLOWS = new Map();
   const glowMat = (c, k = 2) => {
+    const key = CUR + ":" + c + ":" + k; // 同じ建築の同じ灯りは材質を共有（まとめて描ける）
+    if (GLOWS.has(key)) return GLOWS.get(key);
     const m = new THREE.MeshBasicMaterial({ color: 0x3a3630 });
+    GLOWS.set(key, m);
     m.userData.on = new THREE.Color(c).multiplyScalar(k);
     m.userData.owner = CUR;
     lit.push(m);
