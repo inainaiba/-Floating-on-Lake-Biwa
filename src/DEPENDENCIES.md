@@ -321,7 +321,7 @@
 - 作る：`FZ`、`contours`、`drawFar`、`far`、`fx`、`fzAt`
 - 使う：
   - 00-head.js：`G`、`MAP_MARKS`
-  - 01-settings.js：`CFG`、`LAKE`、`S`
+  - 01-settings.js：`LAKE`、`S`
   - 03b-meisho-sites.js：`MEISHO`
   - 04-clock.js：`clock`
   - 05-lake.js：`outer`
@@ -676,6 +676,7 @@
   - 10-start.js：`rndFor`
   - 12-renderer.js：`camera`、`scene`
   - 14-water.js：`water`
+  - 18-buildings.js：`inReeds`
   - 20-villages-layout.js：`cvTex`、`landY`
   - 29-controls.js：`isFar`
   - 30-audio.js：`SND`、`nburst`、`panV`

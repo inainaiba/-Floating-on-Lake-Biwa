@@ -275,12 +275,9 @@ function drawFar(boats = [], wxNow = null, W = null) {
     fx.fill();
     fx.restore();
   }
-  // 名所：小さな菱形。寄ると名前
+  // 名所：小さな菱形だけ（建物の名前は出さない。地図は眺めるためのもの）
   {
     fx.save();
-    fx.font = 11 * dpr + 'px "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif';
-    fx.textBaseline = "middle";
-    fx.lineJoin = "round";
     for (const m of MEISHO) {
       const mx = X(m.ax),
         my = Y(m.ay),
@@ -293,27 +290,14 @@ function drawFar(boats = [], wxNow = null, W = null) {
       fx.lineTo(mx - k, my);
       fx.closePath();
       fx.fill();
-      if (FZ.z >= 1.4) {
-        fx.lineWidth = 3.5 * dpr;
-        fx.strokeStyle = "#f6f5f0";
-        fx.strokeText(m.name, mx + 7 * dpr, my);
-        fx.fillStyle = "#3a3a36";
-        fx.fillText(m.name, mx + 7 * dpr, my);
-      }
     }
     fx.restore();
   }
-  // いま行われていること（祭り・花火・花噴水・鳥人間・にわか雨）：波打つ青緑の輪と名前（00-head.js の mapMark）
+  // いま行われていること（祭り・花火・花噴水・鳥人間・にわか雨）：波打つ青緑の輪だけ。説明の文字は出さない（00-head.js の mapMark）
   {
     const c = clock(),
-      pu = ((performance.now() / 1000) % 2.4) / 2.4,
-      en = CFG.lang === "en";
+      pu = ((performance.now() / 1000) % 2.4) / 2.4;
     fx.save();
-    fx.font = 12 * dpr + 'px "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif';
-    fx.textBaseline = "middle";
-    fx.lineJoin = "round";
-    const seen = [],
-      placed = [];
     for (const fn of MAP_MARKS)
       for (const it of fn(c)) {
         const ex = X(it.x),
@@ -327,22 +311,6 @@ function drawFar(boats = [], wxNow = null, W = null) {
         fx.beginPath();
         fx.arc(ex, ey, 3.2 * dpr, 0, 7);
         fx.fill();
-        // 同じ名前が近くに並ぶとき（左義長の浜など）は、名前は一つだけ
-        if (seen.some(([n, x, y]) => n === it.ja && Math.hypot(x - ex, y - ey) < 120 * dpr)) continue;
-        seen.push([it.ja, ex, ey]);
-        const label = (en ? it.en : it.ja) + (en ? " · now" : "（いま）"),
-          lw = fx.measureText(label).width,
-          lh = 15 * dpr;
-        // 近くの名前と重なるときは、一行ずつ下へずらす
-        let ly = ey - 9 * dpr;
-        const lx = ex + 9 * dpr;
-        while (placed.some(([x, y, w]) => lx < x + w && x < lx + lw && Math.abs(y - ly) < lh)) ly += lh;
-        placed.push([lx, ly, lw]);
-        fx.lineWidth = 4 * dpr;
-        fx.strokeStyle = "#f6f5f0";
-        fx.strokeText(label, lx, ly);
-        fx.fillStyle = "#14595c";
-        fx.fillText(label, lx, ly);
       }
     fx.restore();
   }
