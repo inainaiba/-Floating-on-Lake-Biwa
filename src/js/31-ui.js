@@ -209,3 +209,32 @@ for (const ev of ["pointerdown", "keydown", "wheel"])
     true,
   );
 
+
+// 画質を変えて読み込み直したとき（31b-settings.js）：はじめの画面を飛ばして、元の位置・向き・建物のまま湖に戻る
+function resumeLake() {
+  let r = null;
+  try {
+    r = JSON.parse(sessionStorage.getItem("floating.resume") || "null");
+    sessionStorage.removeItem("floating.resume");
+  } catch (e) {}
+  if (!r || Date.now() - r.at > 120000) return false;
+  Object.assign(CUST, r.cust);
+  buildHouse();
+  B.x = r.x;
+  B.y = r.y;
+  B.yaw = r.yaw;
+  camX = B.x * S;
+  camZ = B.y * S;
+  $("title").style.display = "none";
+  $("sel").style.display = "none";
+  $("prev").style.display = $("next").style.display = "none";
+  STATE = "lake";
+  document.body.classList.add("lake");
+  audioInit(); // 音は、次に画面に触れたときに鳴りはじめる（ブラウザの決まり）
+  addEventListener("pointerdown", () => SND.ctx && SND.on && SND.ctx.resume(), { once: true });
+  yaw = yawT = r.cy;
+  pitch = r.pitch;
+  dist = distT = r.dist;
+  B.trail = [[B.x, B.y]];
+  return true;
+}

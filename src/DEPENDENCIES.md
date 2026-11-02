@@ -363,7 +363,7 @@
   - 30-audio.js：`SND`、`panV`
 
 ## 31-ui.js
-- 作る：`$`、`MAT_ICONS`、`dots`、`hex`、`mats`、`pick`、`replayWanted`、`restBtn`、`runHints`、`showName`
+- 作る：`$`、`MAT_ICONS`、`dots`、`hex`、`mats`、`pick`、`replayWanted`、`restBtn`、`resumeLake`、`runHints`、`showName`
 - 使う：
   - 00-head.js：`G`、`TRUE_RANDOM`
   - 01-settings.js：`S`
@@ -372,7 +372,7 @@
   - 10-start.js：`DBG_START`、`R0`、`starts`
   - 11-state.js：`B`、`STATE`、`camX`、`camZ`
   - 18-buildings.js：`BODY_COLORS`、`BUILDINGS`、`CUST`、`LIGHT_COLORS`、`buildHouse`、`house`、`inReeds`
-  - 29-controls.js：`dist`、`distT`、`gl`
+  - 29-controls.js：`dist`、`distT`、`gl`、`pitch`、`yaw`、`yawT`
   - 30-audio.js：`SND`、`audioInit`
 
 ## 31b-settings.js
@@ -380,6 +380,8 @@
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`CFG`、`RM`
+  - 11-state.js：`B`、`STATE`
+  - 29-controls.js：`dist`、`pitch`、`yaw`
   - 31-ui.js：`$`
 
 ## 32-photo.js
@@ -818,6 +820,7 @@
   - 28-map.js：`drawFar`
   - 29-controls.js：`dist`、`distT`、`isFar`、`pitch`、`yaw`、`yawT`
   - 30-audio.js：`audioUpdate`
+  - 31-ui.js：`resumeLake`
   - 32-photo.js：`finishPhoto`
   - 33-resize.js：`resize`
   - 34-frame-state.js：`fpsN`、`fpsT`、`last`、`trailT`

@@ -215,6 +215,7 @@ if (G.wakeMesh) G.wakeMesh.userData.noChunk = true; // 航跡は毎フレーム�
   for (const o of hidden) o.visible = false;
 }
 Math.random = TRUE_RANDOM; // 組み立てが終わったら、乱数を元に戻す（00-head.js）
+if (!G.tFix && !/[?&]debug/.test(location.search)) resumeLake(); // 画質を変えて読み込み直したときは、元の所から（31-ui.js）
 window.__ready = true; // 読み込みが終わった（これより後の誤りでは、描けない幕を出さない。src/shell.html）
 requestAnimationFrame(frame);
 requestAnimationFrame(() => (document.getElementById("veil").style.opacity = 0));
