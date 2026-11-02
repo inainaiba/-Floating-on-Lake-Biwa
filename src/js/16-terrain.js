@@ -152,6 +152,29 @@ const terrColor = (h) =>
       : h < 400
         ? new THREE.Color(0x4c5f3c).lerp(new THREE.Color(0x3b4c33), (h - 60) / 340)
         : new THREE.Color(0x3b4c33).lerp(new THREE.Color(0x6a6a5e), Math.min(1, (h - 400) / 900));
+// 描く粗い地形の高さ：細かい地形のある所では、そのまわり（格子1マス分）の細かい地形の平均の高さに合わせる。
+// 家や木は細かい地形の高さに建つので、粗い地形のまま描くと、急な斜面（菅浦など）で家や木が宙に浮いて見えた。
+// 家や木の置き場所（nearAt）は元の粗い地形を基準のまま。カメラのまわりの細かい網目の縁も、この高さにつなぐ
+const terrHD = terrH.slice();
+if (nearBlk.size)
+  for (let j = 0; j < TH; j++)
+    for (let i = 0; i < TW; i++) {
+      const x0 = tx0 + i * tdx,
+        y0 = ty0 + j * tdy;
+      // 細かい地形の区画が近くにない頂点は、すぐ飛ばす（読み込みを遅くしない）
+      const bw = NEAR.step * NEAR.bs,
+        bi = Math.floor((x0 - NEAR.x0) / bw),
+        bj = Math.floor((y0 - NEAR.y0) / bw);
+      if (!nearBlk.has(bi * 65536 + bj) && !nearBlk.has((bi + 1) * 65536 + bj) && !nearBlk.has((bi - 1) * 65536 + bj) && !nearBlk.has(bi * 65536 + bj + 1) && !nearBlk.has(bi * 65536 + bj - 1)) continue;
+      let s = 0,
+        n = 0;
+      for (let b = -2; b <= 2; b++)
+        for (let a = -2; a <= 2; a++) {
+          const h = nearAt(x0 + (a * tdx) / 4, y0 + (b * tdy) / 4);
+          if (h !== null) (s += h), n++;
+        }
+      if (n >= 13) terrHD[j * TW + i] = Math.max(terrH[j * TW + i] < 0 ? -Infinity : 0, s / n);
+    }
 const terrGeo = new THREE.PlaneGeometry((TW - 1) * tdx * S, (TH - 1) * tdy * S, TW - 1, TH - 1).rotateX(
   -Math.PI / 2,
 );
@@ -161,7 +184,7 @@ const terrGeo = new THREE.PlaneGeometry((TW - 1) * tdx * S, (TH - 1) * tdy * S, 
   for (let k = 0; k < pos.count; k++) {
     const i = k % TW,
       j = Math.floor(k / TW),
-      h = terrH[j * TW + i];
+      h = terrHD[j * TW + i];
     pos.setY(k, h * S * VEX);
     const c = terrColor(h);
     col.set([c.r, c.g, c.b], k * 3);
@@ -400,7 +423,7 @@ G.nearPatch = (() => {
         x = x0 + (i - N / 2) * st,
         y = y0 + (j - N / 2) * st,
         e = Math.min(i, j, N - i, N - j),
-        hc = terrGrid(x, y),
+        hc = terrGrid(x, y, terrHD),
         hf = nearAt(x, y);
       if (hf !== null) any = true;
       const t = Math.min(1, Math.max(0, (e - 1) / 4)),
