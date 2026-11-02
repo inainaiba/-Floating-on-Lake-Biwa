@@ -369,13 +369,13 @@ terrMat.onBeforeCompile = (sh) => {
   sh.uniforms.uAut = { value: 0 };
   terrMat.userData.sh = sh;
   sh.vertexShader = sh.vertexShader
-    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;attribute float aCv;varying float vCv;varying vec3 vWN;attribute float aNear;varying float vNear;uniform vec4 uNear;")
+    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;attribute float aCv;varying float vCv;varying vec3 vWN;attribute float aNear;varying float vNear;uniform vec4 uNear;attribute float aSink;")
     .replace(
       "#include <begin_vertex>",
       "#include <begin_vertex>\nvH=position.y;vXZ=(modelMatrix*vec4(position,1.)).xz;vCv=aCv;vWN=normal;vNear=aNear;" +
         // 細かい網目の中の粗い地形は、切り抜かずに下へ沈める（切り抜くと、網目の縁の向こうの山を下から覗くことになり、
         // 空が透けて山の切れ端が宙に浮いて見えた）。網目の縁をまたぐ三角形は下り坂の壁になって、細かい地形の下に隠れる
-        "if(aNear<.5&&uNear.w>.5&&abs(vXZ.x-uNear.x)<uNear.z&&abs(vXZ.y-uNear.y)<uNear.z)transformed.y-=80.;",
+        "if(aNear<.5&&uNear.w>.5&&abs(vXZ.x-uNear.x)<uNear.z&&abs(vXZ.y-uNear.y)<uNear.z)transformed.y-=80.;transformed.y-=80.*aSink;",
     );
   sh.fragmentShader = sh.fragmentShader
     .replace(
@@ -390,9 +390,112 @@ ${TERR_FS_SLOPE}${TERR_FS_ROCK}${TERR_FS_SHORE}${TERR_FS_FOREST}${TERR_FS_AUTUMN
     .replace("#include <fog_fragment>", "#include <fog_fragment>\n" + TERR_FS_NIGHT);
 };
 terrGeo.setAttribute("aNear", new THREE.BufferAttribute(new Float32Array(terrGeo.attributes.position.count), 1));
+// 地形の網目：湖とそのまわり（湖から約8km）は細かい網目のまま、その外の遠い山は3つおきの粗い網目で描く（三角形がおよそ半分に）。
+// 粗い網目は細かい網目の所では下へ沈めて隠し（aSink）、細かい網目の縁の点は、粗い網目の辺の上にそろえて、すき間を作らない
 const terr = new THREE.Mesh(terrGeo, terrMat);
 terr.receiveShadow = true;
 terr.position.set((tx0 + ((TW - 1) * tdx) / 2) * S, 0, (ty0 + ((TH - 1) * tdy) / 2) * S);
+{
+  const ST = 3,
+    MG = 8000,
+    al = (v, lo) => (lo ? Math.floor(v / ST) * ST : Math.ceil(v / ST) * ST),
+    ci0 = Math.max(0, al(Math.floor((minX - MG - tx0) / tdx), true)),
+    ci1 = Math.min(TW - 1, al(Math.ceil((maxX + MG - tx0) / tdx), false)),
+    cj0 = Math.max(0, al(Math.floor((minY - MG - ty0) / tdy), true)),
+    cj1 = Math.min(TH - 1, al(Math.ceil((maxY + MG - ty0) / tdy), false)),
+    pos = terrGeo.attributes.position,
+    idxA = terrGeo.index.array,
+    qw = TW - 1;
+  // 粗い網目（全体を3つおき。最後の行・列は必ず含める）
+  const lst = (n) => {
+      const a = [];
+      for (let i = 0; i < n - 1; i += ST) a.push(i);
+      a.push(n - 1);
+      return a;
+    },
+    IX = lst(TW),
+    JY = lst(TH),
+    nv = IX.length * JY.length,
+    og = new THREE.BufferGeometry(),
+    attrs = {};
+  for (const k of ["position", "normal", "color", "aCv"]) {
+    const A = terrGeo.attributes[k],
+      n = A.itemSize,
+      arr = new Float32Array(nv * n);
+    let o = 0;
+    for (const j of JY)
+      for (const i of IX) {
+        const v = j * TW + i;
+        for (let c = 0; c < n; c++) arr[o++] = A.array[v * n + c];
+      }
+    og.setAttribute(k, new THREE.BufferAttribute(arr, n));
+  }
+  const sink = new Float32Array(nv);
+  {
+    let o = 0;
+    for (const j of JY) for (const i of IX) sink[o++] = i > ci0 + ST - 1 && i < ci1 - ST + 1 && j > cj0 + ST - 1 && j < cj1 - ST + 1 ? 1 : 0;
+  }
+  og.setAttribute("aSink", new THREE.BufferAttribute(sink, 1));
+  og.setAttribute("aNear", new THREE.BufferAttribute(new Float32Array(nv), 1));
+  const oi = [],
+    W = IX.length;
+  for (let b = 0; b < JY.length - 1; b++)
+    for (let a = 0; a < W - 1; a++) {
+      const p0 = b * W + a,
+        p1 = p0 + 1,
+        p2 = p0 + W,
+        p3 = p2 + 1;
+      // 細かい網目の中に入る粗いマスは、三角形ごと省く
+      if (IX[a] >= ci0 && IX[a + 1] <= ci1 && JY[b] >= cj0 && JY[b + 1] <= cj1) continue;
+      oi.push(p0, p2, p1, p2, p3, p1);
+    }
+  // 細かい網目の外側の一列を含めて省くと縁にすき間ができるので、細かい網目の縁から1マス内側までの粗いマスは残し、沈めて隠す
+  for (let b = 0; b < JY.length - 1; b++)
+    for (let a = 0; a < W - 1; a++) {
+      if (!(IX[a] >= ci0 && IX[a + 1] <= ci1 && JY[b] >= cj0 && JY[b + 1] <= cj1)) continue;
+      if (IX[a] > ci0 && IX[a + 1] < ci1 && JY[b] > cj0 && JY[b + 1] < cj1) continue;
+      const p0 = b * W + a,
+        p1 = p0 + 1,
+        p2 = p0 + W,
+        p3 = p2 + 1;
+      oi.push(p0, p2, p1, p2, p3, p1);
+    }
+  og.setIndex(oi);
+  og.computeBoundingSphere();
+  // 細かい網目：湖のまわりの範囲の三角形だけ
+  const sub = [];
+  for (let j = cj0; j < cj1; j++) {
+    const o = (j * qw + ci0) * 6;
+    for (let k = 0; k < (ci1 - ci0) * 6; k++) sub.push(idxA[o + k]);
+  }
+  // 縁の点：粗い網目の点（3つおき）の間にある点の高さを、両端の点の直線の上にそろえる（T字のすき間をなくす）
+  const fix = (i, j, i0, j0, i1, j1, u) => {
+    const v = j * TW + i,
+      a = j0 * TW + i0,
+      b = j1 * TW + i1;
+    pos.setY(v, pos.getY(a) * (1 - u) + pos.getY(b) * u);
+  };
+  for (const j of [cj0, cj1])
+    for (let i = ci0; i <= ci1; i++)
+      if (i % ST) {
+        const i0 = Math.floor(i / ST) * ST,
+          i1 = Math.min(TW - 1, i0 + ST);
+        fix(i, j, i0, j, i1, j, (i - i0) / (i1 - i0));
+      }
+  for (const i of [ci0, ci1])
+    for (let j = cj0; j <= cj1; j++)
+      if (j % ST) {
+        const j0 = Math.floor(j / ST) * ST,
+          j1 = Math.min(TH - 1, j0 + ST);
+        fix(i, j, i, j0, i, j1, (j - j0) / (j1 - j0));
+      }
+  pos.needsUpdate = true;
+  terrGeo.setIndex(sub);
+  terrGeo.computeBoundingSphere();
+  const outer_ = new THREE.Mesh(og, terrMat);
+  outer_.receiveShadow = true;
+  terr.add(outer_); // 遠い山の粗い網目（位置は terr に合わせる）
+}
 scene.add(terr);
 // カメラのまわりの細かい網目：岸近くの細かい地形（NEAR）を30m間隔で描く。カメラが約240m動いたら作り直す。
 // 縁の4マスは粗い地形の高さへなだらかにつなぎ、いちばん外の一周は粗い地形の下へ少し沈めて、すき間が見えないようにする
