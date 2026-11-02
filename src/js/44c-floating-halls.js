@@ -698,6 +698,7 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     petG.attributes.position.needsUpdate = petG.attributes.color.needsUpdate = true;
   };
 
+  G.waterU = waterU; // 確認用
   G.halls = { lib: libH, cin: cinH, mus: musH, flo: floH }; // 確認用（いまの位置・岸に着いているか）
   // 全体地図の印（28-map.js）：地図を開いている間は毎コマの更新が止まるので、ここで共有時計から位置を求め直す
   G.hallMarks = () => {
@@ -748,12 +749,12 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
       if (best !== wkH && u.w > 0.02) u.w -= u.w * k;
       else {
         wkH = best;
-        u.w += ((best ? best.mv * 0.55 : 0) - u.w) * k;
+        u.w += ((best ? best.mv * 0.85 : 0) - u.w) * k;
       }
       if (wkH) {
         u.x = wkH.x;
         u.y = wkH.z;
-        u.z = 7;
+        u.z = 10;
         waterU.uHD.value.set(wkH.dx, wkH.dy);
       }
     }

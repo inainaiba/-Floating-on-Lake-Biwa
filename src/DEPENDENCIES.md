@@ -989,4 +989,5 @@
 - `G.wake`：19-boats.js
 - `G.wakeMesh`：19-boats.js
 - `G.watch`：31-ui.js
+- `G.waterU`：44c-floating-halls.js
 - `G.wxNow`：49-frame-sky-light.js
