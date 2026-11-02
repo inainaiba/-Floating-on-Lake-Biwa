@@ -6,8 +6,14 @@ function frame(now) {
   }
   if (G.frameWaiters) for (const f of G.frameWaiters.splice(0)) requestAnimationFrame(f);
   // 確認用に時計を止めているとき（G.tFix）は、動きの時刻も一定の歩みで進める（撮るたびに雲や波の形が違わないように）
-  const fixed = G.tFix != null,
-    dt = fixed ? 1 / 30 : Math.min(0.1, (now - last) / 1000);
+  const fixed = G.tFix != null;
+  // 速い画面（120Hz・144Hz など）では、毎回は描かずに1つおきなどにして、1秒60〜72コマほどの一定の間隔で描く
+  //（すべてを描こうとして間に合わず、コマの間隔が不揃いになって画面がカクカクするのを防ぐ）
+  if (!fixed && now - last < 13.3) {
+    requestAnimationFrame(frame);
+    return;
+  }
+  const dt = fixed ? 1 / 30 : Math.min(0.1, (now - last) / 1000);
   last = now;
   fpsN++;
   fpsT += dt;

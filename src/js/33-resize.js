@@ -2,7 +2,7 @@
 function resize() {
   const w = innerWidth,
     h = innerHeight,
-    d = Math.min(devicePixelRatio, QUALITY.pixelMax) * resScale;
+    d = Math.min(devicePixelRatio, QUALITY.pixelMax, MOBILE ? 9 : 1.75) * resScale; // PC の高解像度の画面（Retina・4K）は1.75倍まで（見分けられない細かさは描かない）
   renderer.setPixelRatio(d);
   renderer.setSize(w, h, false);
   camera.aspect = w / h;

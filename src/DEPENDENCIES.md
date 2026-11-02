@@ -315,7 +315,7 @@
   - 20-villages-layout.js：`landY`
 
 ## 27-sky-day.js
-- 作る：`SKY`、`skyAt`
+- 作る：`SKY`、`SKY_C`、`SKY_C2`、`skyAt`
 
 ## 28-map.js
 - 作る：`FZ`、`contours`、`drawFar`、`far`、`fx`、`fzAt`
@@ -395,7 +395,7 @@
 ## 33-resize.js
 - 作る：`resize`
 - 使う：
-  - 12-renderer.js：`QUALITY`、`camera`、`renderer`、`resScale`
+  - 12-renderer.js：`MOBILE`、`QUALITY`、`camera`、`renderer`、`resScale`
   - 28-map.js：`far`
 
 ## 34-frame-state.js
@@ -754,7 +754,7 @@
   - 31-ui.js：`restBtn`
 
 ## 49-frame-sky-light.js
-- 作る：`updateSkyLight`
+- 作る：`KC`、`KC_`、`NIGHT_TINT`、`TC`、`TV`、`updateSkyLight`
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`LAKE`、`RM`、`S`
@@ -865,7 +865,16 @@
 - `G.S`：53-frame.js
 - `G.VIS`：11-state.js
 - `G.W`：49-frame-sky-light.js
+- `G._cc`：52-frame-render.js
+- `G._clip`：52-frame-render.js
+- `G._dir`：52-frame-render.js
+- `G._farHid`：52-frame-render.js
+- `G._hid`：52-frame-render.js
+- `G._noClip`：52-frame-render.js
+- `G._nrVis`：52-frame-render.js
+- `G._sp`：52-frame-render.js
 - `G._v3`：53-frame.js
+- `G._v3r`：52-frame-render.js
 - `G.afterRain`：49-frame-sky-light.js
 - `G.ambience`：42-ambience.js
 - `G.bass`：44b-bass.js

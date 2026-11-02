@@ -15,11 +15,14 @@ const SKY = [
   [0.88, 0x26307a],
   [1, 0x1a2a5c],
 ];
+// 返す色は毎回同じ置き場（毎コマ新しく作らない）。受け取った側はその場で使い、持ち続けない
+const SKY_C = new THREE.Color(),
+  SKY_C2 = new THREE.Color();
 function skyAt(p) {
   for (let i = 0; i < SKY.length - 1; i++) {
     const [a, ca] = SKY[i],
       [b, cb] = SKY[i + 1];
-    if (p >= a && p <= b) return new THREE.Color(ca).lerp(new THREE.Color(cb), (p - a) / (b - a));
+    if (p >= a && p <= b) return SKY_C.set(ca).lerp(SKY_C2.set(cb), (p - a) / (b - a));
   }
-  return new THREE.Color(SKY[0][1]);
+  return SKY_C.set(SKY[0][1]);
 }
