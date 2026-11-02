@@ -275,6 +275,29 @@ function drawFar(boats = [], wxNow = null, W = null) {
     fx.fill();
     fx.restore();
   }
+  // 湖に浮かぶ建築（44c-floating-halls.js）：形で見分ける小さな印。図書館は八角、映画館は横長の幕、音楽堂は半円の殻。
+  // 岸に着いて使われている間は塗りつぶし、漂っている間は輪郭だけ（文字は出さない）
+  if (G.hallMarks) {
+    fx.save();
+    for (const m of G.hallMarks()) {
+      const hx = X(m.x),
+        hy = Y(m.y),
+        k = 5.5 * dpr;
+      fx.beginPath();
+      if (m.k === "lib") for (let i = 0; i < 8; i++) fx[i ? "lineTo" : "moveTo"](hx + Math.cos((i / 8) * 6.283 + 0.39) * k, hy + Math.sin((i / 8) * 6.283 + 0.39) * k);
+      else if (m.k === "cin") fx.rect(hx - k * 1.3, hy - k * 0.55, k * 2.6, k * 1.1);
+      else {
+        fx.arc(hx, hy + k * 0.35, k * 1.05, Math.PI, 0);
+      }
+      fx.closePath();
+      fx.lineWidth = 1.6 * dpr;
+      fx.strokeStyle = "#8a4b1c";
+      fx.fillStyle = "#d98a3a";
+      if (m.moored) fx.fill();
+      fx.stroke();
+    }
+    fx.restore();
+  }
   // 名所：小さな菱形だけ（建物の名前は出さない。地図は眺めるためのもの）
   {
     fx.save();
