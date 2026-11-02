@@ -102,7 +102,7 @@
     }
     // ---- 暗い粒：蜻蛉（夏〜秋の昼）、水面すれすれの羽虫（カメラが低いとき） ----
     const low = camera.position.y - wy < 4.5;
-    const wantDF = mo >= 5 && mo <= 9 && h > 9 && h < 17 && rain < 0.2 ? 6 : 0;
+    const wantDF = mo >= 5 && mo <= 9 && h > 8.5 && h < 17.5 && rain < 0.2 ? 9 : 0; // 少しだけ多めに（2026年11月）
     let nDF = P.filter((p) => p.k === "df" && p.a >= 0).length;
     while (nDF < wantDF) {
       const p = free(P);
@@ -128,7 +128,7 @@
     // 灯りに寄る虫：夏の夜、建物の灯りのまわり
     if (mo >= 5 && mo <= 8 && nightTint && rain < 0.3) {
       let n = PL.filter((p) => p.k === "bug" && p.a >= 0).length;
-      while (n < 26) {
+      while (n < 34) {
         const p = free(PL);
         if (!p) break;
         Object.assign(p, { k: "bug", a: 0, r: 0.6 + R() * 1.8, sp: 1.5 + R() * 2.5, yo: R() * 1.5 });
@@ -136,7 +136,7 @@
       }
     }
     // ヨシの先のしずく：雨上がり（G.afterRain）、近くのヨシから
-    if ((G.afterRain || 0) > 0.05 && rain < 0.1 && nearReed.length && R() < dt * 6 * G.afterRain) {
+    if ((G.afterRain || 0) > 0.05 && rain < 0.1 && nearReed.length && R() < dt * 9 * G.afterRain) {
       const p = free(PL),
         q = nearReed[Math.floor(R() * nearReed.length)];
       if (p) Object.assign(p, { k: "drop", a: 0, x: q[0] * S + (R() - 0.5) * 8, y: wy + 3 + R() * 0.8, z: q[1] * S + (R() - 0.5) * 8, vy: 0 });
@@ -154,11 +154,11 @@
       }
     }
     // 蜉蝣：7〜8月の宵（19〜21時）は舞い、明け方（4〜6時）は水面に白く浮かぶ
-    const mayEve = (mo === 6 || mo === 7) && h > 19 && h < 21.5 && rain < 0.3,
+    const mayEve = (mo === 6 || mo === 7) && h > 18.8 && h < 21.6 && rain < 0.3,
       mayDawn = (mo === 6 || mo === 7) && h > 4 && h < 6.5;
     if (mayEve || mayDawn) {
       let n = PL.filter((p) => p.k === "may" && p.a >= 0).length;
-      while (n < 90) {
+      while (n < 110) {
         const p = free(PL);
         if (!p) break;
         const a = R() * 6.28,
@@ -168,7 +168,7 @@
       }
     }
     // 線香花火：8月の夜（20〜22時）、近くの浜のどこかでひとつだけ
-    if (mo === 7 && h > 20 && h < 22 && rain < 0.1 && shore.length && !spark && R() < dt / 25) {
+    if (mo === 7 && h > 20 && h < 22 && rain < 0.1 && shore.length && !spark && R() < dt / 14) {
       const q = shore[Math.floor(R() * shore.length)];
       spark = { x: q[0] * S, z: q[1] * S, y: landY(q[0], q[1]) + 0.8, a: 0, life: 18 + R() * 10 };
     }

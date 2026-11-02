@@ -1,5 +1,4 @@
 /* ---------- 人の営みの音：姿は見せず、音だけで暮らしを感じさせる（2026年11月） ----------
-   ・踏切：対岸の地上を走る電車が近づくと、遠くで「カンカン」と鳴って、通り過ぎると止む（高架の湖西線には踏切がない）
    ・夕方の放送：町の防災無線が夕方5時（冬は4時半）に「家路」を流す。いくつもの拡声器から少しずつ遅れて届き、山にこだまする
    ・漁船の発動機：夜明けから朝のうちに、沖へ出る漁船の「トントントン」という低い音が遠くを横切る
    ・風鈴：夏、岸の集落の近くで、風が吹くと軒先の風鈴が鳴る
@@ -9,7 +8,7 @@
    ・火の用心：冬（12〜2月）の夜（8時〜10時）、拍子木の「カチ、カチ」が通りを移っていく（声は入れない）
    どれも岸（集落）に近いほど大きく、沖では聞こえない。霧や雨の日はこもる */
 {
-  const T = { n: {}, gray: 0, lastH: null, nearV: 0, nextChk: 0, nextBoat: 0, nextBell: 0, nextLife: 0, xing: null, village: null };
+  const T = { n: {}, gray: 0, lastH: null, nearV: 0, nextChk: 0, nextBoat: 0, nextBell: 0, nextLife: 0, village: null };
   // いちばん近い集落の家（実寸）と、そこまでの隔たり（2秒ごとに数え直す）
   function nearestVillage() {
     const cx = camera.position.x / S,
@@ -110,27 +109,6 @@
     [null, 1],
     [64, 1], [67, 0.5], [67, 1.5], [64, 1], [62, 0.5], [60, 1.5], [62, 1], [64, 0.5], [62, 1], [60, 0.5], [60, 3],
   ];
-  // 踏切：2つの高さの「カン」を交互に、1秒に2回ほど。電車が通り過ぎるまで
-  function crossing(dt, list) {
-    const ac = SND.ctx,
-      tr = list.filter((q) => q.ground && q.d < 450).sort((a, b) => a.d - b.d)[0];
-    if (tr && !T.xing) {
-      // 踏切は電車の少し先の、線路と道が交わる所。位置は電車の近くに置く
-      T.xing = { x: tr.x, z: tr.z, next: ac.currentTime, k: 0, until: ac.currentTime + 14 + Math.random() * 6 };
-    }
-    const X = T.xing;
-    if (!X) return;
-    if (ac.currentTime > X.until) {
-      if (!tr) T.xing = null; // 通り過ぎたら止む（次の電車まで鳴らない）
-      return;
-    }
-    if (ac.currentTime >= X.next) {
-      const d = Math.hypot(X.x - camera.position.x, X.z - camera.position.z),
-        v = Math.min(0.5, 70 / (d + 70)) * 0.22;
-      ding(ac.currentTime, X.k++ % 2 ? 690 : 760, v, 0.5, out(X.x, X.z, 1, 2600 - Math.min(1800, d * 3), 0.6), [1, 2.1, 3.3]);
-      X.next = ac.currentTime + 0.52;
-    }
-  }
   // 漁船の発動機：低い「トン」を一定の間合いで続け、遠くを横切る（左右がゆっくり移る）
   function fishingBoat(nearShore) {
     T.n.boat = (T.n.boat || 0) + 1;
@@ -309,8 +287,7 @@
       vz = V.y * S,
       rainy = (f.wxNow.rain || 0) > 0.3;
     T.gray = Math.max(f.wxNow.gray || 0, f.wxNow.rain || 0);
-    // 踏切
-    crossing(f.dt, G.trainNear || []);
+    // 踏切の音は鳴らさない（湖岸の線には踏切がほとんどないため。2026年11月）
     // 時刻が大きく飛んだとき（場面の切り替えなど）は鳴らさない
     if (T.lastH !== null && T.lastH !== h && (h - T.lastH + 24) % 24 < 0.5 && near > 0.02) {
       const winter = c.month <= 1 || c.month >= 9;

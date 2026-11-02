@@ -317,28 +317,7 @@ function drawFar(boats = [], wxNow = null, W = null) {
     }
     fx.restore();
   }
-  // いま行われていること（祭り・花火・花噴水・鳥人間・にわか雨）：波打つ青緑の輪だけ。説明の文字は出さない（00-head.js の mapMark）
-  {
-    const c = clock(),
-      pu = ((performance.now() / 1000) % 2.4) / 2.4;
-    fx.save();
-    for (const fn of MAP_MARKS)
-      for (const it of fn(c)) {
-        const ex = X(it.x),
-          ey = Y(it.y);
-        fx.strokeStyle = `rgba(28,128,132,${0.9 * (1 - pu)})`;
-        fx.lineWidth = 2 * dpr;
-        fx.beginPath();
-        fx.arc(ex, ey, (5 + pu * 14) * dpr, 0, 7);
-        fx.stroke();
-        fx.fillStyle = "#1c8084";
-        fx.beginPath();
-        fx.arc(ex, ey, 3.2 * dpr, 0, 7);
-        fx.fill();
-      }
-    fx.restore();
-  }
-  // 自分（操作する建物）は濃い藍色：赤いブイ・橙の水上建築・青緑の出来事と見分けやすく
+  // 自分（操作する建物）は濃い藍色：赤いブイ・橙の水上建築と見分けやすく
   fx.strokeStyle = "rgba(35,72,168,.75)";
   fx.lineWidth = 1.8 * dpr;
   fx.beginPath();

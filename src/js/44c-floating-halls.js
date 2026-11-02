@@ -198,6 +198,7 @@
       H.py = q.y;
       H.rot = rotFor(q.a);
       H.use = Math.min(1, r / (DAY * 0.05), (STAY - r) / (DAY * 0.05)); // 着いてしばらくして灯り、離れる前に消える
+      H.mv = 0;
       return;
     }
     const L = H.legs[k],
@@ -213,6 +214,11 @@
     H.use = 0;
     H.px = x0 + (x1 - x0) * f;
     H.py = y0 + (y1 - y0) * f;
+    // 進む向きと速さ（0〜1）：離れぎわと着きぎわは遅い。八の字の航跡に使う
+    const sl = Math.hypot(x1 - x0, y1 - y0) || 1;
+    H.dx = (x1 - x0) / sl;
+    H.dy = (y1 - y0) / sl;
+    H.mv = Math.min(1, 6 * u0 * (1 - u0) / 1.2);
     const hd = rotFor(Math.atan2(y1 - y0, x1 - x0));
     H.rot = lerpA(lerpA(rotFor(H.sites[k].a), hd, Math.min(1, u0 / 0.12)), rotFor(H.sites[(k + 1) % n].a), Math.max(0, (u0 - 0.88) / 0.12));
   }
@@ -692,6 +698,7 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     petG.attributes.position.needsUpdate = petG.attributes.color.needsUpdate = true;
   };
 
+  G.waterU = waterU; // 確認用
   G.halls = { lib: libH, cin: cinH, mus: musH, flo: floH }; // 確認用（いまの位置・岸に着いているか）
   // 全体地図の印（28-map.js）：地図を開いている間は毎コマの更新が止まるので、ここで共有時計から位置を求め直す
   G.hallMarks = () => {
@@ -710,6 +717,7 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
   let nextPage = 0,
     nextTune = 0,
     nextClick = 0;
+  let wkH = null; // 航跡を描いている水上建築
   onFrame(132, (f) => {
     const t = f.t,
       c = f.c,
@@ -726,6 +734,29 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
       H.g.position.y = H.y0 + water.position.y + Math.sin(t * 0.7 + H.ph) * 0.12;
       H.g.rotation.z = Math.sin(t * 0.5 + H.ph) * 0.012 * (RM ? 0.3 : 1);
       H.g.rotation.x = Math.sin(t * 0.43 + H.ph * 2) * 0.01 * (RM ? 0.3 : 1);
+    }
+    {
+      // 漂う間の航跡：カメラに近い1つだけ、後ろにうっすら八の字を描く（14-water.js）。切り替えは一度消してから
+      let best = null,
+        bd = 1e12;
+      for (const H of halls) {
+        if (H.mv < 0.02) continue;
+        const d = (H.x - camera.position.x) ** 2 + (H.z - camera.position.z) ** 2;
+        if (d < bd) (bd = d), (best = H);
+      }
+      const u = waterU.uHW.value,
+        k = Math.min(1, f.dt * 1.5);
+      if (best !== wkH && u.w > 0.02) u.w = Math.max(0, u.w - f.dt * 0.8);
+      else {
+        wkH = best;
+        u.w += ((best ? best.mv * 0.85 : 0) - u.w) * k;
+      }
+      if (wkH) {
+        u.x = wkH.x;
+        u.y = wkH.z;
+        u.z = 10;
+        waterU.uHD.value.set(wkH.dx, wkH.dy);
+      }
     }
     const useOf = { lib: libH.use, cin: cinH.use, mus: musH.use, flo: floH.use };
     floUpdate(c, t);

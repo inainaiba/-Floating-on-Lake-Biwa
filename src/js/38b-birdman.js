@@ -143,7 +143,6 @@ G.birdman = (() => {
       plane.position.y = wy - 0.4 + Math.sin(t * 1.3) * 0.08;
     }
   }
-  mapMark((c) => (c.month === MONTH && c.phase > P0 && c.phase < P1 ? [{ x: sx, y: sy, ja: "鳥人間コンテスト", en: "Birdman Rally" }] : []));
   return { update, g };
 })();
 onFrame(150, (f) => G.birdman.update(f.dt, f.t, f.c)); // 毎フレームの更新（鳥人間コンテスト。順番は 00-head.js の onFrame）
