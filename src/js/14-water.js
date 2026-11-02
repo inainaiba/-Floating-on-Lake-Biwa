@@ -306,14 +306,15 @@ body=mix(body,stone,smoothstep(.75,0.,depS)*.45);
 }body*=1.-.12*smoothstep(.9,.1,depS);
 body+=vec3(.05,.06,.04)*smoothstep(.4,0.,dep)*pow(abs(sin(vP0.x*1.7+uT2)*sin(vP0.z*1.9-uT2*.8)),3.)*clamp(uSun.y*3.,0.,1.);
 float rr=0.;
+// 雨の波紋：小さく、まばらに、場所も間合いも不揃いに。広がりながら細く薄れて消える（遠くでは見分けられないので消す）
 {for(int k=0;
 k<3;
-k++){vec2 q=vP.xz*(1.1+float(k)*.7)+float(k)*7.3,ci=floor(q),cf=fract(q)-.5;
-float h=fract(sin(dot(ci,vec2(12.9,78.2)))*43758.5),ph=fract(uT2*(.8+h*.6)+h*7.);
-vec2 o=vec2(fract(h*13.)-.5,fract(h*29.)-.5)*.4;
-float r=length(cf-o),rad=ph*.45;
-rr+=smoothstep(.04,.0,abs(r-rad))*(1.-ph)*step(.35,h);
-}rr*=uRainR*.55*smoothstep(160.,8.,length(cameraPosition-vP));
+k++){vec2 q=vP.xz*(2.6+float(k)*1.37)+float(k)*7.3,ci=floor(q),cf=fract(q)-.5;
+float h=fract(sin(dot(ci,vec2(12.9,78.2)))*43758.5),ph=fract(uT2*(.55+h*.9)+h*7.);
+vec2 o=vec2(fract(h*13.)-.5,fract(h*29.)-.5)*.5;
+float r=length(cf-o),rad=ph*(.22+fract(h*5.3)*.16),w=.018+ph*.02;
+rr+=smoothstep(w,.0,abs(r-rad))*pow(1.-ph,2.)*step(.72,h);
+}rr*=uRainR*.38*smoothstep(90.,5.,length(cameraPosition-vP))*(1.-smoothstep(.15,.45,length(fwidth(vP.xz))*3.));
 }foam+=wlf*.32;
 foam+=rr;`;
 // 明るさ

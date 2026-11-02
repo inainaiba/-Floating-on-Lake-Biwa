@@ -1,3 +1,5 @@
+// 視点を引いていって、この距離（作品の単位。実寸約2.1km）を越えると全体地図に変わる（もう少し引けるように 320→420）
+const FAR_AT = 420;
 /* ---------- 操作：ドラッグで視点、ホイール/ピンチで寄り引き、矢印キー/スティックで舵 ---------- */
 let distT = 60,
   yawT = 0.6,
@@ -24,8 +26,8 @@ addEventListener(
       return;
     }
     if (isFar) return;
-    distT = Math.max(60, Math.min(320, distT * Math.exp(e.deltaY * 0.0012)));
-    if (distT >= 320) setFar(true);
+    distT = Math.max(60, Math.min(FAR_AT, distT * Math.exp(e.deltaY * 0.0012)));
+    if (distT >= FAR_AT) setFar(true);
   },
   { passive: true },
 );
@@ -88,8 +90,8 @@ gl.addEventListener("pointermove", (e) => {
     distT = Math.max(60, (distT * pinch0) / d);
     dist = distT;
     pinch0 = d;
-    if (dist > 320) setFar(true);
-    dist = Math.min(320, dist);
+    if (dist > FAR_AT) setFar(true);
+    dist = Math.min(FAR_AT, dist);
     return;
   }
   ptrs.set(e.pointerId, [e.clientX, e.clientY]);
@@ -188,7 +190,7 @@ addEventListener("keydown", (e) => {
     distT = 60;
   }
   if (e.key === "+" || e.key === "=") distT = Math.max(60, distT * 0.8);
-  if (e.key === "-") distT = Math.min(320, distT * 1.25);
+  if (e.key === "-") distT = Math.min(FAR_AT, distT * 1.25);
 });
 addEventListener("blur", () => {
   for (const k in keys) keys[k] = 0;
