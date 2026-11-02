@@ -669,6 +669,8 @@
 - 使う：
   - 00-head.js：`G`、`mergeStatic`、`onFrame`、`placeLog`
   - 01-settings.js：`RM`、`S`
+  - 04-clock.js：`DAY`
+  - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inLake`
   - 07-depth.js：`depth`、`shoreSnap`
   - 10-start.js：`rndFor`
@@ -865,6 +867,7 @@
 - `G.camera`：53-frame.js
 - `G.cards`：17-trees.js
 - `G.chunks`：00-head.js
+- `G.cinParts`：44c-floating-halls.js
 - `G.city`：47-city.js
 - `G.dbg`：53-frame.js
 - `G.deepNight`：49-frame-sky-light.js
