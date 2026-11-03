@@ -26,9 +26,9 @@
 - 作る：`KX`、`KY`、`LAT0`、`LON0`、`ll`
 
 ## 03b-meisho-sites.js
-- 作る：`MEISHO`、`meishoClear`
+- 作る：`MEISHO`、`OHASHI_EXT`、`OHASHI_HW`、`meishoClear`、`ohashiClear`、`ohashiLine`
 - 使う：
-  - 01-settings.js：`S`
+  - 01-settings.js：`LAKE`、`S`
   - 03-coords.js：`ll`
 
 ## 04-clock.js
@@ -734,8 +734,9 @@
   - 06-inner-lakes.js：`inLake`
   - 12-renderer.js：`scene`
   - 14-water.js：`water`
+  - 16-terrain.js：`reedPts`
   - 19-boats.js：`ROUTES`
-  - 20-villages-layout.js：`landY`
+  - 20-villages-layout.js：`landY`、`streets`
   - 29-controls.js：`isFar`
 
 ## 46-shore-life.js

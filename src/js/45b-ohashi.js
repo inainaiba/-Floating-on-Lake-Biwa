@@ -29,42 +29,44 @@
       const t = i / 400;
       if (inLake(A[0] + dx * LEN * t, A[1] + dy * LEN * t)) (t0 = Math.min(t0, t)), (t1 = Math.max(t1, t));
     }
-    const RAMP = 140 / LEN, // 岸から陸のたもとへ下りる長さ（実寸m）
+    const RAMP = 650 / LEN, // 岸から陸のたもとへ下りる長さ（実寸m。作品の中で約130。傾きはいちばん急な所で約12°）。この上には家や木を置かない（03b-meisho-sites.js の ohashiClear）
       sm = (a, b, v) => {
         const u = Math.min(1, Math.max(0, (v - a) / (b - a)));
         return u * u * (3 - 2 * u);
       },
       humpAt = t0 + (t1 - t0) * 0.2, // 西寄りの高い所
-      groundAt = (t) => landY(A[0] + dx * LEN * t, A[1] + dy * LEN * t),
+      groundAt = (t) => landY(A[0] + dx * LEN * t, A[1] + dy * LEN * t), // t は 0〜1 の外（線を延ばした陸の上）でもよい
       deckY = (t) => {
         // 桁の上の高さ（作品の y）：湖の上は CLEAR、西寄りはなだらかに HUMP まで。岸を越えると陸のたもとへ下りる
-        const w = 0.13 * (t1 - t0),
+        const w = 0.2 * (t1 - t0), // 高い所への上り下りは、なだらかに（傾きは最大で約8°）
           hb = Math.exp(-(((t - humpAt) / w) ** 2)),
           onLake = water.position.y + CLEAR + TH + (HUMP - CLEAR) * hb,
-          land = groundAt(Math.min(1, Math.max(0, t))) + 0.6,
+          land = groundAt(t) + 0.6,
           k = Math.min(sm(t0 - RAMP, t0, t), 1 - sm(t1, t1 + RAMP, t));
         return land + (onLake - land) * k;
       };
-    const tA = Math.max(0, t0 - RAMP),
-      tB = Math.min(1, t1 + RAMP);
+    // 地理院の線は岸のすぐ先で終わるので、陸へ延ばして、たもとの坂を陸の上に収める
+    const tA = t0 - RAMP,
+      tB = t1 + RAMP;
     // 中心線に沿った帯（左右 o0〜o1、上下 y0〜y1 は桁の上からの高さ）を形にする
-    const ribbon = (o0, o1, y0, y1) => {
+    //   ground が真なら、下の縁は桁の上からでなく地面の少し下（陸のたもとの盛り土）
+    const ribbon = (o0, o1, y0, y1, ta = tA, tb = tB, ground = false, n = N) => {
       const P = [],
         I = [];
-      for (let i = 0; i <= N; i++) {
-        const t = tA + ((tB - tA) * i) / N,
+      for (let i = 0; i <= n; i++) {
+        const t = ta + ((tb - ta) * i) / n,
           cx = A[0] + dx * LEN * t,
           cy = A[1] + dy * LEN * t,
           h = deckY(t);
-        for (const [o, y] of [
-          [o0, y1],
-          [o1, y1],
-          [o1, y0],
-          [o0, y0],
+        for (const [o, y, g] of [
+          [o0, y1, 0],
+          [o1, y1, 0],
+          [o1, y0, 1],
+          [o0, y0, 1],
         ])
-          P.push((cx + (px * o) / S) * S, h + y, (cy + (py * o) / S) * S);
+          P.push((cx + (px * o) / S) * S, g && ground ? Math.min(h + y, groundAt(t) - 0.5) : h + y, (cy + (py * o) / S) * S);
       }
-      for (let i = 0; i < N; i++)
+      for (let i = 0; i < n; i++)
         for (let k = 0; k < 4; k++) {
           const a = i * 4 + k,
             b = i * 4 + ((k + 1) % 4),
@@ -85,6 +87,54 @@
     grp.add(new THREE.Mesh(ribbon(-WIDTH / 2, WIDTH / 2, -TH, 0), concrete)); // 桁
     grp.add(new THREE.Mesh(ribbon(-0.5, 0.5, 0, 0.45), under)); // 上り・下りを分ける中央の縁石
     for (const s of [-1, 1]) grp.add(new THREE.Mesh(ribbon(s * (WIDTH / 2 - 0.25), s * (WIDTH / 2), 0, 1.1), rail)); // 欄干
+    // 陸のたもとの盛り土：坂の下を地面まで埋める（桁が宙に浮かない）
+    const bank = new THREE.MeshLambertMaterial({ color: 0x9a978c });
+    for (const [ta, tb] of [
+      [tA, t0],
+      [t1, tB],
+    ])
+      grp.add(new THREE.Mesh(ribbon(-WIDTH / 2 + 0.3, WIDTH / 2 - 0.3, -TH, -TH, ta, tb, true, 30), bank));
+    // たもとから、いちばん近い陸の道（20-villages-layout.js の streets）まで、地面に沿った取り付けの道
+    {
+      const roadP = [];
+      for (const t of [tA, tB]) {
+        const ex = A[0] + dx * LEN * t,
+          ey = A[1] + dy * LEN * t;
+        let best = null,
+          bd = 900;
+        for (const st of streets)
+          for (const q of st.p) {
+            const d = Math.hypot(q[0] - ex, q[1] - ey);
+            if (d < bd) (bd = d), (best = q);
+          }
+        if (!best || bd < 15) continue;
+        const L = bd,
+          ux = (best[0] - ex) / L,
+          uy = (best[1] - ey) / L,
+          hw = ((WIDTH / 2) * 0.8) / S, // 道の半分の幅（実寸m）
+          n = Math.max(1, Math.ceil(L / 30));
+        for (let k = 0; k < n; k++) {
+          const a = k / n,
+            b = (k + 1) / n,
+            P1 = [ex + ux * L * a, ey + uy * L * a],
+            P2 = [ex + ux * L * b, ey + uy * L * b];
+          if (inLake(...P1) || inLake(...P2)) continue;
+          const q = [
+            [P1[0] - uy * hw, P1[1] + ux * hw],
+            [P2[0] - uy * hw, P2[1] + ux * hw],
+            [P2[0] + uy * hw, P2[1] - ux * hw],
+            [P1[0] + uy * hw, P1[1] - ux * hw],
+          ];
+          for (const j of [0, 1, 2, 0, 2, 3]) roadP.push(q[j][0] * S, landY(q[j][0], q[j][1]) + 0.1, q[j][1] * S);
+        }
+      }
+      if (roadP.length) {
+        const g = new THREE.BufferGeometry();
+        g.setAttribute("position", new THREE.Float32BufferAttribute(roadP, 3));
+        g.computeVertexNormals();
+        grp.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: 0x6f6d66, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 })));
+      }
+    }
     // 橋脚：船の道・水上建築の漂う道が橋をまたぐ所は空ける
     const cross = [];
     const addCross = (pts) => {
@@ -114,6 +164,7 @@
       const cx = A[0] + dx * LEN * s,
         cy = A[1] + dy * LEN * s;
       if (!inLake(cx, cy)) continue;
+      if (reedPts.some(([a, b]) => Math.hypot(a - cx, b - cy) < 30)) continue; // ヨシ原の中には立てない（桁はヨシの上を渡る）
       piers.push([cx, cy]);
       const top = deckY(s) - TH,
         bot = water.position.y - 3;
@@ -188,6 +239,27 @@
       }
       carP.geometry.attributes.position.needsUpdate = true;
     });
-    G.ohashi = { grp, piers, A, B: Bq, deckY, t0, t1 }; // 確認用
+    G.ohashi = {
+      grp,
+      piers,
+      A,
+      B: Bq,
+      deckY,
+      t0,
+      t1,
+      reedD: (x, y) => Math.round(Math.min(...reedPts.map(([a, b]) => Math.hypot(a - x, b - y)))), // 確認用：いちばん近いヨシまで（実寸m）
+      // 確認用：橋に沿って、湖か・桁の下の高さ・地面・近くのヨシ・近くの道
+      probe: (n = 80) =>
+        Array.from({ length: n + 1 }, (_, i) => {
+          const t = tA + ((tB - tA) * i) / n,
+            x = A[0] + dx * LEN * t,
+            y = A[1] + dy * LEN * t;
+          let rd = 1e9,
+            sd = 1e9;
+          for (const [a, b] of reedPts) rd = Math.min(rd, Math.hypot(a - x, b - y));
+          for (const st of streets) for (const [a, b] of st.p) sd = Math.min(sd, Math.hypot(a - x, b - y));
+          return [t, inLake(x, y) ? 1 : 0, +(deckY(t) - water.position.y).toFixed(1), +(landY(x, y) - water.position.y).toFixed(1), Math.round(rd), Math.round(sd)];
+        }),
+    };
   }
 }

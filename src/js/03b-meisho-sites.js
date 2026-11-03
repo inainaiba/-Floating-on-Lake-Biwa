@@ -153,8 +153,35 @@ for (const m of MEISHO) {
     p.r = (Math.hypot(p.w, p.d) / 2 + 4) / S; // まわりをどける半径（実寸m。建物の対角の半分と、木の大きさの分）
   }
 }
-// 名所の建物の上か（木や家を置かない）
+// 琵琶湖大橋と陸のたもとの坂（45b-ohashi.js）の通り道：中心線を陸へ OHASHI_EXT ずつ延ばし、幅 OHASHI_HW（実寸m）
+const OHASHI_EXT = 700,
+  OHASHI_HW = 68;
+let ohashiLine = null;
+function ohashiClear(x, y) {
+  if (ohashiLine === null) {
+    const e = LAKE.bridges
+      .filter((b) => b.name.includes("琵琶湖大橋"))
+      .flatMap((b) => [b.pts[0], b.pts[b.pts.length - 1]])
+      .sort((a, b) => a[0] - b[0]);
+    if (e.length < 2) ohashiLine = false;
+    else {
+      const a = e[0],
+        b = e[e.length - 1],
+        L = Math.hypot(b[0] - a[0], b[1] - a[1]),
+        ux = (b[0] - a[0]) / L,
+        uy = (b[1] - a[1]) / L;
+      ohashiLine = { a, ux, uy, L };
+    }
+  }
+  if (!ohashiLine) return false;
+  const { a, ux, uy, L } = ohashiLine,
+    u = (x - a[0]) * ux + (y - a[1]) * uy,
+    v = Math.abs(-(x - a[0]) * uy + (y - a[1]) * ux);
+  return u > -OHASHI_EXT && u < L + OHASHI_EXT && v < OHASHI_HW;
+}
+// 名所の建物の上か（木や家を置かない）。琵琶湖大橋のたもとの坂の上も
 function meishoClear(x, y) {
+  if (ohashiClear(x, y)) return true;
   for (const m of MEISHO)
     if (Math.abs(x - m.ax) < 1500 && Math.abs(y - m.ay) < 1500)
       for (const p of m.parts) if ((x - p.x) ** 2 + (y - p.y) ** 2 < p.r * p.r) return true;
