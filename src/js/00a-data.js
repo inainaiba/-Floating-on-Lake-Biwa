@@ -197,6 +197,40 @@ function unpackAC(p) {
       o[at + 6] = sym(P, 519 * 256, 8, 5);
       o[at + 7] = t;
     }
+  } else if (m === "tw3") {
+    // 家（地図の上の並び順）：種類が先。種類 2（陸の奥の家）は位置だけ（10m単位の差）で、幅・奥行き・向きは位置から（tools/acpack.py の tw3_inland）
+    const P = M(272),
+      int = (b) => {
+        let node = 1;
+        for (let k = 0; k < 6; k++) node = node * 2 + bit(P, b * 256 + node, 5);
+        const n = node - 64;
+        let v = n ? 1 : 0;
+        for (let i = n - 2; i >= 0; i--) v = v * 2 + bit(P, (b + 1) * 256 + n * 16 + Math.min(i, 15), 5);
+        return v & 1 ? -(v + 1) / 2 : v / 2;
+      };
+    let px = 0,
+      py = 0;
+    for (let at = 0; at < p.n; at += 8) {
+      const t = sym(P, 0, 8, 5);
+      if (t === 2) {
+        px = (Math.floor(px / 5) + int(1)) * 5;
+        py = (Math.floor(py / 5) + int(4)) * 5;
+        const h = (Math.imul(px, 0x9e3779b1) ^ Math.imul(py, 0x85ebca77)) >>> 0;
+        o[at + 4] = 8 + (h & 7);
+        o[at + 5] = 6 + ((h >>> 3) % 5);
+        o[at + 6] = ((h >>> 8) & 255) ^ 128; // -128〜127 を int8 のバイトで
+      } else {
+        px += int(7);
+        py += int(10);
+        const w = sym(P, (13 + t) * 256, 8, 5);
+        o[at + 4] = w;
+        o[at + 5] = sym(P, (15 + w) * 256, 8, 5);
+        o[at + 6] = sym(P, 271 * 256, 8, 5);
+      }
+      dv.setInt16(at, px, true);
+      dv.setInt16(at + 2, py, true);
+      o[at + 7] = t;
+    }
   } else if (m === "lu") {
     const P = M(1100),
       RW = 25;

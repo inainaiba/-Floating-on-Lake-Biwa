@@ -57,6 +57,16 @@ def main():
     # 家（並べ替えたもの）
     tw = b''.join(struct.pack('<hhBBbB', R.randint(-23000, 23000), R.randint(-23000, 23000), R.randint(4, 255), R.randint(4, 120), R.randint(-126, 126), R.randint(0, 1)) for _ in range(300))
     D['tw2'] = node_('tw2', tw, acpack.enc_tw2(tw))
+    # 家（種類が先。種類 2 は陸の奥の家：位置だけ）
+    tw3 = b''
+    for k in range(400):
+        x, y = R.randint(-23000, 23000), R.randint(-23000, 23000)
+        if k > 250:
+            x, y, w_, d_, r_ = acpack.tw3_inland(x, y)
+            tw3 += struct.pack('<hhBBbB', x, y, w_, d_, r_, 2)
+        else:
+            tw3 += struct.pack('<hhBBbB', x, y, R.randint(4, 255), R.randint(4, 120), R.randint(-126, 126), R.randint(0, 1))
+    D['tw3'] = node_('tw3', tw3, acpack.enc_tw3(tw3))
     # 地図記号（並べ替えたもの）
     pts = acpack.lu_order((R.randint(0, 4), R.randint(-2400, 2200), R.randint(-3300, 3300)) for _ in range(500))
     lu = b''.join(struct.pack('<Bhh', *q) for q in pts)
