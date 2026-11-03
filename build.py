@@ -206,14 +206,15 @@ def data():
     dem['d'] = ac('g', dem_far(dem, L('lake')), w=dem['w'])
     depth['d'] = ac('g', depth['d'], w=depth['w'])
     near['d'], near['idx'] = ac('n4', near['d'], bs=near['bs']), pack(near['idx'], 'raw')
-    # 家：画質ごとの数の上限（12-renderer.js の towns：低3000・中4500・高9000）までの順は岸に近い順のまま、
+    # 家：画質ごとの数の上限（12-renderer.js の towns：低3000・中4500・高は全部）までの順は岸に近い順のまま、
     # その段の中では地図の上の並び（256mの帯ごとに西から東・東から西と折り返す）に並べ替え、前の家との差で詰める。
     # 置かれる家の顔ぶれは変わらない（家ごとの屋根の色や高さの割り振りは入れ替わる）
     hb = base64.b64decode(towns['b'])
     recs = [hb[i * 8:(i + 1) * 8] for i in range(towns['n'])]
+    ni = towns.get('ni', towns['n'])
     def key(i):
         x, y = struct.unpack_from('<hh', recs[i])
-        tier = 0 if i < 3000 else 1 if i < 4500 else 2
+        tier = 0 if i < 3000 else 1 if i < 4500 else 2 if i < ni else 3  # 3：陸の奥の家（tools/towns.py）
         row = y // 128
         return (tier, row, x if row % 2 == 0 else -x)
     towns['b'] = ac('tw2', base64.b64encode(b''.join(recs[i] for i in sorted(range(len(recs)), key=key))).decode())

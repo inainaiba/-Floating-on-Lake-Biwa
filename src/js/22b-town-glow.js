@@ -10,22 +10,24 @@ G.towns = (() => {
   if (TOWNS && TOWNS.n) {
     const B = Uint8Array.from(atob(TOWNS.b), (ch) => ch.charCodeAt(0)),
       dv = new DataView(B.buffer);
+    const NI = TOWNS.ni ?? TOWNS.n; // ここまでが岸の帯の家、その後ろは陸の奥の家（tools/towns.py）
     for (let i = 0; i < TOWNS.n; i++) {
       const x = dv.getInt16(i * 8, true) * 2,
         y = dv.getInt16(i * 8 + 2, true) * 2;
-      P.push([x, y]);
+      P.push([x, y, i < NI ? 1 : 0]);
       seen.add(key(x, y));
     }
   }
-  for (const h of houses) if (!seen.has(key(h.x, h.y))) P.push([h.x, h.y]);
+  for (const h of houses) if (!seen.has(key(h.x, h.y))) P.push([h.x, h.y, 1]);
 
   // 家の集まる所（1km四方で8軒以上）：中心と広がり
   const C = 1000,
     cells = new Map();
-  for (const [x, y] of P) {
+  for (const [x, y, sh] of P) {
     const k = Math.floor(x / C) * 4096 + Math.floor(y / C);
-    const c = cells.get(k) || { n: 0, x: 0, y: 0, xx: 0, yy: 0 };
+    const c = cells.get(k) || { n: 0, ns: 0, x: 0, y: 0, xx: 0, yy: 0 };
     c.n++;
+    c.ns += sh; // 岸の帯の家の数（水上建築の着く浜を選ぶのに使う）
     c.x += x;
     c.y += y;
     c.xx += x * x;
@@ -37,7 +39,7 @@ G.towns = (() => {
     .map((c) => {
       const x = c.x / c.n,
         y = c.y / c.n;
-      return { x, y, n: c.n, r: Math.sqrt(Math.max(0, c.xx / c.n - x * x + c.yy / c.n - y * y)) };
+      return { x, y, n: c.n, ns: c.ns, r: Math.sqrt(Math.max(0, c.xx / c.n - x * x + c.yy / c.n - y * y)) };
     })
     .sort((a, b) => b.n - a.n);
 

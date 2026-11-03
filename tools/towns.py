@@ -8,6 +8,8 @@
 - 家は 位置・幅・奥行き・向き・種類（実寸m。幅・奥行きは実際の建物の外接長方形）。種類 0 普通の建物、1 堅ろうな建物
 - 道は道路の線を、幹線（幅5.5m以上）は選んだ家の300m以内、細い道（幅3m以上）は100m以内だけ残す
   （[幅の段, x1, y1, x2, y2, …]。座標は5m単位の整数。幅の段は地理院の rnkWidth）
+- 陸の奥（岸から900m〜2.2km。細かい地形 data/near.json の帯の内）にも、家だけをまばらに（ほかの家から GAP2 以上）置く。
+  岸の帯の家を先に並べ、奥の家はその後ろに続ける（'ni' が岸の帯の家の数）。奥の家には道を付けない
 - 南湖の街並み（47-city.js が描く、大津〜草津の岸）と島は除く
 - 使うには Python の mapbox-vector-tile と shapely が要る
 """
@@ -22,6 +24,7 @@ r = Path(__file__).resolve().parent.parent
 LAT0, LON0 = 35.25, 136.08
 KX, KY = 111320 * math.cos(math.radians(LAT0)), 110540
 Z, BAND, NEAR, GAP, ROAD_NEAR = 15, 900, 60, 62, 300
+BAND2, GAP2 = 2200, 140  # 陸の奥の帯と、そこでの家の間隔
 
 
 def tile_xy(lon, lat):
@@ -75,13 +78,14 @@ def main():
     lake = Polygon(L['outer'])
     city = ll_box(135.85, 34.95, 135.99, 35.035)  # 南湖の街並み（47-city.js）
     band = lake.buffer(BAND).difference(lake.buffer(NEAR)).difference(city)
-    minx, miny, maxx, maxy = band.bounds
+    band2 = lake.buffer(BAND2).difference(lake.buffer(BAND)).difference(city)
+    minx, miny, maxx, maxy = band2.bounds
     (x0, y0), (x1, y1) = tile_xy(LON0 + minx / KX, LAT0 - miny / KY), tile_xy(LON0 + maxx / KX, LAT0 - maxy / KY)
     jobs = []
     for x in range(int(min(x0, x1)), int(max(x0, x1)) + 1):
         for y in range(int(min(y0, y1)), int(max(y0, y1)) + 1):
             (ax, ay), (bx, by) = to_xy(x, y), to_xy(x + 1, y + 1)
-            if band.intersects(box(min(ax, bx), min(ay, by), max(ax, bx), max(ay, by))):
+            if band2.union(band).intersects(box(min(ax, bx), min(ay, by), max(ax, bx), max(ay, by))):
                 jobs.append((x, y))
     with cf.ThreadPoolExecutor(8) as ex:
         res = list(ex.map(lambda q: fetch(cache, *q), jobs))
@@ -89,29 +93,37 @@ def main():
     roads = [g for _, rd in res for g in rd]
     shore = lake.exterior
     # 岸に近い順に、間隔 GAP を保って選ぶ（同じ建物がタイルの境で二つに切れていても、近すぎるので一つになる）
-    cand = []
-    for poly, ft in blds:
-        c = poly.centroid
-        if not band.contains(c):
-            continue
-        cand.append((shore.distance(c), c.x, c.y, poly, ft))
-    cand.sort(key=lambda t: t[0])
-    cell, grid, keep = GAP, {}, []
-    for dist, x, y, poly, ft in cand:
-        i, j = int(x // cell), int(y // cell)
-        if any(math.hypot(q[0] - x, q[1] - y) < GAP for a in (-1, 0, 1) for b in (-1, 0, 1) for q in grid.get((i + a, j + b), [])):
-            continue
-        rr = poly.minimum_rotated_rectangle
-        cs = list(rr.exterior.coords) if rr.geom_type == 'Polygon' else [(x, y)] * 5
-        e1, e2 = math.hypot(cs[1][0] - cs[0][0], cs[1][1] - cs[0][1]), math.hypot(cs[2][0] - cs[1][0], cs[2][1] - cs[1][1])
-        rot = math.atan2(cs[1][1] - cs[0][1], cs[1][0] - cs[0][0])
-        if e2 > e1:
-            e1, e2, rot = e2, e1, rot + math.pi / 2
-        rot = (rot + math.pi / 2) % math.pi - math.pi / 2
-        keep.append([round(x), round(y), round(max(4, e1)), round(max(4, e2)), round(rot * 100), 1 if ft == 3102 else 0])
-        grid.setdefault((i, j), []).append((x, y))
+    cell, grid, keep = GAP2, {}, []
+
+    def pick(bd, gap):
+        cand = []
+        for poly, ft in blds:
+            c = poly.centroid
+            if not bd.contains(c):
+                continue
+            cand.append((shore.distance(c), c.x, c.y, poly, ft))
+        cand.sort(key=lambda t: t[0])
+        for dist, x, y, poly, ft in cand:
+            i, j = int(x // cell), int(y // cell)
+            if any(math.hypot(q[0] - x, q[1] - y) < gap for a in (-1, 0, 1) for b in (-1, 0, 1) for q in grid.get((i + a, j + b), [])):
+                continue
+            rr = poly.minimum_rotated_rectangle
+            cs = list(rr.exterior.coords) if rr.geom_type == 'Polygon' else [(x, y)] * 5
+            e1, e2 = math.hypot(cs[1][0] - cs[0][0], cs[1][1] - cs[0][1]), math.hypot(cs[2][0] - cs[1][0], cs[2][1] - cs[1][1])
+            rot = math.atan2(cs[1][1] - cs[0][1], cs[1][0] - cs[0][0])
+            if e2 > e1:
+                e1, e2, rot = e2, e1, rot + math.pi / 2
+            rot = (rot + math.pi / 2) % math.pi - math.pi / 2
+            keep.append([round(x), round(y), round(max(4, e1)), round(max(4, e2)), round(rot * 100), 1 if ft == 3102 else 0])
+            grid.setdefault((i, j), []).append((x, y))
+
+    # 岸に近い順に、間隔 GAP を保って選ぶ（同じ建物がタイルの境で二つに切れていても、近すぎるので一つになる）
+    pick(band, GAP)
+    ni = len(keep)
+    # 陸の奥：岸の帯の家の後ろに、間隔 GAP2 でまばらに
+    pick(band2, GAP2)
     # 道：選んだ家の近く（ROAD_NEAR m 以内）の部分だけ
-    pts = STRtree([Point(b[0], b[1]) for b in keep])
+    pts = STRtree([Point(b[0], b[1]) for b in keep[:ni]])  # 道は岸の帯の家の近くだけ
     near = band.intersection(Polygon(L['outer']).buffer(BAND))
     out_r = []
     for g, rank in roads:
@@ -133,9 +145,9 @@ def main():
         for k in range(0, len(pts_) // 2 - 1, 250):  # 点が多い道は分ける（点の数は1バイト）
             seg = pts_[k * 2:(k + 251) * 2]
             rb += struct.pack('<BB', rr[0], len(seg) // 2) + struct.pack('<%dh' % len(seg), *seg)
-    data = {'n': len(keep), 'b': base64.b64encode(hb).decode(), 'r': base64.b64encode(rb).decode()}
+    data = {'n': len(keep), 'ni': ni, 'b': base64.b64encode(hb).decode(), 'r': base64.b64encode(rb).decode()}
     (r / 'data/towns.json').write_text(json.dumps(data, separators=(',', ':')))
-    print(f'data/towns.json  建物 {len(blds)} から家 {len(keep)}（堅ろう {sum(b[5] for b in keep)}）・道 {len(out_r)}本  {(r / "data/towns.json").stat().st_size // 1024}KB')
+    print(f'data/towns.json  建物 {len(blds)} から家 {len(keep)}（岸の帯 {ni}・堅ろう {sum(b[5] for b in keep)}）・道 {len(out_r)}本  {(r / "data/towns.json").stat().st_size // 1024}KB')
 
 
 if __name__ == '__main__':
