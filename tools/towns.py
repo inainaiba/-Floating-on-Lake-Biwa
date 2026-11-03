@@ -9,6 +9,7 @@
 - 道は道路の線を、幹線（幅5.5m以上）は選んだ家の300m以内、細い道（幅3m以上）は100m以内だけ残す
   （[幅の段, x1, y1, x2, y2, …]。座標は5m単位の整数。幅の段は地理院の rnkWidth）
 - 陸の奥（岸から900m〜2.2km。細かい地形 data/near.json の帯の内）にも、家だけをまばらに（ほかの家から GAP2 以上）置く。
+  さらに奥（2.2〜4km）は、もっとまばらに（GAP3 以上）。
   岸の帯の家を先に並べ、奥の家はその後ろに続ける（'ni' が岸の帯の家の数）。奥の家には道を付けない
 - 南湖の街並み（47-city.js が描く、大津〜草津の岸）と島は除く
 - 使うには Python の mapbox-vector-tile と shapely が要る
@@ -25,6 +26,7 @@ LAT0, LON0 = 35.25, 136.08
 KX, KY = 111320 * math.cos(math.radians(LAT0)), 110540
 Z, BAND, NEAR, GAP, ROAD_NEAR = 15, 900, 60, 62, 300
 BAND2, GAP2 = 2200, 140  # 陸の奥の帯と、そこでの家の間隔
+BAND3, GAP3 = 4000, 220  # さらに奥（細かい地形の帯の外。200m間隔の地形に置く）は、もっとまばらに
 
 
 def tile_xy(lon, lat):
@@ -79,13 +81,14 @@ def main():
     city = ll_box(135.85, 34.95, 135.99, 35.035)  # 南湖の街並み（47-city.js）
     band = lake.buffer(BAND).difference(lake.buffer(NEAR)).difference(city)
     band2 = lake.buffer(BAND2).difference(lake.buffer(BAND)).difference(city)
-    minx, miny, maxx, maxy = band2.bounds
+    band3 = lake.buffer(BAND3).difference(lake.buffer(BAND2)).difference(city)
+    minx, miny, maxx, maxy = band3.bounds
     (x0, y0), (x1, y1) = tile_xy(LON0 + minx / KX, LAT0 - miny / KY), tile_xy(LON0 + maxx / KX, LAT0 - maxy / KY)
     jobs = []
     for x in range(int(min(x0, x1)), int(max(x0, x1)) + 1):
         for y in range(int(min(y0, y1)), int(max(y0, y1)) + 1):
             (ax, ay), (bx, by) = to_xy(x, y), to_xy(x + 1, y + 1)
-            if band2.union(band).intersects(box(min(ax, bx), min(ay, by), max(ax, bx), max(ay, by))):
+            if band3.union(band2).union(band).intersects(box(min(ax, bx), min(ay, by), max(ax, bx), max(ay, by))):
                 jobs.append((x, y))
     with cf.ThreadPoolExecutor(8) as ex:
         res = list(ex.map(lambda q: fetch(cache, *q), jobs))
@@ -93,7 +96,7 @@ def main():
     roads = [g for _, rd in res for g in rd]
     shore = lake.exterior
     # 岸に近い順に、間隔 GAP を保って選ぶ（同じ建物がタイルの境で二つに切れていても、近すぎるので一つになる）
-    cell, grid, keep = GAP2, {}, []
+    cell, grid, keep = GAP3, {}, []
 
     def pick(bd, gap):
         cand = []
@@ -122,6 +125,7 @@ def main():
     ni = len(keep)
     # 陸の奥：岸の帯の家の後ろに、間隔 GAP2 でまばらに
     pick(band2, GAP2)
+    pick(band3, GAP3)
     # 道：選んだ家の近く（ROAD_NEAR m 以内）の部分だけ
     pts = STRtree([Point(b[0], b[1]) for b in keep[:ni]])  # 道は岸の帯の家の近くだけ
     near = band.intersection(Polygon(L['outer']).buffer(BAND))
