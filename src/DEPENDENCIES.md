@@ -26,9 +26,9 @@
 - 作る：`KX`、`KY`、`LAT0`、`LON0`、`ll`
 
 ## 03b-meisho-sites.js
-- 作る：`MEISHO`、`meishoClear`
+- 作る：`MEISHO`、`OHASHI_EXT`、`OHASHI_HW`、`meishoClear`、`ohashiClear`、`ohashiLine`
 - 使う：
-  - 01-settings.js：`S`
+  - 01-settings.js：`LAKE`、`S`
   - 03-coords.js：`ll`
 
 ## 04-clock.js
@@ -726,6 +726,19 @@
   - 14-water.js：`water`、`waterU`、`waveH`
   - 16-terrain.js：`reedPts`
 
+## 45b-ohashi.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`、`mergeStatic`、`onFrame`、`placeLog`
+  - 01-settings.js：`LAKE`、`S`
+  - 06-inner-lakes.js：`inLake`
+  - 12-renderer.js：`scene`
+  - 14-water.js：`water`
+  - 16-terrain.js：`reedPts`
+  - 19-boats.js：`ROUTES`
+  - 20-villages-layout.js：`landY`、`streets`
+  - 29-controls.js：`isFar`
+
 ## 46-shore-life.js
 - 作る：（なし）
 - 使う：
@@ -950,8 +963,10 @@
 - `G.nearPatch`：16-terrain.js
 - `G.netTx2`：18-buildings.js
 - `G.noRefl`：52-frame-render.js
+- `G.ohashi`：45b-ohashi.js
 - `G.okishima`：41-islands.js
 - `G.paused`：53-frame.js
+- `G.piers`：45b-ohashi.js
 - `G.plTx`：18-buildings.js
 - `G.pm`：29-controls.js
 - `G.prof`：53-frame.js

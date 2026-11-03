@@ -99,13 +99,19 @@ function moveHouse(dt, c, W) {
       ((B.x - nx) * (b - ny) - (B.y - ny) * (a - nx)) * ((B.x - nx) * (d - ny) - (B.y - ny) * (c2 - nx)) < 0
     );
   });
+  // 琵琶湖大橋の橋脚（45b-ohashi.js）：家の幅ぶん手前で止まる。離れる向きには動ける
+  const pierHit = (G.piers || []).some(([a, b]) => {
+    const dn = Math.hypot(nx - a, ny - b);
+    return dn < 32 && dn < Math.hypot(B.x - a, B.y - b);
+  });
   const blocked =
     crossW ||
+    pierHit ||
     !inLake(nx, ny) ||
     depth(nx, ny) + LEVEL[c.month] / 100 < 0.3 ||
     (!BP.reeds && inReeds(nx, ny) && !inReeds(B.x, B.y)) ||
     (!BP.reeds && inInner(nx, ny) && !inMain(nx, ny));
-  if (blocked && !crossW) {
+  if (blocked && !crossW && !pierHit) {
     const tx = B.x + (vx * SPEED * dt) / S,
       ty = B.y;
     const ok1 = inLake(tx, ty) && depth(tx, ty) > 0.3,
