@@ -218,6 +218,37 @@ def enc_pl(polys):
     return e.done()
 
 
+def _imul(a, b):
+    return (a * b) & 0xFFFFFFFF
+
+
+def tw3_inland(x, y):
+    """陸の奥の家（種類 2）：位置を10m単位（x/2, y/2 の値で5の倍数）にし、幅・奥行き・向きは位置から決める（読む側 00a-data.js も同じ式）"""
+    x, y = 5 * round(x / 5), 5 * round(y / 5)
+    h = (_imul(x, 0x9E3779B1) ^ _imul(y, 0x85EBCA77)) & 0xFFFFFFFF
+    return x, y, 8 + (h & 7), 6 + ((h >> 3) % 5), ((h >> 8) & 255) - 128
+
+
+def enc_tw3(b):
+    """家（地図の上の並び順）：種類を先に書く。種類 2（陸の奥の家）は位置だけ（10m単位の差）、ほかは位置の差・幅・奥行き・向き"""
+    e, P = Enc(), [2048] * (272 * 256)
+    px = py = 0
+    for o in range(0, len(b), 8):
+        x, y, w, d, r, t = struct.unpack_from('<hhBBBB', b, o)
+        e.sym(P, 0, 8, t, 5)
+        if t == 2:
+            enc_int(e, P, 1, x // 5 - px // 5)
+            enc_int(e, P, 4, y // 5 - py // 5)
+        else:
+            enc_int(e, P, 7, x - px)
+            enc_int(e, P, 10, y - py)
+            e.sym(P, (13 + t) * 256, 8, w, 5)
+            e.sym(P, (15 + w) * 256, 8, d, 5)
+            e.sym(P, 271 * 256, 8, r, 5)
+        px, py = x, y
+    return e.done()
+
+
 def enc_tw2(b):
     """家（地図の上の並び順に並べ替えたもの）：位置は前の家との差（enc_int）、幅は種類から、奥行きは幅から見当をつける"""
     e, P = Enc(), [2048] * (520 * 256)

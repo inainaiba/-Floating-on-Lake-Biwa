@@ -127,6 +127,8 @@ def ac(m, s, **kw):
         z = acpack.enc_tw(b)
     elif m == 'tw2':
         z = acpack.enc_tw2(b)
+    elif m == 'tw3':
+        z = acpack.enc_tw3(b)
     elif m == 'lu':
         z = acpack.enc_lu(b)
     out['$a'] = base64.b64encode(z).decode()
@@ -212,12 +214,17 @@ def data():
     hb = base64.b64decode(towns['b'])
     recs = [hb[i * 8:(i + 1) * 8] for i in range(towns['n'])]
     ni = towns.get('ni', towns['n'])
+    # 陸の奥の家（ni 番より後ろ。遠くからしか見えない）は、位置を10m単位にし、幅・奥行き・向きは位置から決める（種類 2。tools/acpack.py の tw3_inland）
+    for i in range(ni, len(recs)):
+        x, y = struct.unpack_from('<hh', recs[i])
+        x, y, w_, d_, r_ = acpack.tw3_inland(x, y)
+        recs[i] = struct.pack('<hhBBbB', x, y, w_, d_, r_, 2)
     def key(i):
         x, y = struct.unpack_from('<hh', recs[i])
         tier = 0 if i < 3000 else 1 if i < 4500 else 2 if i < ni else 3  # 3：陸の奥の家（tools/towns.py）
         row = y // 128
         return (tier, row, x if row % 2 == 0 else -x)
-    towns['b'] = ac('tw2', base64.b64encode(b''.join(recs[i] for i in sorted(range(len(recs)), key=key))).decode())
+    towns['b'] = ac('tw3', base64.b64encode(b''.join(recs[i] for i in sorted(range(len(recs)), key=key))).decode())
     # 道：座標を5m単位から10m単位に（この縮尺では見分けられない。読む側は20-villages-layout.js で ×10）
     rb, o, out = base64.b64decode(towns['r']), 0, bytearray()
     while o < len(rb):
@@ -283,7 +290,14 @@ def bundle(script):
         raise SystemExit('コードをまとめる手順（esbuild）で誤りがありました')
     # まとめたコードの中で改行があるのはテンプレート文字列（主にシェーダー）の中だけ。行頭の字下げは要らないので除く
     #（GLSL の # で始まる指示は行頭にあればよく、three.js のシェーダーの部品の結合・置き換えも字下げに頼らない）
-    return re.sub(r'\n[ \t]+', '\n', res.stdout)
+    out = re.sub(r'\n[ \t]+', '\n', res.stdout)
+    # シェーダーをさらに縮め、three.js の使わない材質のシェーダーを外す（tools/glslmin.py。描画は変わらない）
+    sys.path.insert(0, str(r / 'tools'))
+    import glslmin
+    if not os.environ.get('PROFILE'):
+        out = glslmin.strip_unused(out)
+        out = glslmin.minify_js(out)[0]
+    return out
 
 
 def build():

@@ -137,7 +137,7 @@ def main():
                 continue
             if not len(pts.query(part, predicate='dwithin', distance=ROAD_NEAR if rank >= 2 else 100)):
                 continue
-            s = part.simplify(10)
+            s = part.simplify(10 if rank >= 2 else 18)  # 細い道は細かな曲がりを省く（この縮尺では見分けられない）
             out_r.append([rank] + [v for q in s.coords for v in (round(q[0] / 5), round(q[1] / 5))])
     # 書き出し：大きくなるので詰めた形（base64）にする。読み方は 20-villages-layout.js
     #   家 b：1軒8バイト（x/2, y/2 は int16、幅・奥行き m は uint8、向きは int8 で1/40ラジアン、種類 uint8）
