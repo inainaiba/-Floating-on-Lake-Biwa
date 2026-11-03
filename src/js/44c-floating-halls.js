@@ -37,7 +37,7 @@
       .filter(([lo, la]) => {
         const [x, y] = shoreSnap(...ll(lo, la));
         let n = 0;
-        for (const t of G.towns ? G.towns.list : []) if (Math.hypot(t.x - x, t.y - y) < 2000) n += t.n;
+        for (const t of G.towns ? G.towns.list : []) if (t.ns >= 8 && Math.hypot(t.x - x, t.y - y) < 2000) n += t.ns; // 岸の帯の家だけ数える
         return n >= 120;
       })
       .map(([lo, la]) => spot(lo, la, off));
