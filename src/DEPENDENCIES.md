@@ -143,9 +143,9 @@
   - 16-terrain.js：`NEAR_U`、`VEX`、`nearAt`、`reedU`、`terrGrid`、`terrHD`
 
 ## 18-buildings.js
-- 作る：`BODY_COLORS`、`BP`、`BUILDINGS`、`CUST`、`LIGHT_COLORS`、`MAT`、`WOODTX`、`bbox`、`box`、`buildHouse`、`gable`、`glassMats`、`glowBox`、`house`、`hullShape`、`inReeds`、`posts`、`reedMask`、`ring`、`ringPts`、`rod`、`wetPatch`、`wetU`
+- 作る：`BODY_COLORS`、`BP`、`BUILDINGS`、`CUST`、`HOUSE_SEASON`、`LIGHT_COLORS`、`MAT`、`WOODTX`、`bbox`、`box`、`buildHouse`、`gable`、`glassMats`、`glowBox`、`house`、`hullShape`、`inReeds`、`posts`、`reedMask`、`ring`、`ringPts`、`rod`、`seasonal`、`wetPatch`、`wetU`
 - 使う：
-  - 00-head.js：`G`、`mergeStatic`
+  - 00-head.js：`G`、`mergeStatic`、`onFrame`
   - 01-settings.js：`Q`
   - 12-renderer.js：`scene`
   - 16-terrain.js：`reedPts`
@@ -965,7 +965,6 @@
 - `G.morning`：49-frame-sky-light.js
 - `G.musSeats`：44c-floating-halls.js
 - `G.nearPatch`：16-terrain.js
-- `G.netTx2`：18-buildings.js
 - `G.noRefl`：52-frame-render.js
 - `G.noRender`：53-frame.js
 - `G.ohashi`：45b-ohashi.js
@@ -977,6 +976,7 @@
 - `G.pm`：29-controls.js
 - `G.prof`：53-frame.js
 - `G.rc`：52-frame-render.js
+- `G.reedBundleTx`：18-buildings.js
 - `G.resUp`：53-frame.js
 - `G.resetSky`：49-frame-sky-light.js
 - `G.resetTrail`：50-frame-float.js
