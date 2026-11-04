@@ -42,7 +42,7 @@ body:not(.lake) #snd{display:none}
 #joy{left:18px;bottom:calc(20px + env(safe-area-inset-bottom));width:76px;height:76px;display:none;touch-action:none;opacity:.75}
 #joy i{position:absolute;left:50%;top:50%;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:rgba(255,255,255,.35)}
 @media (pointer:coarse){#joy{display:block}}
-#ab{position:fixed;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom));text-align:center;color:rgba(255,255,255,.7);font:300 11px "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;letter-spacing:.2em;cursor:pointer;z-index:5}body.lake #ab{display:none}#about{position:fixed;inset:0;z-index:20;display:none;place-items:center;background:rgba(10,14,24,.55);padding:20px;box-sizing:border-box}#about.on{display:grid}#about .in{max-width:520px;background:#f6f5f0;color:#1b1b1b;padding:26px 24px;font:14px/1.9 "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif}#about h2{margin:0 0 8px;font-weight:300;letter-spacing:.2em}#about h3{display:none}#about .src{margin-top:22px;font-size:10.5px;line-height:1.8;opacity:.55}#about p{margin:0 0 6px;font-size:12.5px}#about a{color:#1b1b1b}#about .cl{text-align:right;margin-top:14px;cursor:pointer;letter-spacing:.2em;opacity:.7}
+#ab{position:fixed;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom));text-align:center;color:rgba(255,255,255,.7);font:300 11px "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;letter-spacing:.2em;cursor:pointer;z-index:5}body.lake #ab{display:none}#about{position:fixed;inset:0;z-index:20;display:none;place-items:center;background:rgba(10,14,24,.55);padding:20px;box-sizing:border-box}#about.on{display:grid}#about .in{max-width:340px;background:#f6f5f0;color:#1b1b1b;padding:24px 24px 16px;font:14px/1.9 "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif}#about h2{margin:0 0 8px;font-weight:300;letter-spacing:.2em}#about h3{display:none}#about .src{margin-top:22px;font-size:10.5px;line-height:1.8;opacity:.55}#about p{margin:0 0 6px;font-size:12.5px}#about a{color:#1b1b1b}#about .cl{text-align:right;margin-top:14px;cursor:pointer;letter-spacing:.2em;opacity:.7}
 #ld{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;color:rgba(255,255,255,.8);font:300 15px "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;letter-spacing:.3em;animation:ldp 2.4s ease-in-out infinite}#ld span{display:block;margin-top:8px;font-size:10px;letter-spacing:.2em;opacity:.7}@keyframes ldp{50%{opacity:.35}}
 #veil{position:fixed;inset:0;pointer-events:none;transition:opacity 2s ease;background:linear-gradient(180deg,#0a1220 0%,#1b2c40 38%,#3a4d60 49.6%,#9fb0bc 50%,#2a3a48 50.4%,#141f2a 70%,#070b10 100%)}
 #veil:before{content:"";position:absolute;left:0;right:0;top:50.4%;bottom:0;background:repeating-linear-gradient(180deg,rgba(190,210,225,.07) 0 1px,transparent 1px 9px);animation:ldw 6s linear infinite}
@@ -75,16 +75,15 @@ body.far #rest{display:none}
 /* 設定の画面（31b-settings.js） */
 #cfgp{position:fixed;inset:0;z-index:21;display:none;place-items:center;background:rgba(10,14,24,.5);padding:20px;box-sizing:border-box}
 #cfgp.on{display:grid}
-#cfgp .in{width:min(360px,100%);background:#f6f5f0;color:#1b1b1b;padding:22px 22px 16px;font:13px/1.7 "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;box-sizing:border-box}
-#cfgp h2{margin:0 0 12px;font-weight:300;letter-spacing:.2em;font-size:16px}
-#cfgp .it{margin:12px 0}
-#cfgp .lb{font-size:12px;letter-spacing:.1em;opacity:.75;margin-bottom:6px}
-#cfgp .lb small{display:block;font-size:10px;opacity:.8}
-#cfgp .sg{display:flex;flex-wrap:wrap;gap:6px}
-#cfgp .sg b{font-weight:400;border:1px solid rgba(27,27,27,.3);border-radius:14px;padding:3px 11px;cursor:pointer;font-size:12px}
-#cfgp .sg b.on{background:#1b1b1b;color:#f6f5f0;border-color:#1b1b1b}
-#cfgp input[type=range]{width:100%;accent-color:#1b1b1b}
-#cfgp .cl{text-align:right;margin-top:10px;cursor:pointer;letter-spacing:.2em;opacity:.7}
+#cfgp .in{width:min(320px,100%);background:#f6f5f0;color:#1b1b1b;padding:20px 20px 12px;font:13px/1.6 "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;box-sizing:border-box}
+#cfgp h2{margin:0 0 10px;font-weight:300;letter-spacing:.3em;font-size:14px;opacity:.8}
+#cfgp .it{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid rgba(27,27,27,.1)}
+#cfgp .lb{font-size:12px;letter-spacing:.1em;opacity:.7;white-space:nowrap}
+#cfgp .sg{display:flex;gap:2px}
+#cfgp .sg b{font-weight:400;padding:2px 8px;cursor:pointer;font-size:12px;border-radius:10px;opacity:.55}
+#cfgp .sg b.on{background:#1b1b1b;color:#f6f5f0;opacity:1}
+#cfgp input[type=range]{flex:1;max-width:150px;accent-color:#1b1b1b}
+#cfgp .cl{text-align:right;margin-top:6px;padding-top:8px;border-top:1px solid rgba(27,27,27,.1);cursor:pointer;letter-spacing:.2em;font-size:12px;opacity:.6}
 /* 文字の表示：日本語だけ／英語だけ（英語だけのときは、日本語の文字を大きさ0にして、英語の行を本文の大きさにする） */
 body.lang-ja :is(#title .sub,#title .tap,#sel .guide,#hint,#ld)>span{display:none}
 body.lang-en :is(#title .sub,#title .tap,#sel .guide,#hint,#ld){font-size:0!important}
@@ -101,7 +100,8 @@ body.lang-en #ld a{font-size:12px}
 #sel .golab{font-size:11px;letter-spacing:.3em;opacity:.8;margin-bottom:-6px}
 .ping{animation:ping 1.6s ease-out infinite}
 @keyframes ping{0%{box-shadow:0 0 0 0 rgba(255,255,255,.75)}100%{box-shadow:0 0 0 16px rgba(255,255,255,0)}}
-#about .how{font-size:12px;line-height:2;margin-top:12px;opacity:.85}
+#about .by{font-size:12px;letter-spacing:.25em;margin-top:14px;opacity:.85}
+#about .how{font-size:12px;line-height:1.9;margin-top:16px;opacity:.7}
 #about .replay{font-size:12px;margin-top:10px;text-decoration:underline;cursor:pointer;opacity:.8}
 </style>
 </head>
@@ -132,7 +132,7 @@ body.lang-en #ld a{font-size:12px}
 <div id="shot"><img alt=""></div>
 <div id="hint">ドラッグで見回す・ピンチで寄る<br><span style="font-size:11px;opacity:.8">Drag to look, pinch to zoom</span></div>
 </div>
-<div id="ab" data-en="About this work">この作品について</div><div id="about"><div class="in"><h2>Floating</h2><p>琵琶湖に、建築を浮かべる。</p><p class="how">見回す：ドラッグ　寄る：ピンチ・ホイール<br>舵：左下の円・矢印キー（離すとまた漂う）<br>行き先：上の地図のボタンから、地図をタップ<br>写真：上のカメラ（いま見ている景色を保存）<br>鑑賞：上の目のボタン（案内を消してゆっくり漂う。触れると戻る）<br>映像：赤いブイに近づいてタップ</p><p class="replay" id="replayHint">案内をもう一度見る</p><p class="src">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a><br><a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a> ／ <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></p><p class="cl">閉じる</p></div></div>
+<div id="ab" data-en="About this work">この作品について</div><div id="about"><div class="in"><h2>Floating</h2><p data-en="Floating architecture on Lake Biwa.">琵琶湖に、建築を浮かべる。</p><p class="by"><span data-en="by">制作</span>　水土空間</p><p class="how" data-en="Drag to look around, steer with the circle at the lower left.">ドラッグで見回し、左下の円で舵をとる。</p><p class="replay" id="replayHint" data-en="Show the guide again">案内をもう一度見る</p><p class="src">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> ／ <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a> ／ <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></p><p class="cl" data-en="Close">閉じる</p></div></div>
 <div id="veil"><div id="ld">湖を描いています<span>Drawing the lake</span><i id="ldb"></i></div></div>
 <script>
 // 読み込みの進み具合：組み立て（build.py）が、部品の間に await __ld(進み具合) を入れる。
@@ -325,7 +325,7 @@ window.__data = fetch(U("d-388489d03a.json")).then((r) => {
 });
 let ok = false;
 try {
-  const r = await fetch(U("c-4a84f9248a.lz"));
+  const r = await fetch(U("c-b32d82fd24.lz"));
   if (!r.ok) throw new Error("code " + r.status);
   const src = new TextDecoder().decode(lzmaDecode(new Uint8Array(await r.arrayBuffer())));
   await import(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
@@ -333,7 +333,7 @@ try {
 } catch (e) {
   if (window.__started) throw e; // 動き出してからの誤りは、そのまま知らせる
 }
-if (!ok) await import(U("c-4a84f9248a.js").href);
+if (!ok) await import(U("c-b32d82fd24.js").href);
 
 </script>
 </body>
