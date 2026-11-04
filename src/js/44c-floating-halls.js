@@ -1115,6 +1115,7 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     scene.add(d);
     ducks.push(d);
   }
+  G.humor = { bird, ducks, perch: () => perchK }; // 確認用
   function humorUpdate(t, c, h) {
     // 屋根の鳥：作品の一日ごとに、どの建築にとまるか・とまるかどうかを決める。昼（7〜16時）だけ
     const day = Math.floor(c.t / DAY),

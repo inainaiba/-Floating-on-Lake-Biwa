@@ -948,6 +948,7 @@
 - `G.hallSpot`：44c-floating-halls.js
 - `G.halls`：44c-floating-halls.js
 - `G.harb`：25-harbors.js
+- `G.humor`：44c-floating-halls.js
 - `G.innerMeshes`：16-terrain.js
 - `G.isl`：41-islands.js
 - `G.kaizu`：39-kaizu.js
