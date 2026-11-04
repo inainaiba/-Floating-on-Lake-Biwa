@@ -1,5 +1,8 @@
-/* ---------- 南湖の街（大津・草津の湖岸）：現代の建物を5種類で。タワーマンション・中層マンション（横に続くバルコニー）・
-   ガラス張りのオフィスやホテル・窓の並ぶ古いビル・低く横に長い商業施設。湖岸の目印に、びわ湖大津プリンスホテル（38階）。
+/* ---------- 南湖の街（大津・草津の湖岸）：現代の建物を12種類で。タワーマンション・中層マンション（横に続くバルコニー／縦の格子）・
+   ガラス張りのオフィス（縦の方立／横の帯窓）・窓の並ぶ古いビル（白い壁／煉瓦色のタイル）・低く横に長い商業施設・
+   低層のアパート・細い雑居ビル（色とりどりの看板の帯）・ホテル・学校や役所（横に長い白い建物）。
+   形も一様にしない：高い建物の一部は上の階を細くし（段々）、塔は低い基壇の上に立てる。向きも少しずつずらす。
+   湖岸の目印に、びわ湖大津プリンスホテル（38階）。
    建物は実物大。窓の模様は建物の大きさに合わせて繰り返す（階の高さと柱の間隔をそろえる）。夜は種類ごとに窓が灯る ---------- */
 G.city = (() => {
   const KX_ = 111320 * Math.cos((35.25 * Math.PI) / 180),
@@ -12,12 +15,23 @@ G.city = (() => {
     office: { fl: 4.0, bay: 3.2, w: [16, 30], d: [14, 24], h: [20, 54], cols: [0xa9b8c4, 0x9fb0bb, 0xb9c3c9, 0x8fa2ad] },
     old: { fl: 3.5, bay: 3.0, w: [14, 26], d: [10, 18], h: [10, 30], cols: [0xe8e4dc, 0xd9d2c4, 0xcdbfae, 0xc9c9c4, 0xb59a84] },
     mall: { fl: 5.0, bay: 6.0, w: [40, 70], d: [28, 46], h: [9, 16], cols: [0xe6e2da, 0xd4d0c8, 0xc8c2b6] },
+    mansion2: { fl: 3.0, bay: 3.2, w: [20, 34], d: [11, 15], h: [18, 36], cols: [0xd9cbb6, 0xc8b59c, 0xe2dccf, 0xb8a58c] },
+    office2: { fl: 3.8, bay: 4.0, w: [18, 32], d: [16, 26], h: [16, 40], cols: [0xe4e2dc, 0xcfd2d2, 0xb7bcbc] },
+    old2: { fl: 3.4, bay: 3.0, w: [12, 22], d: [10, 16], h: [10, 24], cols: [0xa8664e, 0x9a5c48, 0xb47a5e, 0x8f6a58] },
+    apt: { fl: 2.9, bay: 3.4, w: [14, 24], d: [8, 11], h: [6, 12], cols: [0xf0ece2, 0xe2d6c0, 0xd6dcd8, 0xe8dccc, 0xcfd6dc] },
+    shop: { fl: 3.3, bay: 2.8, w: [8, 13], d: [10, 16], h: [10, 24], cols: [0xe9e4da, 0xd8cfc2, 0xc9cdd0, 0xe4d2b8, 0xbfc6c0] },
+    hotel: { fl: 3.2, bay: 3.4, w: [20, 34], d: [12, 18], h: [24, 44], cols: [0x9e8a78, 0xb8a894, 0x8a7e72, 0xd4ccbe] },
+    school: { fl: 3.8, bay: 3.6, w: [34, 52], d: [12, 15], h: [11, 15], cols: [0xf2f0ea, 0xe8e6de] },
   };
   const pick = (t) => {
     const r = R();
     // 大津・草津の湖岸は中層のマンションと古いビルが多く、高い塔はところどころ
-    if (t === 0) return r < 0.08 ? "tower" : r < 0.48 ? "mansion" : r < 0.62 ? "office" : r < 0.86 ? "old" : "mall";
-    return r < 0.05 ? "tower" : r < 0.45 ? "mansion" : r < 0.57 ? "office" : r < 0.88 ? "old" : "mall";
+    // 湖岸の一列目は中層・高層が多く、奥ほど低いアパート・雑居ビル・学校が混じる
+    const P0 = [["tower", 0.07], ["mansion", 0.2], ["mansion2", 0.14], ["office", 0.08], ["office2", 0.07], ["hotel", 0.07], ["old", 0.12], ["old2", 0.07], ["shop", 0.06], ["mall", 0.08], ["apt", 0.04]],
+      P1 = [["tower", 0.04], ["mansion", 0.14], ["mansion2", 0.1], ["office", 0.05], ["office2", 0.06], ["hotel", 0.03], ["old", 0.13], ["old2", 0.1], ["shop", 0.12], ["mall", 0.07], ["apt", 0.12], ["school", 0.04]];
+    let acc = 0;
+    for (const [k, w] of t === 0 ? P0 : P1) if (r < (acc += w)) return k;
+    return "old";
   };
   const span = ([a, b]) => a + R() * (b - a);
   // 建物どうしが重ならないか（作品の中の大きさで、中心の間隔が半径の和の8割以上）
@@ -64,9 +78,24 @@ G.city = (() => {
           bw = span(T.w),
           bd = span(T.d);
         // 建物の角まで陸に収まり、ほかの建物と重ならない所だけ
-        if (!onLand(x, y, bw, bd) || !free(x, y, Math.hypot(bw, bd) / 2)) continue;
-        const h = span(T.h) * (ty === "tower" || ty === "office" ? (k ? 1 : 0.85) : 1);
-        bl.push([x, y, bw, bd, Math.round(h / T.fl) * T.fl, Math.atan2(y2 - y1, x2 - x1) + (R() < 0.3 ? Math.PI / 2 : 0), ty, T.cols[Math.floor(R() * T.cols.length)]]);
+        if (!onLand(x, y, bw * (ty === "tower" ? 1.7 : 1), bd * (ty === "tower" ? 1.6 : 1)) || !free(x, y, Math.hypot(bw, bd) / 2)) continue;
+        const h = Math.round((span(T.h) * (ty === "tower" || ty === "office" ? (k ? 1 : 0.85) : 1)) / T.fl) * T.fl,
+          rot = Math.atan2(y2 - y1, x2 - x1) + (R() < 0.3 ? Math.PI / 2 : 0) + (R() - 0.5) * 0.24, // 向きを少しずつずらす
+          col = T.cols[Math.floor(R() * T.cols.length)];
+        if (ty === "tower") {
+          // 塔は、低く広い基壇（商業施設の形）の上に
+          const hb = 2 * TYPES.mall.fl;
+          bl.push([x, y, bw * 1.7, bd * 1.6, hb, rot, "mall", TYPES.mall.cols[Math.floor(R() * 3)], 0, true]);
+          bl.push([x, y, bw, bd, h, rot, ty, col, hb]);
+        } else if ((ty === "mansion" || ty === "mansion2" || ty === "office" || ty === "office2" || ty === "hotel") && h > 20 && R() < 0.4) {
+          // 上の階を細くした段々の形：下の部分と、少し細い上の部分（片側に寄せる）
+          const h1 = Math.round((h * (0.55 + R() * 0.2)) / T.fl) * T.fl,
+            sh = (R() < 0.5 ? -1 : 1) * bw * 0.15,
+            cr = Math.cos(rot),
+            sr = Math.sin(rot);
+          bl.push([x, y, bw, bd, h1, rot, ty, col, 0]);
+          bl.push([x + (sh * cr) / S, y + (sh * sr) / S, bw * 0.68, bd * (0.75 + R() * 0.2), h - h1, rot, ty, col, h1, true]);
+        } else bl.push([x, y, bw, bd, h, rot, ty, col, 0]);
       }
     }
   }
@@ -84,7 +113,87 @@ G.city = (() => {
           const x0 = b * 16,
             on = Rr() < (ty === "office" ? 0.55 : 0.4),
             warm = ty === "office" ? "#dfe8f0" : Rr() < 0.75 ? "#ffd9a0" : "#fff1d8";
-          if (ty === "mansion" || ty === "tower") {
+          if (ty === "mansion2") {
+            // 縦の格子の手すりと、住戸ごとの奥まった窓（色の濃い壁と、明るい格子）
+            if (lit) {
+              if (on) (L(warm), g.fillRect(x0 + 3, y0 + 5, 10, 16));
+            } else {
+              L("#4e555c");
+              g.fillRect(x0 + 1, y0 + 4, 14, 20);
+              L("#e8e4dc");
+              for (let k = 0; k < 14; k += 2) g.fillRect(x0 + 1 + k, y0 + 18, 1, 8);
+              g.fillRect(x0 + 1, y0 + 17, 14, 1);
+            }
+          } else if (ty === "office2") {
+            // 横に続く帯窓：各階に1本の長い窓と、白い腰壁
+            if (lit) {
+              if (on) (L(warm), g.fillRect(x0, y0 + 8, 16, 12));
+            } else {
+              L(Rr() < 0.5 ? "#5f7686" : "#6a8090");
+              g.fillRect(x0, y0 + 8, 16, 12);
+              L("#9aa6ac");
+              g.fillRect(x0 + 15, y0 + 8, 1, 12);
+            }
+          } else if (ty === "old2") {
+            // 煉瓦色のタイルの壁：目地の細い線と、白い枠の縦長の窓
+            if (lit) {
+              if (on) (L(warm), g.fillRect(x0 + 5, y0 + 7, 6, 15));
+            } else {
+              L("rgba(60,30,20,.18)");
+              for (let yy = 0; yy < 32; yy += 3) g.fillRect(x0, y0 + yy, 16, 1);
+              L("#e9e4da");
+              g.fillRect(x0 + 4, y0 + 6, 8, 17);
+              L("#4f5a62");
+              g.fillRect(x0 + 5, y0 + 7, 6, 15);
+            }
+          } else if (ty === "apt") {
+            // 低層のアパート：外の廊下と玄関の扉、小さな窓、物干しの手すり
+            if (lit) {
+              if (on) (L(warm), g.fillRect(x0 + 9, y0 + 9, 5, 6));
+              if (Rr() < 0.5) (L("#fff4dc"), g.fillRect(x0 + 1, y0 + 22, 14, 2)); // 廊下の灯り
+            } else {
+              L("#7a5a44");
+              g.fillRect(x0 + 2, y0 + 6, 5, 16);
+              L("#6a747c");
+              g.fillRect(x0 + 9, y0 + 9, 5, 6);
+              L("#bfc4c4");
+              g.fillRect(x0, y0 + 24, 16, 2);
+            }
+          } else if (ty === "shop") {
+            // 細い雑居ビル：一階は店先、上の階は窓と、色とりどりの看板の帯（字は書かない）
+            if (lit) {
+              if (f === 0) (L("#ffe8c0"), g.fillRect(x0 + 1, y0 + 6, 14, 18));
+              else if (on) (L(warm), g.fillRect(x0 + 3, y0 + 8, 10, 12));
+              if (Rr() < 0.4) (L(["#ffb070", "#a0d8ff", "#ff9aa8", "#c8ff9a"][Math.floor(Rr() * 4)]), g.fillRect(x0 + 1, y0 + 24, 14, 4));
+            } else {
+              if (f === 0) (L("#5c6a74"), g.fillRect(x0 + 1, y0 + 6, 14, 18));
+              else (L("#66727c"), g.fillRect(x0 + 3, y0 + 8, 10, 12));
+              L(["#c9563f", "#e0b04a", "#4a7aa8", "#5f9a5e", "#e9e2cf", "#8a5aa6"][Math.floor(Rr() * 6)]);
+              g.fillRect(x0 + 1, y0 + 24, 14, 4);
+            }
+          } else if (ty === "hotel") {
+            // ホテル：深い窓の列と、細い柱型
+            if (lit) {
+              if (on || Rr() < 0.25) (L("#ffe0b0"), g.fillRect(x0 + 3, y0 + 7, 10, 16));
+            } else {
+              L("#3e464c");
+              g.fillRect(x0 + 3, y0 + 7, 10, 16);
+              L("rgba(255,255,255,.25)");
+              g.fillRect(x0, y0, 2, 32);
+            }
+          } else if (ty === "school") {
+            // 学校や役所：横に長い窓の帯と、白い庇
+            if (lit) {
+              if (f === 1 && Rr() < 0.25) (L("#e8f0f4"), g.fillRect(x0, y0 + 9, 16, 13));
+            } else {
+              L("#6f8090");
+              g.fillRect(x0, y0 + 9, 16, 13);
+              L("#ffffff");
+              g.fillRect(x0, y0 + 23, 16, 3);
+              L("#d8dcdc");
+              g.fillRect(x0 + 15, y0 + 9, 1, 13);
+            }
+          } else if (ty === "mansion" || ty === "tower") {
             // 横に続くバルコニー：手すり（明るい帯）の上に、奥まった窓（暗い帯）。住戸の境に細い仕切り
             if (lit) {
               if (on) (L(warm), g.fillRect(x0 + 2, y0 + 6, 12, 14));
@@ -169,8 +278,9 @@ vMapUv=cu_;vEmissiveMapUv=cu_;`,
     m.customProgramCacheKey = () => "city-" + ty;
     mats.push(m);
     const I = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), m, list.length);
-    list.forEach(([x, y, w, d, h, r, , col], i) => {
-      M.compose(V.set(x * S, landY(x, y) - 0.3, y * S), Qq.setFromEuler(E.set(0, -r, 0)), Sc.set(w, h + 0.3, d));
+    list.forEach(([x, y, w, d, h, r, , col, y0 = 0], i) => {
+      // y0：段々の上の部分・基壇の上の塔は、下の部分の高さから
+      M.compose(V.set(x * S, landY(x, y) - 0.3 + y0, y * S), Qq.setFromEuler(E.set(0, -r, 0)), Sc.set(w, h + (y0 ? 0 : 0.3), d));
       I.setMatrixAt(i, M);
       I.setColorAt(i, c.setHex(col).multiplyScalar(0.92 + R() * 0.12));
     });
@@ -180,8 +290,9 @@ vMapUv=cu_;vEmissiveMapUv=cu_;`,
   // 屋上の設備（機械室・塔屋）：高い建物の屋上に小さな箱を1〜2つ
   {
     const tops = [];
-    for (const [x, y, w, d, h, r, ty] of bl) {
-      if (ty === "prince" || ty === "mall" || h < 18) continue;
+    for (const [x, y, w, d, h0, r, ty, , y0 = 0] of bl) {
+      const h = h0 + y0;
+      if (ty === "prince" || ty === "mall" || ty === "school" || h < 18) continue;
       const n = 1 + (R() < 0.5 ? 1 : 0);
       for (let k = 0; k < n; k++) {
         const ox = (R() - 0.5) * w * 0.5,
