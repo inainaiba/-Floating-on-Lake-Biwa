@@ -35,6 +35,20 @@
   // 集落のある岸だけ：岸の点から2km以内の家（22b-town-glow.js の家の集まり。画質によらない）が120軒以上ある所に着く。
   // 北の集落のない入江や、家の少ない浜には着かない
   G.hallSpot = (lo, la, off) => spot(lo, la, off); // 確認用
+  // 琵琶湖大橋（45b-ohashi.js と同じ線）から実寸400m以内か
+  const nearBridge = (x, y) =>
+    LAKE.bridges
+      .filter((b) => b.name.includes("琵琶湖大橋"))
+      .some((b) =>
+        b.pts.some((p, i) => {
+          if (!i) return false;
+          const [ax, ay] = b.pts[i - 1],
+            dx = p[0] - ax,
+            dy = p[1] - ay,
+            u = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1)));
+          return Math.hypot(x - ax - u * dx, y - ay - u * dy) < 400;
+        }),
+      );
   const villageSites = (cands, off) =>
     cands
       .filter(([lo, la]) => {
@@ -44,7 +58,8 @@
         return n >= 120;
       })
       .map(([lo, la]) => spot(lo, la, off))
-      .filter((q) => inLake(q.x, q.y) && inMain(q.x, q.y) && distShore(q.x, q.y, 120) >= 80); // 沖へ出したら別の岸に掛かる所は除く
+      .filter((q) => inLake(q.x, q.y) && inMain(q.x, q.y) && distShore(q.x, q.y, 120) >= 80) // 沖へ出したら別の岸に掛かる所は除く
+      .filter((q) => !nearBridge(q.x, q.y)); // 琵琶湖大橋のそばには着かない（橋脚が建物にかぶる）
   // 着く岸を、ほかの水上建築の着く岸から離れた所だけに（同じ時に同じ浜に重ならないよう、実寸1.5km）
   const apart = (list, others) => list.filter((q) => others.every((o) => Math.hypot(o.x - q.x, o.y - q.y) > 1500));
   const LAMS = new Map(),

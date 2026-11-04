@@ -698,7 +698,7 @@
 - 作る：（なし）
 - 使う：
   - 00-head.js：`G`、`mergeStatic`、`onFrame`、`placeLog`
-  - 01-settings.js：`RM`、`S`
+  - 01-settings.js：`LAKE`、`RM`、`S`
   - 04-clock.js：`DAY`、`clock`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inLake`、`inMain`、`inRiver`
