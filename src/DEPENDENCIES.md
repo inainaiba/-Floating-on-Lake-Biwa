@@ -701,8 +701,8 @@
   - 01-settings.js：`RM`、`S`
   - 04-clock.js：`DAY`、`clock`
   - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`inLake`、`inRiver`
-  - 07-depth.js：`depth`、`shoreSnap`
+  - 06-inner-lakes.js：`inLake`、`inMain`、`inRiver`
+  - 07-depth.js：`depth`、`distShore`、`shoreSnap`
   - 10-start.js：`rndFor`
   - 12-renderer.js：`camera`、`scene`
   - 14-water.js：`water`、`waterU`
@@ -945,6 +945,7 @@
 - `G.groundH`：53-frame.js
 - `G.gs`：52-frame-render.js
 - `G.hallMarks`：44c-floating-halls.js
+- `G.hallSpot`：44c-floating-halls.js
 - `G.halls`：44c-floating-halls.js
 - `G.harb`：25-harbors.js
 - `G.innerMeshes`：16-terrain.js

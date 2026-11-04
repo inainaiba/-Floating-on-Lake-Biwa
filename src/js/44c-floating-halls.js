@@ -27,11 +27,14 @@
           u = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy || 1)));
         return Math.hypot(x - x1 - u * dx, y - y1 - u * dy) < 90;
       });
-    while (off < 900 && (inReeds(sx + Math.cos(a) * off, sy + Math.sin(a) * off) || nearWall(sx + Math.cos(a) * off, sy + Math.sin(a) * off))) off += 40;
+    // 入り組んだ岸では、沖へ出しても別の岸に近いことがある：どの岸からも実寸90m（建物の大きさの分）離れるまで出す
+    const tight = (x, y) => inReeds(x, y) || nearWall(x, y) || distShore(x, y, 120) < 90;
+    while (off < 900 && tight(sx + Math.cos(a) * off, sy + Math.sin(a) * off)) off += 40;
     return { x: sx + Math.cos(a) * off, y: sy + Math.sin(a) * off, sx, sy, a };
   }
   // 集落のある岸だけ：岸の点から2km以内の家（22b-town-glow.js の家の集まり。画質によらない）が120軒以上ある所に着く。
   // 北の集落のない入江や、家の少ない浜には着かない
+  G.hallSpot = (lo, la, off) => spot(lo, la, off); // 確認用
   const villageSites = (cands, off) =>
     cands
       .filter(([lo, la]) => {
@@ -40,7 +43,10 @@
         for (const t of G.towns ? G.towns.list : []) if (t.ns >= 8 && Math.hypot(t.x - x, t.y - y) < 2000) n += t.ns; // 岸の帯の家だけ数える
         return n >= 120;
       })
-      .map(([lo, la]) => spot(lo, la, off));
+      .map(([lo, la]) => spot(lo, la, off))
+      .filter((q) => inLake(q.x, q.y) && inMain(q.x, q.y) && distShore(q.x, q.y, 120) >= 80); // 沖へ出したら別の岸に掛かる所は除く
+  // 着く岸を、ほかの水上建築の着く岸から離れた所だけに（同じ時に同じ浜に重ならないよう、実寸1.5km）
+  const apart = (list, others) => list.filter((q) => others.every((o) => Math.hypot(o.x - q.x, o.y - q.y) > 1500));
   const LAMS = new Map(),
     lam = (c, o) => {
       if (o) return new THREE.MeshLambertMaterial({ color: c, ...o });
@@ -508,7 +514,7 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
   // 着く岸：菅浦の入江 → 海津の浜 → 月出の入江
   // 奥琵琶湖の入江を西から東へ：海津の浜 → 大浦 → 菅浦の入江 → 月出の入江 → 片山
   // 湖北の岸（集落のある所だけ）：今津・海津・大浦・菅浦・片山・塩津
-  const musSites = villageSites([[136.03, 35.41], [136.072, 35.462], [136.115, 35.495], [136.1335, 35.4795], [136.198, 35.455], [136.155, 35.515]], 120);
+  const musSites = apart(villageSites([[136.03, 35.41], [136.072, 35.462], [136.115, 35.495], [136.1335, 35.4795], [136.198, 35.455], [136.155, 35.515]], 120), cinSites);
   CUR = "mus";
   {
     const g = new THREE.Group();
@@ -860,13 +866,11 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
       mat.size = 0.9;
     };
   }
-  // 着く岸を、ほかの水上建築の着く岸から離れた所だけに（同じ時に同じ浜に重ならないよう、実寸1.5km）
-  const apart = (list, others) => list.filter((q) => others.every((o) => Math.hypot(o.x - q.x, o.y - q.y) > 1500));
 
   // ---------- 5. 水上茶屋 ----------
   // 反った宝形の杉皮葺きの屋根に、藍の暖簾。畳の間と、緋毛氈の縁台、赤い野点傘。岸に着くと釜から湯気が立ち、行灯が灯る。
-  // 人の姿はなく、湯気と灯りと、ときどき湯の沸く音で、お茶を点てる誰かの気配。湖東の中ほどの集落を巡る
-  const teaSites = apart(villageSites([[136.06, 35.155], [136.02, 35.125], [136.105, 35.19], [136.15, 35.18], [136.135, 35.215]], 110), [...libSites, ...cinSites, ...musSites, ...floSites]);
+  // 人の姿はなく、湯気と灯りと、ときどき湯の沸く音で、お茶を点てる誰かの気配。湖東の中ほど（野洲〜近江八幡〜能登川）の集落を巡る
+  const teaSites = apart(villageSites([[136.04, 35.15], [136.11, 35.205], [136.17, 35.195], [136.065, 35.16]], 110), [...libSites, ...cinSites, ...musSites, ...floSites]);
   CUR = "tea";
   let teaH = null,
     teaSteam = null;
