@@ -756,20 +756,20 @@ const BUILDINGS = [
       mat.position.y = 1.38;
       g.add(mat);
       // 小屋：ヨシを編んだ丸い屋根（半円の筒）と、それを支えるヨシの肋。奥は閉じ、前は開いて灯りがこぼれる
-      const hut = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.45, 3.8, 22, 1, true, 0, Math.PI).rotateZ(Math.PI / 2), reed); // 筒の軸を舟の長さの向きに、上半分だけ
+      const hut = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 4.4, 24, 1, true, 0, Math.PI).rotateZ(Math.PI / 2), reed); // 筒の軸を舟の長さの向きに、上半分だけ
       hut.position.set(-0.6, 1.42, 0);
       g.add(hut);
       for (let k = 0; k < 6; k++) {
-        const r = new THREE.Mesh(new THREE.TorusGeometry(1.48, 0.05, 4, 20, Math.PI), rope);
-        r.position.set(-2.4 + k * 0.72, 1.42, 0);
+        const r = new THREE.Mesh(new THREE.TorusGeometry(1.83, 0.05, 4, 20, Math.PI), rope);
+        r.position.set(-2.7 + k * 0.84, 1.42, 0);
         r.rotation.y = Math.PI / 2;
         g.add(r);
       }
-      const back = new THREE.Mesh(new THREE.CircleGeometry(1.45, 20, 0, Math.PI), reed);
-      back.position.set(-2.5, 1.42, 0);
+      const back = new THREE.Mesh(new THREE.CircleGeometry(1.8, 20, 0, Math.PI), reed);
+      back.position.set(-2.8, 1.42, 0);
       back.rotation.y = -Math.PI / 2;
       g.add(back);
-      glowBox(g, m, 3.2, 0.9, 2.2, -0.6, 1.9, 0); // 中の灯り
+      glowBox(g, m, 3.8, 1.2, 2.6, -0.6, 2.0, 0); // 中の灯り（前の開いた口から、こぼれる）
       // 舳の灯りと、干したヨシの束、編み籠
       g.add(rod([4.6, 1.4, 0], [4.6, 2.9, 0], 0.03, rope));
       const lp = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 10), m.glow);
