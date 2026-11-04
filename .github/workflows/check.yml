@@ -12,6 +12,9 @@ on:
       - "data/**"
       - "build.py"
       - "docs/index.html"
+      - "docs/c-*"
+      - "docs/d-*"
+      - "src/lzma.js"
       - "tools/check.py"
       - "tools/audit.py"
       - "tools/acpack.py"
@@ -57,8 +60,10 @@ jobs:
       - name: 組み立て（文法の確認・部品の名前の重なりの確認を含む）
         run: python build.py
 
-      - name: 公開ファイルが最新か（組み立て直した結果と、記録された docs/index.html が同じか）
-        run: git diff --exit-code docs/index.html
+      - name: 公開ファイルが最新か（組み立て直した結果と、記録された docs/ のページ・コード・データが同じか）
+        run: |
+          git status --porcelain docs/
+          test -z "$(git status --porcelain docs/)"
 
       - name: 簡易確認（代表の場面の撮影、開始地点の検査、シェーダーの誤り）
         run: python tools/check.py --quick
