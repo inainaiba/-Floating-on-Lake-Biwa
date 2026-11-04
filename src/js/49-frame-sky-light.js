@@ -330,6 +330,11 @@ function updateSkyLight(dt, t, c, W) {
   windows.visible = day < 0.34; // 窓ごとに灯る暗さが違う（22-village-lights-roads.js の aLit）
   winU.uDay.value = day;
   winU.uHour.value = c.phase * 24;
+  {
+    // 夕餉の時刻：17時ごろから強まり、20時ごろに薄れる
+    const h = c.phase * 24;
+    winU.uSup.value = Math.max(0, Math.min(1, (h - 16.8) / 0.8, (20.2 - h) / 0.9));
+  }
   if (G.street) {
     G.street.visible = night || day < 0.1;
     G.street.material.opacity = 1 - 0.5 * (G.deepNight || 0); // 夜更けは道の灯りも控えめに

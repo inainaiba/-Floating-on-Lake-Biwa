@@ -1,4 +1,4 @@
-/* ---------- 設定の画面：画質・音量・動きを抑える・文字の表示（日本語と英語／日本語／English）。
+/* ---------- 設定の画面：画質・音量・揺れを抑える・文字の表示（日本語／English／両方）。1項目1行の簡素な形。
    上段の右端のボタンで開く。選んだものはこの端末に保存し、次に開いたときも使う（01-settings.js の CFG）。
    画質は読み込み直すと変わる。ほかはすぐ変わる ---------- */
 G.settings = (() => {
@@ -19,20 +19,24 @@ G.settings = (() => {
   applyLang();
   const p = document.createElement("div");
   p.id = "cfgp";
-  const seg = (key, items) =>
-    `<div class="sg" data-k="${key}">` + items.map(([v, t]) => `<b data-v="${v}">${t}</b>`).join("") + "</div>";
-  p.innerHTML = `<div class="in"><h2>設定 <small style="font-size:11px;opacity:.6;letter-spacing:.1em">Settings</small></h2>
-<div class="it"><div class="lb">画質 Quality<small>変えると読み込み直します / reloads the page</small></div>${seg("q", [["auto", "自動 Auto"], ["high", "高 High"], ["mid", "中 Mid"], ["low", "低 Low"]])}</div>
-<div class="it"><div class="lb">音量 Volume</div><input id="cfgVol" type="range" min="0" max="1" step="0.05"></div>
-<div class="it"><div class="lb">動きを抑える Reduce motion<small>揺れ・自動で回る速さ・稲光を抑えます</small></div>${seg("calm", [["null", "端末に従う Device"], ["true", "抑える On"], ["false", "抑えない Off"]])}</div>
-<div class="it"><div class="lb">文字 Text</div>${seg("lang", [["both", "日本語と英語"], ["ja", "日本語"], ["en", "English"]])}</div>
-<div class="cl" id="cfgClose">閉じる Close</div></div>`;
+  // 1項目1行：左に名前、右に選ぶもの。説明の小さな文字は出さない。文字の表示に合わせて、日本語か英語のどちらかだけを出す（data-en）
+  const seg = (key, items) => `<div class="sg" data-k="${key}">` + items.map(([v, ja, en]) => `<b data-v="${v}" data-en="${en}">${ja}</b>`).join("") + "</div>";
+  const row = (ja, en, ctl) => `<div class="it"><span class="lb" data-en="${en}">${ja}</span>${ctl}</div>`;
+  p.innerHTML = `<div class="in"><h2 data-en="Settings">設定</h2>
+${row("画質", "Quality", seg("q", [["auto", "自動", "Auto"], ["high", "高", "High"], ["mid", "中", "Mid"], ["low", "低", "Low"]]))}
+${row("音量", "Volume", '<input id="cfgVol" type="range" min="0" max="1" step="0.05">')}
+${row("揺れを抑える", "Less motion", seg("calm", [["true", "する", "On"], ["false", "しない", "Off"]]))}
+${row("文字", "Text", seg("lang", [["ja", "日本語", "日本語"], ["en", "English", "English"], ["both", "両方", "Both"]]))}
+<div class="cl" id="cfgClose" data-en="Close">閉じる</div></div>`;
   document.body.appendChild(p);
+  applyLang();
   const vol = p.querySelector("#cfgVol");
   function show() {
     for (const sg of p.querySelectorAll(".sg")) {
       const k = sg.dataset.k;
-      for (const b of sg.children) b.classList.toggle("on", b.dataset.v === String(CFG[k]));
+      // 揺れを抑える：選んでいないときは、端末の設定（動きを減らす）に従っている値を示す
+      const cur = k === "calm" ? String(CFG.calm ?? matchMedia("(prefers-reduced-motion: reduce)").matches) : String(CFG[k]);
+      for (const b of sg.children) b.classList.toggle("on", b.dataset.v === cur);
     }
     vol.value = CFG.vol;
   }
@@ -58,7 +62,7 @@ G.settings = (() => {
       return;
     }
     if (k === "calm") {
-      CFG.calm = v === "null" ? null : v === "true";
+      CFG.calm = v === "true";
       RM = CFG.calm ?? matchMedia("(prefers-reduced-motion: reduce)").matches;
     }
     if (k === "lang") {

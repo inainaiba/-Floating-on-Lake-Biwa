@@ -62,10 +62,17 @@
       .filter((q) => !nearBridge(q.x, q.y)); // 琵琶湖大橋のそばには着かない（橋脚が建物にかぶる）
   // 着く岸を、ほかの水上建築の着く岸から離れた所だけに（同じ時に同じ浜に重ならないよう、実寸1.5km）
   const apart = (list, others) => list.filter((q) => others.every((o) => Math.hypot(o.x - q.x, o.y - q.y) > 1500));
+  // 色は少しだけくすませて、景色に馴染ませる（鮮やかさを2割ほど落とす。灯りの色は別）
+  const mute = (c) => {
+    const col = new THREE.Color(c),
+      hsl = {};
+    col.getHSL(hsl);
+    return col.setHSL(hsl.h, hsl.s * 0.78, hsl.l);
+  };
   const LAMS = new Map(),
     lam = (c, o) => {
-      if (o) return new THREE.MeshLambertMaterial({ color: c, ...o });
-      if (!LAMS.has(c)) LAMS.set(c, new THREE.MeshLambertMaterial({ color: c })); // 同じ色は材質を共有（まとめて描ける）
+      if (o) return new THREE.MeshLambertMaterial({ ...o, color: mute(c) });
+      if (!LAMS.has(c)) LAMS.set(c, new THREE.MeshLambertMaterial({ color: mute(c) })); // 同じ色は材質を共有（まとめて描ける）
       return LAMS.get(c);
     };
   const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
@@ -367,7 +374,7 @@
     // 床に落ちる灯り（夜、床がほの明るい）
     add(g, new THREE.CircleGeometry(6, 24), glowMat(0x553a1c, 1), 0, 0.87, 0, 0, -Math.PI / 2);
     // 三角旗：屋根の軒から旗竿へ（色とりどり。材質は色ごとに共有）
-    const FLAG = [0xd8634f, 0xe9c25a, 0x5b8fc4, 0x7fae6a, 0xf2efe6].map((c) => new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide }));
+    const FLAG = [0xd8634f, 0xe9c25a, 0x5b8fc4, 0x7fae6a, 0xf2efe6].map((c) => new THREE.MeshBasicMaterial({ color: mute(c), side: THREE.DoubleSide }));
     add(g, new THREE.CylinderGeometry(0.1, 0.12, 6, 6), M.post, 11.5, 3.3, 0);
     for (let k = 0; k < 9; k++) {
       const u = k / 8,
@@ -445,7 +452,7 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
         o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
       }
     {
-      const FL = [0xd8634f, 0xe9c25a, 0x5b8fc4, 0xf2efe6].map((c) => new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide }));
+      const FL = [0xd8634f, 0xe9c25a, 0x5b8fc4, 0xf2efe6].map((c) => new THREE.MeshBasicMaterial({ color: mute(c), side: THREE.DoubleSide }));
       for (let k = 0; k < 17; k++) {
         const f = new THREE.Mesh(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-0.22, 0, 0), new THREE.Vector3(0.22, 0, 0), new THREE.Vector3(0, -0.5, 0)]), FL[k % 4]);
         f.position.set(-8 + k, 11.25, 0.55);
@@ -1056,13 +1063,95 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
       const p = fg.attributes.position;
       for (let i = 0; i < p.count; i++) p.setZ(i, Math.sin(p.getX(i) * 2.2) * 0.12 * p.getX(i)); // はためく形
     }
-    const fm = add(flag, fg, new THREE.MeshLambertMaterial({ color: 0xc0322a, side: THREE.DoubleSide }), 0, 0, 0);
+    const fm = add(flag, fg, new THREE.MeshLambertMaterial({ color: mute(0xc0322a), side: THREE.DoubleSide }), 0, 0, 0);
     add(flag, new THREE.PlaneGeometry(1.4, 0.18).translate(0.7, 0, 0.01), new THREE.MeshLambertMaterial({ color: 0xf2efe6, side: THREE.DoubleSide }), 0, 0, 0);
     flag.traverse((o) => o.isMesh && (o.userData.keep = true));
     fm.userData.keep = true;
     g.add(flag);
     postFlag = flag;
     postH = moor(g, postSites);
+  }
+
+  // ---------- かすかなユーモア：屋根の鳥と、郵便局の舟を追うカモ ----------
+  // ・ハクセキレイが一羽、どれかの水上建築の屋根にとまって、しばらく一緒に漂う（日ごとに、とまる建築と時刻が変わる。とまらない日もある）
+  // ・郵便局の舟が漂って移る日の一部は、カモが三羽、少し遅れて後ろをついていく
+  const birdM = { w: lam(0xe8e6e0), k: lam(0x2a2a2a), g: lam(0x8a8a86) };
+  const bird = new THREE.Group();
+  {
+    add(bird, new THREE.SphereGeometry(0.16, 10, 8).scale(1, 0.85, 1.7), birdM.w, 0, 0.16, 0); // 胴（白）
+    add(bird, new THREE.SphereGeometry(0.15, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.5, 1.6), birdM.k, 0, 0.2, -0.02); // 背（黒）
+    add(bird, new THREE.SphereGeometry(0.09, 10, 8), birdM.w, 0, 0.3, 0.27); // 頭
+    add(bird, new THREE.SphereGeometry(0.07, 8, 6).scale(1, 0.6, 1), birdM.k, 0, 0.36, 0.25); // 頭の黒
+    add(bird, new THREE.ConeGeometry(0.02, 0.07, 4), birdM.g, 0, 0.3, 0.37, 0, Math.PI / 2); // 嘴
+    add(bird, box(0.07, 0.02, 0.4), birdM.k, 0, 0.2, -0.38, 0, 0.25); // 長い尾
+    for (const x of [-0.05, 0.05]) add(bird, new THREE.CylinderGeometry(0.008, 0.008, 0.12, 3), birdM.g, x, 0.05, 0.02);
+  }
+  bird.traverse((o) => o.isMesh && (o.userData.keep = true));
+  bird.visible = false;
+  const tail = bird.children[5];
+  // とまる所（それぞれの水上建築の中の位置）：図書館の屋根・茶屋の宝珠・郵便局の棟・花屋の日よけ・音楽堂の殻の頂
+  const PERCH = [
+    [libH, () => libH.g, [1.6, 8.25, 0]],
+    [teaH, () => teaH.g, [0.6, 8.05, 0.6]],
+    [postH, () => postH.g, [2.0, 5.22, 0]],
+    [floH, () => floH.g, [2.0, 4.0, 0]],
+    [musH, () => musH.g.children[0], [0, 7.3, 0]],
+  ];
+  const hsh = (n) => {
+    const v = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+    return v - Math.floor(v);
+  };
+  let perchK = -1;
+  const duckM = { b: lam(0x7a6650), h: lam(0x2f5a3e), w: lam(0xd8d4c8), y: lam(0xd0a040) };
+  const ducks = [];
+  for (let i = 0; i < 3; i++) {
+    const d = new THREE.Group();
+    add(d, new THREE.SphereGeometry(0.28, 10, 8).scale(1, 0.62, 1.55), duckM.b, 0, 0.1, 0);
+    add(d, new THREE.SphereGeometry(0.14, 10, 8), i ? duckM.b : duckM.h, 0, 0.38, 0.36); // 先頭は雄（緑の頭）
+    add(d, new THREE.ConeGeometry(0.05, 0.16, 4).scale(1.4, 0.5, 1), duckM.y, 0, 0.35, 0.52, 0, Math.PI / 2);
+    add(d, box(0.14, 0.06, 0.18), duckM.w, 0, 0.18, -0.45, 0, -0.3);
+    d.visible = false;
+    d.userData.noRefl = false;
+    scene.add(d);
+    ducks.push(d);
+  }
+  G.humor = { bird, ducks, perch: () => perchK }; // 確認用
+  function humorUpdate(t, c, h) {
+    // 屋根の鳥：作品の一日ごとに、どの建築にとまるか・とまるかどうかを決める。昼（7〜16時）だけ
+    const day = Math.floor(c.t / DAY),
+      want = hsh(day) < 0.55 && h > 7 + hsh(day + 3) * 3 && h < 13 + hsh(day + 5) * 3 ? Math.floor(hsh(day + 7) * PERCH.length) : -1;
+    if (want !== perchK) {
+      // 近くで見ているときは、急に現れたり消えたりしないよう待つ
+      const near = perchK >= 0 && Math.hypot(PERCH[perchK][0].x - camera.position.x, PERCH[perchK][0].z - camera.position.z) < 40;
+      const nearW = want >= 0 && Math.hypot(PERCH[want][0].x - camera.position.x, PERCH[want][0].z - camera.position.z) < 40;
+      if (!near && !nearW) {
+        perchK = want;
+        if (want >= 0) {
+          const [, par, p] = PERCH[want];
+          par().add(bird);
+          bird.position.set(...p);
+        }
+        bird.visible = want >= 0;
+      }
+    }
+    if (bird.visible) {
+      // ときどき向きを変え、尾を上下に振る
+      bird.rotation.y = Math.floor(t / 7) % 3 === 0 ? 0.6 : Math.floor(t / 7) % 3 === 1 ? -1.2 : 2.4;
+      tail.rotation.x = 0.25 + Math.max(0, Math.sin(t * 9)) * 0.35;
+    }
+    // カモ：郵便局が漂って移る日の半分ほど、後ろをついていく（昼）
+    const go = postH.mv > 0.2 && hsh(day + 11) < 0.5 && h > 6 && h < 17 && !isFar;
+    for (let i = 0; i < 3; i++) {
+      const d = ducks[i];
+      d.visible = go;
+      if (!go) continue;
+      const back = 9.5 + i * 2.4 + Math.sin(t * 0.8 + i) * 0.4,
+        side = (i - 1) * 1.1 + Math.sin(t * 0.5 + i * 2) * 0.3,
+        px = postH.x - postH.dx * back - postH.dy * side,
+        pz = postH.z - postH.dy * back + postH.dx * side;
+      d.position.set(px, water.position.y + 0.02 + Math.sin(t * 2.1 + i) * 0.03, pz);
+      d.rotation.y = Math.atan2(postH.dx, postH.dy);
+    }
   }
 
   G.waterU = waterU; // 確認用
@@ -1135,6 +1224,7 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     postFlag.position.y = 1.4 + 4.6 * (postH.use * postH.use * (3 - 2 * postH.use));
     postFlag.rotation.y = Math.sin(t * 1.3) * 0.15;
     floUpdate(c, t);
+    humorUpdate(t, c, h);
     for (const m of lit) m.color.lerpColors(OFF, m.userData.on, lt * late * (0.2 + 0.8 * useOf[m.userData.owner])); // 漂う間は灯りを落とす
     // 映画館：着いた岸に客席を出す
     if (cinH.moored && cinH.site !== scrSite) placeScreen(cinH.sites[(scrSite = cinH.site)]);

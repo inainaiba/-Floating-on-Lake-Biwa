@@ -33,7 +33,7 @@ winGeo.setAttribute("position", new THREE.Float32BufferAttribute(wp, 3));
   }
   winGeo.setAttribute("aLit", new THREE.Float32BufferAttribute(a, 3));
 }
-const winU = { uHour: { value: 20 }, uDay: { value: 0 } };
+const winU = { uHour: { value: 20 }, uDay: { value: 0 }, uSup: { value: 0 } }; // uSup：夕餉の時刻（夕方〜夜の始め）の強さ 0〜1
 {
   const n = wp.length / 3,
     cl = new Float32Array(n * 3);
@@ -63,14 +63,17 @@ const windows = new THREE.Points(
 windows.material.onBeforeCompile = (sh) => {
   sh.uniforms.uHour = winU.uHour;
   sh.uniforms.uDay = winU.uDay;
+  sh.uniforms.uSup = winU.uSup;
   sh.vertexShader = sh.vertexShader
-    .replace("#include <common>", "#include <common>\nattribute vec3 aLit;uniform float uHour;uniform float uDay;")
+    .replace("#include <common>", "#include <common>\nattribute vec3 aLit;uniform float uHour;uniform float uDay;uniform float uSup;")
     .replace(
       "#include <color_vertex>",
       // 夕方〜夜：暗くなったら灯り、消える時刻まで。夜中（0〜12時）は前の晩の続き。朝：決まった時刻から明るくなるまで
-      "#include <color_vertex>\nfloat dark=step(uDay,aLit.x);float h=uHour;float eve=h>=12.?step(h,aLit.y):step(h+24.,aLit.y);float morn=h<12.?step(aLit.z,h):0.;float on=dark*max(eve,morn);vColor*=on;",
+      "#include <color_vertex>\nfloat dark=step(uDay,aLit.x);float h=uHour;float eve=h>=12.?step(h,aLit.y):step(h+24.,aLit.y);float morn=h<12.?step(aLit.z,h):0.;float on=dark*max(eve,morn);vColor*=on;" +
+        // 夕餉の窓：夕方〜夜の始め、一階（台所・居間。灯る暗さ aLit.x が高い窓）の灯りを少し橙に、湯気のように少しにじませる
+        "float vSup=uSup*step(.155,aLit.x);vColor*=mix(vec3(1.),vec3(1.1,.86,.62),vSup);",
     )
-    .replace("gl_PointSize = size;", "gl_PointSize = size*on;");
+    .replace("gl_PointSize = size;", "gl_PointSize = size*on*(1.+.3*vSup);");
 };
 windows.material.customProgramCacheKey = () => "village-windows";
 scene.add(windows);
