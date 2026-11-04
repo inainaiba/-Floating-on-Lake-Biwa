@@ -196,7 +196,37 @@ def dem_far(dem, lake):
                 o[j][i] = (G(j - 1, i) + G(j + 1, i) + 1) // 2
             else:
                 o[j][i] = (G(j - 1, i - 1) + G(j - 1, i + 1) + G(j + 1, i - 1) + G(j + 1, i + 1) + 2) // 4
-    return base64.b64encode(bytes(v for row in o for v in row)).decode()
+    flat = [v for row in o for v in row]
+    return base64.b64encode(bytes(dem_near_lossless(flat, [v for row in dd for v in row], w))).decode()
+
+
+DEM_Q_AT, DEM_Q = 3000, 1  # 湖岸からこれより遠い山は、標高の値に ±DEM_Q 段（約6〜9m）までの誤差を許す
+
+
+def dem_near_lossless(b, dd, w):
+    """湖から遠い山（DEM_Q_AT より遠い所）だけ、算術符号（tools/acpack.py の enc_g）の予測との差を (2×DEM_Q+1) の倍数に丸める。
+    丸めたあとの値で次の予測をするので、誤差は ±DEM_Q 段を超えない。読む側（00a-data.js）は今までどおり（差を足すだけ）。
+    遠くの稜線は、作品の中でさらにならしてから描くので、見分けはつかない。近くの山・湖岸の値はそのまま"""
+    n, q = len(b), 2 * DEM_Q + 1
+    o = list(b)
+    for i in range(n):
+        if dd[i] <= DEM_Q_AT:
+            continue
+        x, y = i % w, i // w
+        a = o[i - 1] if x else (o[i - w] if y else 0)
+        c = o[i - w] if y else a
+        d = o[i - w - 1] if y and x else c
+        f = o[i - w + 1] if y and x + 1 < w else c
+        a2 = o[i - 2] if x > 1 else a
+        c2 = o[i - 2 * w] if y > 1 else c
+        f2 = o[i - w + 2] if y and x + 2 < w else f
+        p = min(255, max(0, (792 * a + 625 * c - 245 * d + 169 * f - 148 * a2 - 210 * c2 + 41 * f2 + 512) >> 10))
+        r = b[i] - p
+        v = p + q * round(r / q)
+        if v < 0 or v > 255 or abs(v - b[i]) > DEM_Q:
+            v = b[i]
+        o[i] = v
+    return o
 
 
 def data():
@@ -324,7 +354,6 @@ def build():
         if i % step == step - 1 and i < len(parts) - 1:
             js.append(f'if (window.__ld) await window.__ld({(i + 1) / len(parts):.2f});')
     script = bundle('\n'.join(js))
-    html = (r / 'src/shell.html').read_text().replace('__SCRIPT__', script)
     B = buoys()
     D = data()
     # 詰めたデータを、作品と同じ読み戻しで元に戻せるか確かめる（node があれば。CRC32 で照らし合わせる）
@@ -342,25 +371,79 @@ def build():
     lake = json.loads((r / 'data/lake.json').read_text())
     for k in ('rivers', 'lights', 'outer', 'islands'):  # 湖岸線と島の形は DATA.shape へ（算術符号で詰める）
         lake.pop(k, None)
-    html = (html.replace('__LAKE__', json.dumps(lake, ensure_ascii=False, separators=(',', ':')))
-                .replace('__RAIL__', (r / 'data/rail.json').read_text())
-                .replace('__DATA__', json.dumps(D, separators=(',', ':')))
-                .replace('__BUOYS__', json.dumps(B, ensure_ascii=False)))
+    code = (script.replace('__LAKE__', json.dumps(lake, ensure_ascii=False, separators=(',', ':')))
+                  .replace('__RAIL__', (r / 'data/rail.json').read_text())
+                  .replace('__BUOYS__', json.dumps(B, ensure_ascii=False)))
+    data_json = json.dumps(D, separators=(',', ':'))
     # 文法の確認：node があれば、組み立てたコードを読み込めるか確かめる（壊れたまま公開しないため）
     import subprocess, shutil, tempfile
     if shutil.which('node'):
         with tempfile.NamedTemporaryFile('w', suffix='.mjs', delete=False) as f:
-            f.write(script.replace('__LAKE__', '{}').replace('__RAIL__', '{}').replace('__DATA__', '{}').replace('__BUOYS__', '[]'))
+            f.write(code.replace('__DATA__', '{}'))
         res = subprocess.run(['node', '--check', f.name], capture_output=True, text=True)
         if res.returncode:
             print(res.stderr.split('SyntaxError')[0][-400:] + 'SyntaxError' + res.stderr.split('SyntaxError')[-1][:200])
             raise SystemExit('コードに文法の誤りがあるため、組み立てを中止しました')
-    if os.environ.get('PROFILE'):
-        (r / 'tools/.profile.html').write_text(html)
+    shell = (r / 'src/shell.html').read_text()
+    if os.environ.get('PROFILE'):  # 計測用は1つのファイルのまま（tools/profile.py）
+        (r / 'tools/.profile.html').write_text(shell.replace('__SCRIPT__', code.replace('__DATA__', data_json)))
         print('built tools/.profile.html（計測用）')
         return
+    # 公開の形：ページ（docs/index.html）は小さな読み込み役だけ。コードとデータは別のファイル（名前に中身の印）
+    #  ・データ d-*.json：作品を直してもデータが同じなら名前も同じなので、2回目からはブラウザに残っているものを使う
+    #  ・コード c-*.lz：LZMA で詰めたコード（送るときの圧縮より小さい）。開くときに戻して動かす（src/lzma.js）
+    #    戻せない・動かせない環境では、詰めていない c-*.js を読む
+    code = 'window.__started=1;' + code.replace('__DATA__', 'await window.__data')
+    hc = hashlib.sha1(code.encode()).hexdigest()[:10]
+    hd = hashlib.sha1(data_json.encode()).hexdigest()[:10]
+    out = {f'c-{hc}.js': code.encode(), f'd-{hd}.json': data_json.encode()}
+    lzf = r / f'docs/c-{hc}.lz'
+    if lzf.exists():  # 同じコードの詰めたものがあれば使い回す（LZMA の版で中身が変わり、記録と食い違わないように）
+        z = lzf.read_bytes()
+    else:
+        import lzma, struct as _st
+        z = bytearray(lzma.compress(code.encode(), format=lzma.FORMAT_ALONE,
+                                    filters=[{'id': lzma.FILTER_LZMA1, 'preset': 9 | lzma.PRESET_EXTREME, 'lc': 2, 'lp': 0, 'pb': 0}]))
+        z[5:13] = _st.pack('<Q', len(code.encode()))  # 元の大きさを頭に書く（読む側はこの長さまで戻す）
+        z = bytes(z)
+    out[f'c-{hc}.lz'] = z
+    if shutil.which('node'):  # 詰めたコードが、作品と同じ展開で元に戻るか確かめる
+        with tempfile.TemporaryDirectory() as td:
+            (pathlib.Path(td) / 'a.lz').write_bytes(z)
+            (pathlib.Path(td) / 'a.js').write_bytes(code.encode())
+            chk = ("import fs from 'fs';const d=new Function(fs.readFileSync(process.argv[2],'utf8')+';return lzmaDecode;')();"
+                   "const o=d(new Uint8Array(fs.readFileSync(process.argv[3])));process.exit(Buffer.compare(Buffer.from(o),fs.readFileSync(process.argv[4]))?1:0)")
+            (pathlib.Path(td) / 'c.mjs').write_text(chk)
+            res = subprocess.run(['node', str(pathlib.Path(td) / 'c.mjs'), str(r / 'src/lzma.js'), str(pathlib.Path(td) / 'a.lz'), str(pathlib.Path(td) / 'a.js')])
+            if res.returncode:
+                raise SystemExit('詰めたコードが元に戻らないため、組み立てを中止しました')
+    boot = (r / 'src/lzma.js').read_text() + f"""
+const U = (n) => new URL(n, document.baseURI);
+window.__data = fetch(U("d-{hd}.json")).then((r) => {{
+  if (!r.ok) throw new Error("data " + r.status);
+  return r.json();
+}});
+let ok = false;
+try {{
+  const r = await fetch(U("c-{hc}.lz"));
+  if (!r.ok) throw new Error("code " + r.status);
+  const src = new TextDecoder().decode(lzmaDecode(new Uint8Array(await r.arrayBuffer())));
+  await import(URL.createObjectURL(new Blob([src], {{ type: "text/javascript" }})));
+  ok = true;
+}} catch (e) {{
+  if (window.__started) throw e; // 動き出してからの誤りは、そのまま知らせる
+}}
+if (!ok) await import(U("c-{hc}.js").href);
+"""
+    html = shell.replace('__SCRIPT__', boot)
+    for f in list((r / 'docs').glob('c-*.js')) + list((r / 'docs').glob('c-*.lz')) + list((r / 'docs').glob('d-*.json')):
+        if f.name not in out:
+            f.unlink()
+    for k, v in out.items():
+        if not (r / 'docs' / k).exists() or (r / 'docs' / k).read_bytes() != v:
+            (r / 'docs' / k).write_bytes(v)
     (r / 'docs/index.html').write_text(html)
-    print(f'built docs/index.html  部品 {len(parts)} 個 / ブイ {len(B)} 個')
+    print(f'built docs/index.html（{len(html.encode()) // 1024}KB）＋ c-{hc}.lz（{len(z) // 1024}KB）・d-{hd}.json（{len(data_json) // 1024}KB）  部品 {len(parts)} 個 / ブイ {len(B)} 個')
 
 
 if __name__ == '__main__':
