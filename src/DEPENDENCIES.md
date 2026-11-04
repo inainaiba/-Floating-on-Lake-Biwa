@@ -840,7 +840,7 @@
   - 18-buildings.js：`house`
 
 ## 53-frame.js
-- 作る：`frame`
+- 作る：`PACE`、`SLOW`、`frame`、`slowLog`
 - 使う：
   - 00-head.js：`FRAME_HOOKS`、`G`、`PLACE_LOG`、`TRUE_RANDOM`、`chunkify`
   - 01-settings.js：`Q`、`S`
@@ -877,11 +877,13 @@
 - `__failed`：12-renderer.js
 - `__floating`：00-head.js、10-start.js
 - `__frames`：53-frame.js
+- `__goal`：53-frame.js
 - `__pause`：53-frame.js
 - `__ready`：12-renderer.js、53-frame.js
 - `__scene`：53-frame.js
 - `__set`：53-frame.js
 - `__setH`：53-frame.js
+- `__slow`：53-frame.js
 
 ## 共有の箱 G に載せる名前（G.xxx）
 
@@ -963,9 +965,11 @@
 - `G.nearPatch`：16-terrain.js
 - `G.netTx2`：18-buildings.js
 - `G.noRefl`：52-frame-render.js
+- `G.noRender`：53-frame.js
 - `G.ohashi`：45b-ohashi.js
 - `G.okishima`：41-islands.js
 - `G.paused`：53-frame.js
+- `G.perfMode`：53-frame.js
 - `G.piers`：45b-ohashi.js
 - `G.plTx`：18-buildings.js
 - `G.pm`：29-controls.js
@@ -986,6 +990,7 @@
 - `G.shore`：46-shore-life.js
 - `G.showers`：43c-showers.js
 - `G.simT`：53-frame.js
+- `G.slowHk`：53-frame.js
 - `G.smoke`：22c-village-smoke.js
 - `G.snapNow`：32-photo.js
 - `G.stationLamps`：24-shore-landmarks.js
