@@ -1,4 +1,4 @@
-/* ---------- 湖に浮かぶ建築（2026年11月）：水上子ども図書館・水上映画館・水上音楽堂 ----------
+/* ---------- 湖に浮かぶ建築（2026年11月）：水上子ども図書館・水上映画館・水上音楽堂・水上の花屋・水上茶屋・水上郵便局 ----------
    人の姿は出さず、置かれた物と灯りと音で、そこで過ごす誰かの気配を見せる。
    3つとも、決まった岸に着いて使われる時と、湖を漂って次の岸へ移る時がある（共有時計で決まり、見る人みな同じ）。
    岸に着いている間だけ灯りが灯り、音がし、映画館は陸に客席を出す。漂う間は灯りを落として、岸沿いの沖をゆっくり進む
@@ -27,11 +27,28 @@
           u = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy || 1)));
         return Math.hypot(x - x1 - u * dx, y - y1 - u * dy) < 90;
       });
-    while (off < 900 && (inReeds(sx + Math.cos(a) * off, sy + Math.sin(a) * off) || nearWall(sx + Math.cos(a) * off, sy + Math.sin(a) * off))) off += 40;
+    // 入り組んだ岸では、沖へ出しても別の岸に近いことがある：どの岸からも実寸90m（建物の大きさの分）離れるまで出す
+    const tight = (x, y) => inReeds(x, y) || nearWall(x, y) || distShore(x, y, 120) < 90;
+    while (off < 900 && tight(sx + Math.cos(a) * off, sy + Math.sin(a) * off)) off += 40;
     return { x: sx + Math.cos(a) * off, y: sy + Math.sin(a) * off, sx, sy, a };
   }
   // 集落のある岸だけ：岸の点から2km以内の家（22b-town-glow.js の家の集まり。画質によらない）が120軒以上ある所に着く。
   // 北の集落のない入江や、家の少ない浜には着かない
+  G.hallSpot = (lo, la, off) => spot(lo, la, off); // 確認用
+  // 琵琶湖大橋（45b-ohashi.js と同じ線）から実寸400m以内か
+  const nearBridge = (x, y) =>
+    LAKE.bridges
+      .filter((b) => b.name.includes("琵琶湖大橋"))
+      .some((b) =>
+        b.pts.some((p, i) => {
+          if (!i) return false;
+          const [ax, ay] = b.pts[i - 1],
+            dx = p[0] - ax,
+            dy = p[1] - ay,
+            u = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1)));
+          return Math.hypot(x - ax - u * dx, y - ay - u * dy) < 400;
+        }),
+      );
   const villageSites = (cands, off) =>
     cands
       .filter(([lo, la]) => {
@@ -40,7 +57,11 @@
         for (const t of G.towns ? G.towns.list : []) if (t.ns >= 8 && Math.hypot(t.x - x, t.y - y) < 2000) n += t.ns; // 岸の帯の家だけ数える
         return n >= 120;
       })
-      .map(([lo, la]) => spot(lo, la, off));
+      .map(([lo, la]) => spot(lo, la, off))
+      .filter((q) => inLake(q.x, q.y) && inMain(q.x, q.y) && distShore(q.x, q.y, 120) >= 80) // 沖へ出したら別の岸に掛かる所は除く
+      .filter((q) => !nearBridge(q.x, q.y)); // 琵琶湖大橋のそばには着かない（橋脚が建物にかぶる）
+  // 着く岸を、ほかの水上建築の着く岸から離れた所だけに（同じ時に同じ浜に重ならないよう、実寸1.5km）
+  const apart = (list, others) => list.filter((q) => others.every((o) => Math.hypot(o.x - q.x, o.y - q.y) > 1500));
   const LAMS = new Map(),
     lam = (c, o) => {
       if (o) return new THREE.MeshLambertMaterial({ color: c, ...o });
@@ -129,6 +150,20 @@
     }
   }
   const halls = [];
+  // 簾（細い竹を密に並べ、ところどころ編み糸）：茶屋・図書館で使う
+  const sudareTx = cvTex(64, 64, (c, w, h) => {
+    c.clearRect(0, 0, w, h);
+    for (let x = 0; x < w; x += 3) (c.fillStyle = "#b99a62"), c.fillRect(x, 0, 2, h);
+    for (let y = 10; y < h; y += 20) (c.fillStyle = "#5a4630"), c.fillRect(0, y, w, 1);
+  });
+  const sudareM = lam(0xffffff, { map: sudareTx, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide });
+  // 風鈴：小さなガラスの鈴と、下に下がる細い短冊
+  const glassM = lam(0xcfe4ea, { transparent: true, opacity: 0.6, emissive: 0x18242a });
+  const furin = (g, x, y, z, c) => {
+    add(g, new THREE.CylinderGeometry(0.004, 0.004, 0.35, 3), M.dark, x, y + 0.2, z);
+    add(g, new THREE.SphereGeometry(0.11, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.6), glassM, x, y, z);
+    add(g, box(0.06, 0.28, 0.005), lam(c, { side: THREE.DoubleSide }), x, y - 0.25, z);
+  };
   // 岸沿いの沖の道：岸の線（outer）を、湖の側へ約500m離してなぞる。A の岸から B の岸まで、近い向きに
   const NO = outer.length - 1;
   const nearIdx = (x, y) => {
@@ -255,7 +290,30 @@
       if (Math.sin(a * 2 + 1) < -0.3) continue; // ところどころ開けて、出入りの口に
       add(g, box(0.025, 0.55, 0.025), M.post, Math.cos(a) * 6.5, 1.15, Math.sin(a) * 6.5);
     }
-    add(g, new THREE.ConeGeometry(10.5, 4.6, 8, 1, true), M.thatch, 0, 6.6, 0, Math.PI / 8);
+    {
+      // 屋根の反り：軒先ほど少し持ち上げて、やわらかな曲線に
+      const cg = new THREE.ConeGeometry(10.5, 4.6, 8, 6, true),
+        p = cg.attributes.position;
+      for (let i = 0; i < p.count; i++) {
+        const r = 1 - (p.getY(i) / 4.6 + 0.5);
+        p.setY(i, p.getY(i) + 0.9 * r * r * r);
+      }
+      cg.computeVertexNormals();
+      add(g, cg, M.thatch, 0, 6.6, 0, Math.PI / 8);
+    }
+    // 軒下の風鈴（8つ。短冊の色はとりどり）と、二方に半ば巻き上げた簾
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      furin(g, Math.cos(a) * 8.6, 4.75, Math.sin(a) * 8.6, [0xd8634f, 0x5b8fc4, 0xe9c25a, 0x7fae6a][k % 4]);
+    }
+    for (const a of [Math.PI * 0.75, Math.PI * 1.75]) {
+      const o = add(g, new THREE.PlaneGeometry(4.6, 1.3), sudareM, Math.cos(a) * 6.55, 3.75, Math.sin(a) * 6.55, -a + Math.PI / 2);
+      add(g, new THREE.CylinderGeometry(0.06, 0.06, 4.6, 6), lam(0xb99a62), Math.cos(a) * 6.55, 3.1, Math.sin(a) * 6.55, -a + Math.PI / 2, 0, Math.PI / 2); // 巻いた所
+      o.userData.x = 0;
+    }
+    // 床に積んだ本（いくつかの小さな山）
+    for (const [x, z, n] of [[-3.6, 3.4, 4], [2.6, -4.6, 3], [-4.8, -1.4, 2]])
+      for (let j = 0; j < n; j++) add(g, box(0.55 - j * 0.04, 0.09, 0.4), lam([0xc94c3c, 0xe7b84a, 0x3f7fb4, 0xe9e2cf][(j + n) % 4]), x, 0.92 + j * 0.09, z, j * 0.25);
     add(g, new THREE.CylinderGeometry(10.5, 10.6, 0.5, 8, 1, true), M.thatch, 0, 4.3, 0, Math.PI / 8); // 軒の厚み
     add(g, new THREE.ConeGeometry(1.2, 1.4, 8), M.dark, 0, 9.3, 0); // 棟の押さえ
     add(g, new THREE.CylinderGeometry(0.03, 0.03, 1.6, 4), M.dark, 0, 10.6, 0); // 細い頂の竿
@@ -376,6 +434,24 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     }
     for (const y of [11.3, 2.05]) add(rig, box(17, 0.06, 0.06), M.post, 0, y, 0.45);
     for (let k = 0; k < 17; k++) add(rig, box(0.012, 9.2, 0.012), M.rope, -8 + k, 6.6, 0.4); // 幕を留める細い紐
+    // 幕の枠を支える細い控え綱（枠の上から床の四隅へ）と、上の桁の小さな三角旗
+    for (const sx of [-8.4, 8.4])
+      for (const ez of [-2.8, 2.8]) {
+        const a = new THREE.Vector3(sx, 11.2, 0.5),
+          b = new THREE.Vector3(sx * 1.15, 0.2, ez),
+          m = a.clone().add(b).multiplyScalar(0.5),
+          L = a.distanceTo(b),
+          o = add(rig, new THREE.CylinderGeometry(0.012, 0.012, L, 3), M.rope, m.x, m.y, m.z);
+        o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+      }
+    {
+      const FL = [0xd8634f, 0xe9c25a, 0x5b8fc4, 0xf2efe6].map((c) => new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide }));
+      for (let k = 0; k < 17; k++) {
+        const f = new THREE.Mesh(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-0.22, 0, 0), new THREE.Vector3(0.22, 0, 0), new THREE.Vector3(0, -0.5, 0)]), FL[k % 4]);
+        f.position.set(-8 + k, 11.25, 0.55);
+        rig.add(f);
+      }
+    }
     rig.traverse((o) => o.isMesh && (o.userData.keep = true)); // 動かすので束ねない
     // たたんだ幕を巻いた筒（たたんでいる間だけ見える）
     const roll = add(g, new THREE.CylinderGeometry(0.35, 0.35, 16.4, 10), lam(0xe9e6dc), 0, 1.2, 0.4, 0, 0, Math.PI / 2);
@@ -384,6 +460,11 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     // 幕の舟の、小さな舵小屋と灯り
     add(g, box(2.2, 2, 1.8), lam(0x2f3a44, { emissive: 0x0c0f12 }), 8.2, 1.8, 1.6);
     add(g, new THREE.SphereGeometry(0.2, 8, 6), glowMat(0xffd59a, 2), 8.2, 3.0, 0.6);
+    // 舳と艫の、細い竿に下げた提灯
+    for (const x of [-9.6, 9.6]) {
+      add(g, new THREE.CylinderGeometry(0.03, 0.03, 2.2, 5), M.post, x, 1.9, -2.6);
+      add(g, new THREE.SphereGeometry(0.18, 10, 8).scale(1, 1.3, 1), glowMat(0xffb070, 2.2), x, 2.95, -2.6);
+    }
     var cinH = moor(g, cinSites);
     // 陸の客席：映写台（小さな卓と映写機）と、湖へ向いた椅子の列・敷物・提灯。人の姿はなく、置かれた物だけ
     const sg = new THREE.Group(),
@@ -448,7 +529,7 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
   // 着く岸：菅浦の入江 → 海津の浜 → 月出の入江
   // 奥琵琶湖の入江を西から東へ：海津の浜 → 大浦 → 菅浦の入江 → 月出の入江 → 片山
   // 湖北の岸（集落のある所だけ）：今津・海津・大浦・菅浦・片山・塩津
-  const musSites = villageSites([[136.03, 35.41], [136.072, 35.462], [136.115, 35.495], [136.1335, 35.4795], [136.198, 35.455], [136.155, 35.515]], 120);
+  const musSites = apart(villageSites([[136.03, 35.41], [136.072, 35.462], [136.115, 35.495], [136.1335, 35.4795], [136.198, 35.455], [136.155, 35.515]], 120), cinSites);
   CUR = "mus";
   {
     const g = new THREE.Group();
@@ -510,6 +591,27 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
       add(g, new THREE.SphereGeometry(0.22, 8, 6), stageM, Math.cos(a) * 6, 4.6, Math.sin(a) * 6);
     }
     add(g, new THREE.CircleGeometry(5.5, 24), glowMat(0x4a3418, 1), 0, 1.17, 0, 0, -Math.PI / 2);
+    // 殻の口に沿って、小さな灯りを細い線でつないで下げる（垂れた弧を3つ）
+    {
+      const bulb = glowMat(0xffe2b0, 2.0);
+      for (let k = 0; k < 3; k++)
+        for (let j = 0; j <= 8; j++) {
+          const u = j / 8,
+            a = Math.PI * (1.2 + 0.2 * (k + u)),
+            x = Math.cos(a) * 7.2,
+            z = Math.sin(a) * 7.2,
+            y = 6.6 - Math.sin(u * Math.PI) * 0.7;
+          add(g, new THREE.SphereGeometry(0.08, 6, 4), bulb, x, y, z);
+        }
+    }
+    // 細い幟（3本、くすんだ色の布）と、舞台の前の小さな木の段
+    for (const [a, c] of [[Math.PI * 1.08, 0x6a7f9a], [Math.PI * 1.92, 0xb06a4a], [Math.PI * 0.5, 0x8a9a6a]]) {
+      const x = Math.cos(a) * 7.4,
+        z = Math.sin(a) * 7.4;
+      add(g, new THREE.CylinderGeometry(0.03, 0.04, 5.2, 5), M.post, x, 3.4, z);
+      add(g, new THREE.PlaneGeometry(0.5, 2.6), lam(c, { side: THREE.DoubleSide, emissive: 0x0c0c0c }), x + Math.cos(a + 1.57) * 0.27, 4.4, z + Math.sin(a + 1.57) * 0.27, -a);
+    }
+    for (let k = 0; k < 2; k++) add(g, box(2.4, 0.15, 0.5), M.deck, 6.6 - k * 0.45, 0.98 - k * 0.15, 0, 0); // 段
     // 水に浮かぶ灯籠（まわりに5つ、夕方に灯る）
     const lantM = glowMat(0xffb86a, 2.4);
     for (let k = 0; k < 5; k++) {
@@ -619,6 +721,28 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     // 夕方の灯り：日よけの下に小さな裸電球を3つ
     const bulbM = glowMat(0xffd59a, 2.2);
     for (const x of [-4.5, 0, 4.5]) add(g, new THREE.SphereGeometry(0.16, 8, 6), bulbM, x, 3.8, 0);
+    // 日よけの柱に下げた吊り鉢（緑が垂れる）
+    const leaf = lam(0x4f7a42, { emissive: 0x060c04 }),
+      leafD = lam(0x3a5e34);
+    for (const x of [-6.6, 6.6])
+      for (const z of [-2.4, 2.4]) {
+        add(g, new THREE.CylinderGeometry(0.005, 0.005, 0.6, 3), M.dark, x, 3.6, z * 0.92);
+        add(g, new THREE.SphereGeometry(0.32, 10, 6, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), lam(0x9a7a5a, { side: THREE.DoubleSide }), x, 3.3, z * 0.92);
+        add(g, new THREE.SphereGeometry(0.34, 8, 6), leaf, x, 3.35, z * 0.92);
+        for (let j = 0; j < 4; j++) add(g, new THREE.ConeGeometry(0.06, 0.7, 4), leafD, x + Math.cos(j * 1.6) * 0.25, 2.95, z * 0.92 + Math.sin(j * 1.6) * 0.25, 0, Math.PI);
+      }
+    // 桶のところどころに、葉物（細い円錐の束）と、紙で包んだ花束
+    for (let r = 0; r < 3; r++)
+      for (let k = 1; k < 15; k += 4) for (let j = 0; j < 3; j++) add(g, new THREE.ConeGeometry(0.05, 0.9, 4), leafD, -5.2 + k * 0.74 + (j - 1) * 0.08, 1.85 + r * 0.45, -1.6 + r * 1.2, (j - 1) * 0.2);
+    const paper = lam(0xe8dcc4, { side: THREE.DoubleSide });
+    for (const [x, z, a] of [[-6.2, 1.6, 0.3], [-5.9, 1.9, -0.2], [6.1, 1.8, 0.1]]) add(g, new THREE.ConeGeometry(0.28, 0.9, 10, 1, true), paper, x, 1.25, z, 0, a, Math.PI);
+    // 小さな黒板（字は書かない）と、ブリキの如雨露
+    for (const s2 of [-1, 1]) {
+      const o = add(g, box(0.7, 1.0, 0.04), lam(0x2a2e2a), -6.3, 1.35, -1.9 + s2 * 0.18);
+      o.rotation.x = s2 * 0.18;
+    }
+    add(g, new THREE.CylinderGeometry(0.22, 0.24, 0.42, 12), lam(0x9aa4a6), 5.9, 1.05, -1.8);
+    add(g, new THREE.CylinderGeometry(0.03, 0.05, 0.55, 6), lam(0x9aa4a6), 6.2, 1.18, -1.8, 0, 0, -0.9);
     floH = moor(g, floSites);
     // 花の頭：桶ごとに数輪。色は季節で替える（形は共有、毎月の色だけ塗り直す）
     const heads = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.24, 0), new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x2a2020 }), 3 * 15 * 4),
@@ -698,8 +822,251 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
     petG.attributes.position.needsUpdate = petG.attributes.color.needsUpdate = true;
   };
 
+  // ---------- 共通：細長い平舟（茶屋・郵便局） ----------
+  // 長さ L・幅 W の床、丸い浮き、細い格子の手すり（open の範囲 [x0, x1] は前の舷を開けて出入りの口に）、床板の目地
+  function raft(g, L, W, open = null) {
+    add(g, box(L, 0.5, W), M.deck, 0, 0.55, 0);
+    for (let x = -L / 2 + 1.6; x <= L / 2 - 1.5; x += 3.2) for (const z of [-W / 2 + 0.7, W / 2 - 0.7]) add(g, new THREE.CylinderGeometry(0.45, 0.45, 2.6, 8), M.float, x, 0.15, z, 0, Math.PI / 2);
+    for (let k = 0; k < L * 2; k++) add(g, box(0.02, 0.01, W - 0.2), M.dark, -L / 2 + 0.25 + k * 0.5, 0.81, 0);
+    for (const z of [-W / 2 + 0.08, W / 2 - 0.08]) {
+      for (let k = 0; k <= L * 3; k++) {
+        const x = -L / 2 + k / 3;
+        if (open && z < 0 && x > open[0] && x < open[1]) continue;
+        add(g, box(k % 6 ? 0.022 : 0.05, 0.7, k % 6 ? 0.022 : 0.05), M.post, x, 1.15, z);
+      }
+      const segs = open && z < 0 ? [[-L / 2, open[0]], [open[1], L / 2]] : [[-L / 2, L / 2]];
+      for (const [a, b] of segs) {
+        add(g, box(b - a, 0.05, 0.05), M.post, (a + b) / 2, 1.52, z);
+        add(g, box(b - a, 0.025, 0.025), M.post, (a + b) / 2, 1.15, z);
+      }
+    }
+    for (const x of [-L / 2 + 0.08, L / 2 - 0.08]) add(g, box(0.05, 0.05, W - 0.2), M.post, x, 1.52, 0);
+  }
+  // 反った屋根：四隅へ下がる宝形（4つの面）を、軒先ほど少し持ち上げて反らせる。幅 a・奥行き b・高さ h
+  function curvedRoof(a, b, h, m) {
+    const geo = new THREE.ConeGeometry(Math.SQRT2 / 2, 1, 4, 6, true);
+    geo.rotateY(Math.PI / 4);
+    const p = geo.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const y = p.getY(i) + 0.5, // 0（軒）〜1（頂）
+        r = 1 - y;
+      p.setXYZ(i, p.getX(i) * a, (y + 0.22 * r * r * r - 0.5) * h, p.getZ(i) * b); // 軒先ほど持ち上げる（反り）
+    }
+    geo.computeVertexNormals();
+    return new THREE.Mesh(geo, m);
+  }
+  // 湯気・煙の粒（茶屋の釜）：ゆっくり立ちのぼって薄れる。粒の動きは毎コマ少しだけ
+  function steamPuff(g, x, y, z, n = 18) {
+    const pos = new Float32Array(n * 3),
+      geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.PointsMaterial({ size: 0.9, map: G.dotTex, color: 0xf4f2ee, transparent: true, opacity: 0, depthWrite: false });
+    const pts = new THREE.Points(geo, mat);
+    pts.frustumCulled = false;
+    pts.userData.noRefl = true;
+    pts.userData.keep = true;
+    g.add(pts);
+    const seed = Array.from({ length: n }, (_, i) => [i / n, R() * 6.28]);
+    return (t, on) => {
+      mat.opacity = 0.35 * on;
+      pts.visible = on > 0.02;
+      if (!pts.visible) return;
+      for (let i = 0; i < n; i++) {
+        const u = (seed[i][0] + t * 0.12) % 1;
+        pos[i * 3] = x + Math.sin(seed[i][1] + t * 0.7) * 0.25 * u;
+        pos[i * 3 + 1] = y + u * 3.2;
+        pos[i * 3 + 2] = z + Math.cos(seed[i][1] + t * 0.5) * 0.25 * u;
+      }
+      geo.attributes.position.needsUpdate = true;
+      mat.size = 0.9;
+    };
+  }
+
+  // ---------- 5. 水上茶屋 ----------
+  // 反った宝形の杉皮葺きの屋根に、藍の暖簾。畳の間と、緋毛氈の縁台、赤い野点傘。岸に着くと釜から湯気が立ち、行灯が灯る。
+  // 人の姿はなく、湯気と灯りと、ときどき湯の沸く音で、お茶を点てる誰かの気配。湖東の中ほど（野洲〜近江八幡〜能登川）の集落を巡る
+  const teaSites = apart(villageSites([[136.04, 35.15], [136.11, 35.205], [136.17, 35.195], [136.065, 35.16]], 110), [...libSites, ...cinSites, ...musSites, ...floSites]);
+  CUR = "tea";
+  let teaH = null,
+    teaSteam = null;
+  {
+    const g = new THREE.Group();
+    raft(g, 12, 8, [-1.6, 1.6]);
+    // 畳の台（一段高い）：淡い若草色に、細い黒の縁
+    const tatamiTx = cvTex(64, 32, (c, w, h) => {
+      c.fillStyle = "#c9c79a";
+      c.fillRect(0, 0, w, h);
+      for (let y = 0; y < h; y += 2) (c.fillStyle = `rgba(90,95,50,${(0.06 + Math.random() * 0.06).toFixed(2)})`), c.fillRect(0, y, w, 1);
+      c.fillStyle = "#2b2a24";
+      c.fillRect(0, 0, w, 2);
+      c.fillRect(0, h - 2, w, 2);
+      c.fillRect(w / 2 - 1, 0, 2, h);
+    });
+    tatamiTx.wrapS = tatamiTx.wrapT = THREE.RepeatWrapping;
+    tatamiTx.repeat.set(3, 2);
+    add(g, box(7, 0.35, 5), M.deck, 0.6, 1.0, 0.6);
+    add(g, box(6.8, 0.02, 4.8), lam(0xffffff, { map: tatamiTx, emissive: 0x0c0c08 }), 0.6, 1.19, 0.6);
+    // 柱：四隅の細い角柱と、間の細い柱。上に細い桁と、軒裏の細い垂木
+    const postM = lam(0x5a3e2a);
+    for (const x of [-2.9, 4.1]) for (const z of [-1.9, 3.1]) add(g, box(0.12, 3.4, 0.12), postM, x, 2.85, z);
+    for (const x of [-0.6, 1.8]) for (const z of [-1.9, 3.1]) add(g, box(0.07, 3.4, 0.07), postM, x, 2.85, z);
+    for (const z of [-1.9, 3.1]) add(g, box(7.2, 0.12, 0.1), postM, 0.6, 4.5, z);
+    for (const x of [-2.9, 4.1]) add(g, box(0.1, 0.12, 5.2), postM, x, 4.5, 0.6);
+    for (let k = 0; k < 30; k++) add(g, box(0.03, 0.04, 6.6), M.post, -3.6 + k * 0.29, 4.62, 0.6); // 垂木
+    // 屋根：杉皮のこげ茶、軒は深く薄い。頂に小さな宝珠
+    const barkTx = cvTex(64, 64, (c, w, h) => {
+      c.fillStyle = "#4e3a2a";
+      c.fillRect(0, 0, w, h);
+      for (let y = 0; y < h; y += 4) (c.fillStyle = `rgba(20,12,6,${(0.25 + Math.random() * 0.2).toFixed(2)})`), c.fillRect(0, y, w, 1);
+      for (let i = 0; i < 120; i++) (c.fillStyle = "rgba(120,95,70,.25)"), c.fillRect(Math.random() * w, Math.random() * h, 1, 3);
+    });
+    barkTx.wrapS = barkTx.wrapT = THREE.RepeatWrapping;
+    barkTx.repeat.set(4, 3);
+    const roofM = lam(0xffffff, { map: barkTx, emissive: 0x0a0604, side: THREE.DoubleSide });
+    const rf = curvedRoof(10.4, 8.4, 3.0, roofM);
+    rf.position.set(0.6, 6.0, 0.6);
+    g.add(rf);
+    add(g, box(10.4 * 0.71, 0.06, 0.08), M.post, 0.6, 4.62, 0.6 - 8.4 * 0.355); // 軒先の細い鼻隠し（前）
+    add(g, box(10.4 * 0.71, 0.06, 0.08), M.post, 0.6, 4.62, 0.6 + 8.4 * 0.355);
+    add(g, new THREE.CylinderGeometry(0.22, 0.32, 0.25, 8), M.dark, 0.6, 7.55, 0.6); // 露盤
+    add(g, new THREE.SphereGeometry(0.2, 10, 8), lam(0x8a7a4a), 0.6, 7.85, 0.6); // 宝珠
+    // 藍の暖簾：正面の口に3枚（裾を少し揺らした形）
+    const indigo = lam(0x2c3e62, { side: THREE.DoubleSide, emissive: 0x05080e });
+    for (let k = 0; k < 3; k++) {
+      const n = add(g, new THREE.PlaneGeometry(0.95, 1.3), indigo, -0.4 + k * 1.0, 3.75, -1.95, 0, 0.06 * (k - 1));
+      n.rotation.z = 0.02 * (k - 1);
+    }
+    add(g, new THREE.CylinderGeometry(0.025, 0.025, 3.4, 5), M.post, 0.6, 4.4, -1.95, 0, 0, Math.PI / 2); // 暖簾の竿
+    // 奥の簾（細い竹を密に）
+    const sudareTx = cvTex(64, 64, (c, w, h) => {
+      c.fillStyle = "rgba(0,0,0,0)";
+      c.clearRect(0, 0, w, h);
+      for (let x = 0; x < w; x += 3) (c.fillStyle = "#b99a62"), c.fillRect(x, 0, 2, h);
+      for (let y = 10; y < h; y += 20) (c.fillStyle = "#5a4630"), c.fillRect(0, y, w, 1);
+    });
+    add(g, new THREE.PlaneGeometry(6.8, 2.2), lam(0xffffff, { map: sudareTx, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide }), 0.6, 3.25, 3.1);
+    // 茶道具：炉と釜、棚、茶碗（小さな物を少しだけ）
+    add(g, box(0.9, 0.3, 0.9), lam(0x3a2c22), 1.6, 1.35, 1.4);
+    add(g, new THREE.SphereGeometry(0.32, 12, 8), lam(0x2a2826), 1.6, 1.72, 1.4); // 釜
+    add(g, box(1.6, 0.06, 0.45), postM, -1.6, 1.9, 2.6); // 棚
+    add(g, box(1.6, 0.06, 0.45), postM, -1.6, 1.4, 2.6);
+    for (const [x, c] of [[-2.1, 0x2f4e44], [-1.6, 0xd9cfb8], [-1.1, 0x6a3a2a]]) add(g, new THREE.CylinderGeometry(0.11, 0.08, 0.12, 10), lam(c), x, 2.0, 2.6);
+    // 縁台と緋毛氈、赤い野点傘（前の甲板）
+    const felt = lam(0xb8322a, { emissive: 0x140404 });
+    for (const [x, z, r] of [[-4.2, -2.4, 0.1], [-4.6, 1.2, -0.15]]) {
+      add(g, box(2.4, 0.08, 0.9), postM, x, 1.3, z, r);
+      add(g, box(2.4, 0.03, 0.9), felt, x, 1.36, z, r);
+      for (const dx of [-1, 1]) for (const dz of [-0.35, 0.35]) add(g, box(0.06, 0.5, 0.06), postM, x + dx * Math.cos(r) + dz * Math.sin(r), 1.05, z - dx * Math.sin(r) + dz * Math.cos(r));
+    }
+    add(g, new THREE.CylinderGeometry(0.035, 0.035, 3.6, 5), postM, -4.6, 2.6, -0.6);
+    const kasa = new THREE.ConeGeometry(2.3, 0.9, 20, 1, true);
+    add(g, kasa, lam(0xc23a2c, { side: THREE.DoubleSide, emissive: 0x160404 }), -4.6, 4.2, -0.6);
+    for (let k = 0; k < 20; k++) {
+      const a = (k / 20) * Math.PI * 2;
+      add(g, box(2.25, 0.02, 0.02), M.dark, -4.6 + Math.cos(a) * 1.12, 4.0, -0.6 + Math.sin(a) * 1.12, -a, 0, -0.37); // 傘の骨
+    }
+    // 行灯（夕方に灯る）と、軒下の小さな提灯
+    const andon = glowMat(0xffd7a0, 2.0);
+    for (const [x, z] of [[-2.6, -1.6], [3.8, 2.8]]) {
+      add(g, box(0.45, 0.7, 0.45), andon, x, 1.6, z);
+      add(g, box(0.5, 0.04, 0.5), M.dark, x, 1.97, z);
+    }
+    const chochin = glowMat(0xffb070, 2.2);
+    for (let k = 0; k < 5; k++) add(g, new THREE.SphereGeometry(0.16, 10, 8).scale(1, 1.3, 1), chochin, -2.4 + k * 1.5, 4.05, -2.15);
+    add(g, new THREE.CircleGeometry(3.2, 20), glowMat(0x4a3418, 1), 0.6, 1.21, 0.6, 0, -Math.PI / 2); // 畳に落ちる灯り
+    // つないだ小舟
+    add(g, box(3.4, 0.5, 1.2), lam(0x6f8a7a), 0, 0.3, 5.4, 0.1);
+    teaH = moor(g, teaSites);
+    teaSteam = steamPuff(teaH.g, 1.6, 2.0, 1.4); // 釜の上（舟の中の位置。舟と一緒に動く）
+  }
+
+  // ---------- 6. 水上郵便局 ----------
+  // 赤い切妻屋根に白い板壁の小さな局舎を載せた平舟。舳先に丸い赤いポスト、局舎の窓の奥に仕分けの棚、甲板に小包。
+  // 岸に着くと旗が上がり、窓に灯りがともる。北の湖を巡って、岸から岸へ手紙を運ぶ（行き先は分からないが、どこかへ届く）
+  const postSites = apart(villageSites([[136.01, 35.27], [136.045, 35.35], [136.095, 35.43], [136.21, 35.4], [136.272, 35.36], [136.24, 35.31]], 110), [...libSites, ...cinSites, ...musSites, ...floSites, ...teaSites]);
+  CUR = "post";
+  let postH = null,
+    postFlag = null;
+  {
+    const g = new THREE.Group();
+    raft(g, 13, 5.6, [-6.4, -3.6]);
+    // 局舎：白い板壁（細い横の目地）と、格子の窓
+    const wallTx = cvTex(64, 64, (c, w, h) => {
+      c.fillStyle = "#eee9dd";
+      c.fillRect(0, 0, w, h);
+      for (let y = 0; y < h; y += 5) (c.fillStyle = "rgba(90,80,60,.22)"), c.fillRect(0, y, w, 1);
+    });
+    wallTx.wrapS = wallTx.wrapT = THREE.RepeatWrapping;
+    wallTx.repeat.set(3, 2);
+    const wallM = lam(0xffffff, { map: wallTx, emissive: 0x161410 });
+    add(g, box(6, 0.25, 4.0), lam(0x5a3e2a), 1.2, 0.92, 0); // 土台
+    for (const z of [-1.95, 1.95]) add(g, box(6, 3, 0.1), wallM, 1.2, 2.55, z);
+    for (const x of [-1.75, 4.15]) add(g, box(0.1, 3, 4.0), wallM, x, 2.55, 0);
+    // 窓：前に大きな窓（灯る）と細い格子、奥の仕分け棚
+    const win = glowMat(0xffdfae, 1.8);
+    add(g, box(3.4, 1.4, 0.04), win, 1.2, 2.7, -2.02);
+    for (let k = 0; k <= 6; k++) add(g, box(0.03, 1.45, 0.06), M.dark, -0.5 + k * 0.567, 2.7, -2.05);
+    add(g, box(3.45, 0.04, 0.06), M.dark, 1.2, 2.7, -2.05);
+    for (const y of [1.98, 3.42]) add(g, box(3.6, 0.07, 0.12), lam(0x5a3e2a), 1.2, y, -2.05);
+    const shelfTx = cvTex(64, 32, (c, w, h) => {
+      c.fillStyle = "#6a4a30";
+      c.fillRect(0, 0, w, h);
+      for (let y = 1; y < h; y += 6)
+        for (let x = 1; x < w; x += 6) {
+          c.fillStyle = Math.random() < 0.55 ? ["#f1ead6", "#e9dcc0", "#d9e4ea", "#f3d9c8"][Math.floor(Math.random() * 4)] : "#3a281a";
+          c.fillRect(x, y, 5, 5);
+        }
+    });
+    add(g, box(3.2, 1.4, 0.3), lam(0xffffff, { map: shelfTx, emissive: 0x100c08 }), 1.2, 2.7, -1.6);
+    // 戸口（横の小さな窓も）
+    add(g, box(0.06, 2.1, 1.1), lam(0x7a2a22), -1.81, 2.1, 0.6);
+    add(g, box(0.04, 0.8, 0.9), win, 4.22, 2.8, 0.2);
+    // 赤い切妻屋根（薄い板2枚、軒を深く）と、細い棟・破風
+    const red = lam(0xa8352c, { emissive: 0x140404, side: THREE.DoubleSide });
+    for (const s of [-1, 1]) {
+      const o = add(g, box(7.2, 0.08, 2.75), red, 1.2, 4.55, s * 1.2);
+      o.rotation.x = s * 0.5;
+    }
+    add(g, box(7.3, 0.12, 0.14), lam(0x6a1e18), 1.2, 5.15, 0); // 棟
+    for (const x of [-2.35, 4.75]) for (const s of [-1, 1]) {
+      const o = add(g, box(0.06, 0.12, 2.8), M.white, x, 4.52, s * 1.2);
+      o.rotation.x = s * 0.5; // 白い破風
+    }
+    // 舳先の丸い赤いポスト（胴・笠・投函口）
+    const postRed = lam(0xc0322a, { emissive: 0x180404 });
+    add(g, new THREE.CylinderGeometry(0.34, 0.36, 1.25, 16), postRed, -5.2, 1.45, -1.4);
+    add(g, new THREE.SphereGeometry(0.36, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), postRed, -5.2, 2.07, -1.4);
+    add(g, new THREE.CylinderGeometry(0.42, 0.42, 0.06, 16), postRed, -5.2, 2.08, -1.4);
+    add(g, box(0.3, 0.05, 0.03), M.dark, -5.2, 1.8, -1.76);
+    add(g, box(0.55, 0.12, 0.55), lam(0x3a3a3a), -5.2, 0.86, -1.4);
+    // 小包と手紙の束（甲板の端に）
+    const kraft = lam(0xb78a5a);
+    for (const [x, z, w, h, d] of [[-4.6, 1.6, 0.8, 0.5, 0.6], [-3.8, 1.8, 0.6, 0.4, 0.5], [-4.3, 1.7, 0.5, 0.35, 0.45]]) add(g, box(w, h, d), kraft, x, 0.85 + h / 2 + (x === -4.3 ? 0.5 : 0), z);
+    add(g, box(0.4, 0.15, 0.25), M.white, -3.2, 0.93, 1.9);
+    // 軒下の小さな鐘と、舳先の灯り
+    add(g, new THREE.CylinderGeometry(0.06, 0.14, 0.2, 10, 1, true), lam(0xb89a4a, { side: THREE.DoubleSide }), -2.05, 3.85, -2.3);
+    add(g, new THREE.SphereGeometry(0.18, 10, 8), glowMat(0xffd59a, 2.2), -6.1, 1.9, 0);
+    add(g, new THREE.CylinderGeometry(0.03, 0.03, 1.1, 5), M.post, -6.1, 1.35, 0);
+    // 旗竿と旗（岸に着いている間だけ上がる）
+    add(g, new THREE.CylinderGeometry(0.035, 0.045, 5.5, 6), M.post, 5.6, 3.6, 1.8);
+    const flag = new THREE.Group();
+    flag.position.set(5.6, 1.4, 1.8);
+    const fg = new THREE.PlaneGeometry(1.4, 0.9, 6, 1).translate(0.7, 0, 0);
+    {
+      const p = fg.attributes.position;
+      for (let i = 0; i < p.count; i++) p.setZ(i, Math.sin(p.getX(i) * 2.2) * 0.12 * p.getX(i)); // はためく形
+    }
+    const fm = add(flag, fg, new THREE.MeshLambertMaterial({ color: 0xc0322a, side: THREE.DoubleSide }), 0, 0, 0);
+    add(flag, new THREE.PlaneGeometry(1.4, 0.18).translate(0.7, 0, 0.01), new THREE.MeshLambertMaterial({ color: 0xf2efe6, side: THREE.DoubleSide }), 0, 0, 0);
+    flag.traverse((o) => o.isMesh && (o.userData.keep = true));
+    fm.userData.keep = true;
+    g.add(flag);
+    postFlag = flag;
+    postH = moor(g, postSites);
+  }
+
   G.waterU = waterU; // 確認用
-  G.halls = { lib: libH, cin: cinH, mus: musH, flo: floH }; // 確認用（いまの位置・岸に着いているか）
+  G.halls = { lib: libH, cin: cinH, mus: musH, flo: floH, tea: teaH, post: postH }; // 確認用（いまの位置・岸に着いているか）
   // 全体地図の印（28-map.js）：地図を開いている間は毎コマの更新が止まるので、ここで共有時計から位置を求め直す
   G.hallMarks = () => {
     const ct = clock().t;
@@ -708,6 +1075,8 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
       ["cin", cinH],
       ["mus", musH],
       ["flo", floH],
+      ["tea", teaH],
+      ["post", postH],
     ].map(([k, H]) => (place(H, ct), { k, x: H.px, y: H.py, moored: H.moored, rot: H.rot }));
   };
   let scrSite = -1,
@@ -715,6 +1084,8 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
   // 毎フレーム：波にゆっくり揺れ、日暮れに灯り、夏の夜は上映、近づくと音
   const OFF = new THREE.Color(0x3a3630);
   let nextPage = 0,
+    nextKettle = 0,
+    nextBell = 0,
     nextTune = 0,
     nextClick = 0;
   let wkH = null; // 航跡を描いている水上建築
@@ -758,7 +1129,11 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
         waterU.uHD.value.set(wkH.dx, wkH.dy);
       }
     }
-    const useOf = { lib: libH.use, cin: cinH.use, mus: musH.use, flo: floH.use };
+    const useOf = { lib: libH.use, cin: cinH.use, mus: musH.use, flo: floH.use, tea: teaH.use, post: postH.use };
+    // 茶屋：岸に着いている昼〜夜（7〜21時）は、釜から湯気。郵便局：着いている間は旗が上がる
+    teaSteam(t, h > 7 && h < 21 && f.wxNow.rain < 0.5 ? teaH.use : 0);
+    postFlag.position.y = 1.4 + 4.6 * (postH.use * postH.use * (3 - 2 * postH.use));
+    postFlag.rotation.y = Math.sin(t * 1.3) * 0.15;
     floUpdate(c, t);
     for (const m of lit) m.color.lerpColors(OFF, m.userData.on, lt * late * (0.2 + 0.8 * useOf[m.userData.owner])); // 漂う間は灯りを落とす
     // 映画館：着いた岸に客席を出す
@@ -792,6 +1167,30 @@ gl_FragColor=vec4(mix(off*.75,on,uOn),1.);}`,
       lib = { x: libH.px, y: libH.py },
       mus = { x: musH.px, y: musH.py },
       cin = { x: cinH.px, y: cinH.py };
+    const dt_ = dOf(teaH),
+      dp = dOf(postH);
+    // 茶屋：釜の湯の沸く、ごく小さな音（昼〜夜）
+    if (dt_ < 90 && h > 7 && h < 21 && now > nextKettle) {
+      nextKettle = now + 6 + Math.random() * 10;
+      nburst(900, 200, 1.6, 0.03 * (1 - dt_ / 90), panV(teaH.x, teaH.z), 0.4, 0.3);
+    }
+    // 郵便局：ときどき小さな鐘（昼）
+    if (dp < 200 && h > 8 && h < 17 && now > nextBell) {
+      nextBell = now + 50 + Math.random() * 60;
+      const ac = SND.ctx,
+        o = ac.createOscillator(),
+        e = ac.createGain(),
+        pn = ac.createStereoPanner();
+      o.type = "sine";
+      o.frequency.value = 1760;
+      pn.pan.value = panV(postH.x, postH.z) * 0.7;
+      e.gain.setValueAtTime(0, now);
+      e.gain.linearRampToValueAtTime(0.03 * (1 - dp / 200), now + 0.005);
+      e.gain.exponentialRampToValueAtTime(1e-4, now + 1.4);
+      o.connect(e).connect(pn).connect(SND.master);
+      o.start(now);
+      o.stop(now + 1.5);
+    }
     // 図書館：ページをめくる音（昼〜夕方）
     if (dl < 120 && h > 9 && h < 19 && now > nextPage) {
       nextPage = now + 4 + Math.random() * 9;
