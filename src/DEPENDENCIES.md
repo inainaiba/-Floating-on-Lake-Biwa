@@ -246,6 +246,7 @@
   - 00-head.js：`GLSL_NOISE`
   - 01-settings.js：`S`
   - 02-season.js：`SEASON`
+  - 10-start.js：`rnd`
   - 12-renderer.js：`scene`
   - 20-villages-layout.js：`bHash`、`cvTex`、`landY`、`paddies`
 
