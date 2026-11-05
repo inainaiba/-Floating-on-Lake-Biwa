@@ -118,7 +118,7 @@
   - 12-renderer.js：`scene`
 
 ## 16-terrain.js
-- 作る：`DEM`、`DEM_D`、`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_DEM`、`ISLE_H`、`MIST_U`、`NEAR`、`NEAR_U`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`REED_CUT`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`SNOW`、`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_NIGHT`、`TERR_FS_ROCK`、`TERR_FS_SEASON`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleGrid`、`isleH`、`isleShape`、`landContours`、`landH`、`nearAt`、`nearBlk`、`nearRes`、`okiZone`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`tdx`、`tdy`、`terr`、`terrB`、`terrColor`、`terrGeo`、`terrGeo_`、`terrGrid`、`terrH`、`terrHD`、`terrMat`、`terrShape`、`terrShapeB`、`tx0`、`ty0`、`vnoise`
+- 作る：`DEM`、`DEM_D`、`FOREST_TINT`、`INNER_Y`、`ISLES`、`ISLE_DEM`、`ISLE_H`、`MIST_U`、`NEAR`、`NEAR_U`、`OKI`、`OKI_BOX`、`PEAKS`、`PK`、`REED_CUT`、`REED_MONTH`、`REED_SITES`、`REED_TEX`、`SNOW`、`TERR_CELL`、`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_NIGHT`、`TERR_FS_ROCK`、`TERR_FS_SEASON`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`、`TH`、`TM`、`TW`、`VEX`、`VFAR`、`innerMat`、`innerReedPts`、`innerReeds`、`isleGrid`、`isleH`、`isleShape`、`landContours`、`landH`、`nearAt`、`nearBlk`、`nearRes`、`okiZone`、`reedGeo`、`reedGeom`、`reedMat`、`reedPts`、`reedTex`、`reedU`、`reeds`、`tdx`、`tdy`、`terr`、`terrB`、`terrColor`、`terrGeo`、`terrGeo_`、`terrGrid`、`terrH`、`terrHD`、`terrMat`、`terrShape`、`terrShapeB`、`tx0`、`ty0`、`vnoise`
 - 使う：
   - 00-head.js：`G`、`GLSL_NOISE`
   - 00a-data.js：`DATA`
