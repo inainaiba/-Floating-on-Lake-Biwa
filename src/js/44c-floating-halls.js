@@ -408,7 +408,25 @@
   // 湖に浮かぶ大きな幕の舟。岸に着くと、陸に並んだ椅子のほうへ幕を向け、陸の映写台から光の筋が届く。人は陸から観る
   // 湖東の岸を北から南へ：尾上 → 長浜 → 米原の磯 → 彦根の松原 → 新海浜
   // 湖東の岸を北から南へ（集落のある所だけ）：尾上・長浜・米原の磯・彦根・新海浜・守山
-  const cinSites = villageSites([[136.2, 35.455], [136.258, 35.392], [136.272, 35.335], [136.243, 35.283], [136.19, 35.22], [135.97, 35.12]], 140);
+  // 幕を向ける岸：幕と陸の客席の間にヨシ原がなく、客席のまわりに家がある浜だけ（ヨシ原に向かって上映しても、観る人がいない）
+  const screenOk = (q) => {
+    const ca = Math.cos(q.a),
+      sa = Math.sin(q.a);
+    // 幕（沖）から岸、岸から陸へ120mまで、幅±70mの帯にヨシ原がないこと
+    for (let d = -Math.hypot(q.x - q.sx, q.y - q.sy); d <= 120; d += 20)
+      for (const w of [-70, 0, 70]) {
+        const x = q.sx - ca * d - sa * w,
+          y = q.sy - sa * d + ca * w;
+        if (inReeds(x, y)) return false;
+      }
+    // 客席のあたり（岸から陸へ約60m）から700m以内に家の集まり（1km四方で8軒以上。画質によらない家並みのデータ）があること
+    const x = q.sx - ca * 60,
+      y = q.sy - sa * 60;
+    return (G.towns ? G.towns.list : []).some((t) => t.ns >= 8 && Math.hypot(t.x - x, t.y - y) < 700);
+  };
+  const cinCands = [[136.2, 35.455], [136.258, 35.392], [136.272, 35.335], [136.243, 35.283], [136.19, 35.22], [135.97, 35.12], [136.09, 35.165]];
+  const cinSites = villageSites(cinCands, 140).filter(screenOk);
+  G.cinCheck = () => villageSites(cinCands, 140).map((q) => [+(136.08 + q.x / 90940).toFixed(3), +(35.25 - q.y / 110540).toFixed(3), screenOk(q)]); // 確認用
   CUR = "cin";
   let placeScreen = null;
   const screenU = { uT: { value: 0 }, uOn: { value: 0 } };
