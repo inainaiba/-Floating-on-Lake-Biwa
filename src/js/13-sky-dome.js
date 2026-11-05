@@ -18,6 +18,10 @@ const skyU = {
   uStar: { value: 1 },
   uShaft: { value: 0 },
   uSnowCap: { value: 0 },
+  // 立体的な入道雲は、半分の解像度の別の画面に描いて（G.skyCu）、ここで重ねる。tCu：その画面、uCuRes：本描画の画面の1画素の大きさ、uCuOn：重ねるか
+  tCu: { value: null },
+  uCuRes: { value: new THREE.Vector2(1, 1) },
+  uCuOn: { value: 0 },
   uMet: { value: new THREE.Vector4(0, 0, 0, 0) },
   uCon: { value: new THREE.Vector4(0, 0, 0, 0) },
   uVenus: { value: 0 },
@@ -34,6 +38,7 @@ const skyU = {
 const SKY_FS_HEAD = `uniform vec3 uTop,uHor,uSunD,uSunC2;
 uniform float uT,uCloud,uDark,uCu,uMp,uCi,uRay,uLt,uRb,uStar,uHzS,uShaft,uSnowCap;uniform vec4 uMet;uniform vec4 uCon;uniform float uVenus;uniform float uMw;uniform float uMwA;uniform vec3 uMoonD;uniform float uVeil,uWin;uniform vec3 uCity;uniform float uMoonL;
 uniform vec3 uLd;
+uniform sampler2D tCu;uniform vec2 uCuRes;uniform float uCuOn;
 varying vec3 vD;
 ${GLSL_NOISE}
  `;
@@ -124,7 +129,10 @@ c=mix(c,acc/max(1.-T,1e-3),(1.-T)*fade*min(1.,uCu*1.6));
 }
 `;
 // 画質で、立体的な雲かこれまでの雲かを選ぶ
-const SKY_FS_CUMULUS = QUALITY.cloudSteps > 0 ? SKY_FS_CUMULUS_VOL : SKY_FS_CUMULUS_FLAT;
+// 立体的な雲は重い（画面の点ごとに何段も進む）ので、半分の解像度の画面に描いて重ねる。雲の輪郭はやわらかく、見分けはつかない。
+// 星・月・太陽・巻雲などは、これまでどおり元の細かさで描く
+const SKY_FS_CUMULUS =
+  QUALITY.cloudSteps > 0 ? `if(uCuOn>.5){vec4 q_=texture2D(tCu,gl_FragCoord.xy*uCuRes);c=mix(c,q_.rgb,q_.a);}` : SKY_FS_CUMULUS_FLAT;
 // 光芒：反薄明光線・薄明光線・稲光
 const SKY_FS_RAYS = ` // 反薄明光線：夕方、太陽の反対側の空へ影の筋が集まる
  {float lw2=smoothstep(.18,.0,abs(uSunD.y+.02))*(1.-uDark)*clamp(uCu*1.5+uCloud*.6,0.,1.);if(lw2>.01){vec3 an_=-uSunD;vec3 sp2=normalize(vD-an_*dot(vD,an_));float a2=atan(dot(sp2,normalize(cross(an_,vec3(0.,1.,0.)))),sp2.y);float st2=smoothstep(.45,.75,nzF5(vec2(a2*7.,uT*.008)));c=mix(c,c*vec3(.8,.78,.88),st2*lw2*.35*smoothstep(.0,.08,vD.y)*smoothstep(.7,.1,vD.y));}}
@@ -216,6 +224,29 @@ gl_FragColor=vec4(c,1.);
 skyDome.renderOrder = -1;
 skyDome.frustumCulled = false;
 scene.add(skyDome);
+// 立体的な入道雲だけの画面（半分の解像度）：雲の色と濃さ（a）を書く。52-frame-render.js が本描画の前に描く
+if (QUALITY.cloudSteps > 0) {
+  const fin = "c=mix(c,acc/max(1.-T,1e-3),(1.-T)*fade*min(1.,uCu*1.6));";
+  if (!SKY_FS_CUMULUS_VOL.includes(fin)) throw new Error("sky cumulus");
+  const mat = new THREE.ShaderMaterial({
+    uniforms: skyU,
+    side: THREE.BackSide,
+    depthWrite: false,
+    depthTest: false,
+    fog: false,
+    transparent: false,
+    vertexShader: skyDome.material.vertexShader,
+    fragmentShader: `${SKY_FS_HEAD}void main(){vec3 cuC=vec3(0.);float cuA=0.;
+${SKY_FS_CUMULUS_VOL.replace(fin, "cuC=acc/max(1.-T,1e-3);cuA=(1.-T)*fade*min(1.,uCu*1.6);")}
+gl_FragColor=vec4(cuC,cuA);
+}`,
+  });
+  const mesh = new THREE.Mesh(skyDome.geometry, mat);
+  mesh.frustumCulled = false;
+  const sc = new THREE.Scene();
+  sc.add(mesh);
+  G.skyCu = { scene: sc, mesh, rt: new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType }) };
+}
 const hemi = new THREE.HemisphereLight(0xcfe3f0, 0x46523a, 0.9);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 1.2);
