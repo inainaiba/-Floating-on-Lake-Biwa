@@ -97,6 +97,7 @@
 ## 13-sky-dome.js
 - 作る：`SKY_FS_BASE`、`SKY_FS_CLOUDS`、`SKY_FS_CUMULUS`、`SKY_FS_CUMULUS_FLAT`、`SKY_FS_CUMULUS_VOL`、`SKY_FS_FINISH`、`SKY_FS_HEAD`、`SKY_FS_MOON`、`SKY_FS_NIGHT`、`SKY_FS_OBJECTS`、`SKY_FS_RAINBOW`、`SKY_FS_RAYS`、`SKY_FS_SUN`、`SKY_FS_TWILIGHT`、`SKY_FS_WEATHER`、`hemi`、`skyDome`、`skyU`、`sun`
 - 使う：
+  - 00-head.js：`G`
   - 12-renderer.js：`QUALITY`、`scene`
 
 ## 14-water.js
@@ -833,7 +834,7 @@
 - 使う：
   - 00-head.js：`G`
   - 01-settings.js：`S`
-  - 11-state.js：`camX`、`camZ`
+  - 11-state.js：`B`、`camX`、`camZ`
   - 12-renderer.js：`QUALITY`、`camera`、`renderer`、`scene`
   - 13-sky-dome.js：`skyDome`、`skyU`、`sun`
   - 14-water.js：`water`、`waterU`
@@ -895,12 +896,14 @@
 - `G.VIS`：11-state.js
 - `G.W`：49-frame-sky-light.js
 - `G._cc`：52-frame-render.js
+- `G._cc2`：52-frame-render.js
 - `G._clip`：52-frame-render.js
 - `G._dir`：52-frame-render.js
 - `G._farHid`：52-frame-render.js
 - `G._hid`：52-frame-render.js
 - `G._noClip`：52-frame-render.js
 - `G._nrVis`：52-frame-render.js
+- `G._shL`：52-frame-render.js
 - `G._sp`：52-frame-render.js
 - `G._v3`：53-frame.js
 - `G._v3r`：52-frame-render.js
@@ -992,6 +995,7 @@
 - `G.shore`：46-shore-life.js
 - `G.showers`：43c-showers.js
 - `G.simT`：53-frame.js
+- `G.skyCu`：13-sky-dome.js
 - `G.slowHk`：53-frame.js
 - `G.smoke`：22c-village-smoke.js
 - `G.snapNow`：32-photo.js

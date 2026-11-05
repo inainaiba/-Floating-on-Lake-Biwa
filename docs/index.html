@@ -325,7 +325,7 @@ window.__data = fetch(U("d-388489d03a.json")).then((r) => {
 });
 let ok = false;
 try {
-  const r = await fetch(U("c-e0c12e85d5.lz"));
+  const r = await fetch(U("c-63881a3cd3.lz"));
   if (!r.ok) throw new Error("code " + r.status);
   const src = new TextDecoder().decode(lzmaDecode(new Uint8Array(await r.arrayBuffer())));
   await import(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
@@ -333,7 +333,7 @@ try {
 } catch (e) {
   if (window.__started) throw e; // 動き出してからの誤りは、そのまま知らせる
 }
-if (!ok) await import(U("c-e0c12e85d5.js").href);
+if (!ok) await import(U("c-63881a3cd3.js").href);
 
 </script>
 </body>

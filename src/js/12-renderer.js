@@ -35,8 +35,8 @@ const MOBILE = matchMedia("(pointer:coarse)").matches;
    towns 実際の家並みから建てる家の数の上限（岸に近い順。高は陸の奥の家まで全部）／nearPatch カメラのまわりの細かい地形の網目のマス数（0 で使わない）／reflFar 映り込みに描く景物の区画の距離（実寸m）／reedPer ヨシ1か所あたりの株の数／hedgeDetail 生け垣の形の細かさ（0 で荒く）／rocks 岸の石を残す割合
    ?q=high / mid / low で強制できる。中と低はスマホ（MOBILE）だと水面の網目をさらに粗くする */
 const QUALITY_TABLE = {
-  high: { resStart: 1, resMax: 1, pixelMax: 1.75, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], towns: 20000, nearPatch: 128, reflFar: 8000, reedPer: 6, hedgeDetail: 1, rocks: 1, reflection: 0.6, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1, msaa: 4, cloudSteps: 32 },
-  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], towns: 4500, nearPatch: 96, reflFar: 5500, reedPer: 6, hedgeDetail: 1, rocks: 1, reflection: 0.55, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1, msaa: 2, cloudSteps: 16 },
+  high: { resStart: 1, resMax: 1, pixelMax: 1.75, shadowMap: 2048, shadowRange: 90, waterGrid: 420, terrain: [520, 650], towns: 20000, nearPatch: 128, reflFar: 6500, reedPer: 6, hedgeDetail: 1, rocks: 1, reflection: 0.6, nearTrees: [500, 800], forest: [900, 1300], treeShadow: true, fireworks: 9000, fireworkBurst: 1, msaa: 4, cloudSteps: 32 },
+  mid: { resStart: 0.85, resMax: 0.9, pixelMax: 2, shadowMap: 1024, shadowRange: 40, waterGrid: 300, terrain: [360, 450], towns: 4500, nearPatch: 96, reflFar: 4500, reedPer: 6, hedgeDetail: 1, rocks: 1, reflection: 0.55, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 6000, fireworkBurst: 1, msaa: 2, cloudSteps: 16 },
   low: { resStart: 0.6, resMax: 0.9, pixelMax: 2, shadowMap: 512, shadowRange: 40, waterGrid: 300, terrain: [280, 350], towns: 3000, nearPatch: 0, reflFar: 3500, reedPer: 3, hedgeDetail: 0, rocks: 0.5, reflection: 0.5, nearTrees: [300, 480], forest: [600, 900], treeShadow: false, fireworks: 3500, fireworkBurst: 0.55, msaa: 0, cloudSteps: 0 },
 };
 const QUALITY = { ...(QUALITY_TABLE[QUAL] || QUALITY_TABLE.mid) };

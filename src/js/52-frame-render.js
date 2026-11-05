@@ -211,7 +211,7 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
         if (o.isPoints || o.userData.noRefl) return G.noRefl.push(o); // noRefl：水面に貼りつく帯（航跡など）。映り込みに描くと暗い帯になる
         if (!o.isInstancedMesh) return;
         if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
-        if (o.geometry.boundingSphere.radius < 1.3) G.noRefl.push(o);
+        if (o.geometry.boundingSphere.radius < 1.6) G.noRefl.push(o); // 形の大きさが約1.6より小さい物（小物・草・石）
       });
     }
     const nrVis = G._nrVis || (G._nrVis = []);
@@ -228,7 +228,7 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
       if (!c.visible) continue;
       v3.copy(c.boundingSphere.center).applyMatrix4(c.matrixWorld);
       const d2 = (v3.x - cp.x) ** 2 + (v3.z - cp.z) ** 2,
-        lf = c.userData.lodFar ? (c.userData.lodFar * 0.4 + c.boundingSphere.radius) ** 2 : Infinity; // 小さな物は、映り込みではもっと近くまで（波でにじむ）
+        lf = c.userData.lodFar ? (c.userData.lodFar * 0.28 + c.boundingSphere.radius) ** 2 : Infinity; // 小さな物は、映り込みではもっと近くまで（波でにじむ。本描画の3割ほどの距離まで）
       if (d2 > far2 || d2 > lf) {
         c.visible = false;
         farHid.push(c);
@@ -258,8 +258,48 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
   }
   // 影：家や木は動かず、太陽はゆっくり動くので、2フレームに1回で足りる。映り込みの描画では描き直さない
   //（以前は映り込みと本描画の2回、毎フレーム描いていた）
-  G.shTick = (G.shTick || 0) + 1;
-  if (G.shTick % 2 === 1) renderer.shadowMap.needsUpdate = true;
+  //   さらに、カメラも建物もほとんど動いていない間は3コマに1回、日が沈んでいる間（影がほとんど見えない）は6コマに1回にする
+  {
+    const cp = camera.position,
+      q = camera.quaternion,
+      L = G._shL || (G._shL = [0, 0, 0, 0, 0, 0, 0]),
+      mv = Math.abs(cp.x - L[0]) + Math.abs(cp.y - L[1]) + Math.abs(cp.z - L[2]) + (Math.abs(q.x - L[3]) + Math.abs(q.y - L[4]) + Math.abs(q.z - L[5]) + Math.abs(q.w - L[6])) * 40;
+    L[0] = cp.x;
+    L[1] = cp.y;
+    L[2] = cp.z;
+    L[3] = q.x;
+    L[4] = q.y;
+    L[5] = q.z;
+    L[6] = q.w;
+    const still = mv < 0.02 && Math.hypot(B.vx || 0, B.vy || 0) < 0.02,
+      every = sunAngle < -0.08 ? 6 : still ? 3 : 2;
+    G.shTick = (G.shTick || 0) + 1;
+    if (G.shTick % every === 0) renderer.shadowMap.needsUpdate = true;
+  }
+  // 立体的な入道雲を、半分の解像度で先に描く（13-sky-dome.js の G.skyCu）。入道雲のない空では描かない
+  if (G.skyCu) {
+    const on = skyU.uCu.value > 0.01 && skyDome.visible;
+    skyU.uCuOn.value = on ? 1 : 0;
+    if (on) {
+      const K = G.skyCu,
+        w2 = Math.max(1, G.rt.width >> 1),
+        h2 = Math.max(1, G.rt.height >> 1);
+      if (K.rt.width !== w2 || K.rt.height !== h2) K.rt.setSize(w2, h2);
+      K.mesh.position.copy(skyDome.position);
+      const cc = renderer.getClearColor(G._cc2 || (G._cc2 = new THREE.Color())),
+        ca = renderer.getClearAlpha();
+      renderer.setClearColor(0, 0);
+      renderer.setRenderTarget(K.rt);
+      renderer.clear();
+      const nu = renderer.shadowMap.needsUpdate; // 影の描き直しは本描画で（雲の画面では使わない）
+      renderer.shadowMap.needsUpdate = false;
+      renderer.render(K.scene, camera);
+      renderer.shadowMap.needsUpdate = nu;
+      renderer.setClearColor(cc, ca);
+      skyU.tCu.value = K.rt.texture;
+      skyU.uCuRes.value.set(1 / G.rt.width, 1 / G.rt.height);
+    }
+  }
   renderer.setRenderTarget(G.rt);
   renderer.render(scene, camera);
   renderer.setRenderTarget(null);
