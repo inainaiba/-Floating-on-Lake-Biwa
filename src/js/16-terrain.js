@@ -377,13 +377,15 @@ terrMat.onBeforeCompile = (sh) => {
   sh.uniforms.uAut = { value: 0 };
   terrMat.userData.sh = sh;
   sh.vertexShader = sh.vertexShader
-    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;attribute float aCv;varying float vCv;varying vec3 vWN;attribute float aNear;varying float vNear;uniform vec4 uNear;attribute float aSink;")
+    .replace("#include <common>", "#include <common>\nvarying float vH;varying vec2 vXZ;attribute float aCv;varying float vCv;varying vec3 vWN;attribute float aNear;varying float vNear;uniform vec4 uNear;attribute float aSink;attribute float aCell;")
     .replace(
       "#include <begin_vertex>",
       "#include <begin_vertex>\nvH=position.y;vXZ=(modelMatrix*vec4(position,1.)).xz;vCv=aCv;vWN=normal;vNear=aNear;" +
         // 細かい網目の中の粗い地形は、切り抜かずに下へ沈める（切り抜くと、網目の縁の向こうの山を下から覗くことになり、
         // 空が透けて山の切れ端が宙に浮いて見えた）。網目の縁をまたぐ三角形は下り坂の壁になって、細かい地形の下に隠れる
-        "if(aNear<.5&&uNear.w>.5&&abs(vXZ.x-uNear.x)<uNear.z&&abs(vXZ.y-uNear.y)<uNear.z)transformed.y-=80.;transformed.y-=80.*aSink;",
+        "if(aNear<.5&&uNear.w>.5){vec2 dn_=abs(vXZ-uNear.xy);if(max(dn_.x,dn_.y)<uNear.z-aCell)transformed.y-=80.;else if(max(dn_.x,dn_.y)<uNear.z)transformed.y-=.6;}transformed.y-=80.*aSink;",
+        // 沈めるのは、細かい網目の縁から粗い網目の1マス（aCell）以上内側の点だけ。縁をまたぐ三角形が網目の外まで斜めに沈んで、
+        // 陸が割けて見えないように（2026年11月）。縁の近くの粗い点は少しだけ下げて、細かい網目（縁の近くは粗い地形の高さにつなぐ）を上に
     );
   sh.fragmentShader = sh.fragmentShader
     .replace(
@@ -398,6 +400,9 @@ ${TERR_FS_SLOPE}${TERR_FS_ROCK}${TERR_FS_SHORE}${TERR_FS_FOREST}${TERR_FS_AUTUMN
     .replace("#include <fog_fragment>", "#include <fog_fragment>\n" + TERR_FS_NIGHT);
 };
 terrGeo.setAttribute("aNear", new THREE.BufferAttribute(new Float32Array(terrGeo.attributes.position.count), 1));
+// 粗い網目の1マスの大きさ（作品の中の長さ）：カメラのまわりの細かい網目の縁で、どこまで内側を沈めるかに使う
+const TERR_CELL = Math.max(tdx, tdy) * S * 1.05;
+terrGeo.setAttribute("aCell", new THREE.BufferAttribute(new Float32Array(terrGeo.attributes.position.count).fill(TERR_CELL), 1));
 // 地形の網目：湖とそのまわり（湖から約8km）は細かい網目のまま、その外の遠い山は3つおきの粗い網目で描く（三角形がおよそ半分に）。
 // 粗い網目は細かい網目の所では下へ沈めて隠し（aSink）、細かい網目の縁の点は、粗い網目の辺の上にそろえて、すき間を作らない
 const terr = new THREE.Mesh(terrGeo, terrMat);
@@ -445,6 +450,7 @@ terr.position.set((tx0 + ((TW - 1) * tdx) / 2) * S, 0, (ty0 + ((TH - 1) * tdy) /
   }
   og.setAttribute("aSink", new THREE.BufferAttribute(sink, 1));
   og.setAttribute("aNear", new THREE.BufferAttribute(new Float32Array(nv), 1));
+  og.setAttribute("aCell", new THREE.BufferAttribute(new Float32Array(nv).fill(TERR_CELL * ST), 1)); // 遠い山の網目は3つおき
   const oi = [],
     W = IX.length;
   for (let b = 0; b < JY.length - 1; b++)
@@ -519,6 +525,9 @@ G.nearPatch = (() => {
   geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
   geo.setAttribute("aCv", new THREE.BufferAttribute(cv, 1));
   geo.setAttribute("aNear", new THREE.BufferAttribute(new Float32Array(pos.count).fill(1), 1));
+  geo.setAttribute("aCell", new THREE.BufferAttribute(new Float32Array(pos.count), 1));
+  // 縁から粗い網目の1マス分（＋少し）は、粗い地形の高さへなだらかにつなぐ（その下の粗い地形は沈めないので、高さをそろえる）
+  const BL = Math.max(4, Math.ceil(TERR_CELL / (st * S)) + 2);
   const m = new THREE.Mesh(geo, terrMat);
   m.receiveShadow = true;
   m.frustumCulled = false;
@@ -537,7 +546,7 @@ G.nearPatch = (() => {
         hc = terrGrid(x, y, terrHD),
         hf = nearAt(x, y);
       if (hf !== null) any = true;
-      const t = Math.min(1, Math.max(0, (e - 1) / 4)),
+      const t = Math.min(1, Math.max(0, (e - 1) / BL)),
         h = hf === null ? hc : hc + (hf - hc) * t * t * (3 - 2 * t);
       hh[k] = h;
       pos.setXYZ(k, (i - N / 2) * st * S, h * S * VEX - (e === 0 ? 1.5 : 0), (j - N / 2) * st * S);

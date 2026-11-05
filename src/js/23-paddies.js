@@ -7,15 +7,28 @@ const paddyI = new THREE.InstancedMesh(
 );
 paddyI.userData.noChunk = true; // 季節ごとに1枚ずつ色を変える（区画に分けない）
 paddyM.map = cvTex(64, 32, (g, w, h) => {
+  // 田の面：規則正しい縞や黒い縁は描かない（太陽光パネルの升目と枠に見えるため。2026年11月）。
+  // 縁は明るい土と草の畦、内側はやわらかなむらと、かすかな苗の列（列は少し揺らす）
+  const Rr = rnd(2311);
   g.fillStyle = "#fff";
   g.fillRect(0, 0, w, h);
-  g.fillStyle = "rgba(0,0,0,.12)";
-  for (let y = 0; y < h; y += 3) g.fillRect(0, y, w, 1);
-  g.fillStyle = "rgba(60,50,30,.5)";
-  g.fillRect(0, 0, w, 1.5);
-  g.fillRect(0, h - 1.5, w, 1.5);
-  g.fillRect(0, 0, 1.5, h);
-  g.fillRect(w - 1.5, 0, 1.5, h);
+  for (let i = 0; i < 40; i++) {
+    g.fillStyle = `rgba(${Rr() < 0.5 ? "60,50,30" : "255,255,240"},${(0.03 + Rr() * 0.05).toFixed(3)})`;
+    g.beginPath();
+    g.arc(Rr() * w, Rr() * h, 3 + Rr() * 9, 0, 7);
+    g.fill();
+  }
+  for (let y = 3; y < h - 2; y += 3.4)
+    for (let x = 3; x < w - 2; x += 2.2) {
+      g.fillStyle = `rgba(50,70,30,${(0.05 + Rr() * 0.05).toFixed(3)})`;
+      g.fillRect(x + (Rr() - 0.5) * 0.8, y + Math.sin(x * 0.2) * 0.4, 1, 1);
+    }
+  // 畦：明るい土と草の、やわらかな縁（内側へ薄れる）
+  for (let k = 0; k < 3; k++) {
+    g.strokeStyle = `rgba(${96 - k * 6},${118 - k * 6},${64 - k * 4},${(0.45 - k * 0.13).toFixed(2)})`; // 草の生えた畦（緑がかった土色）
+    g.lineWidth = 1;
+    g.strokeRect(0.5 + k, 0.5 + k, w - 1 - 2 * k, h - 1 - 2 * k);
+  }
 });
 {
   const M = new THREE.Matrix4(),
@@ -26,9 +39,10 @@ paddyM.map = cvTex(64, 32, (g, w, h) => {
       h2 = bHash(p.y + 3, p.x - 7);
     q.setFromEuler(new THREE.Euler(0, -p.rot + (h1 - 0.5) * 0.1, 0));
     M.compose(
-      new THREE.Vector3(p.x * S, landY(p.x, p.y) + 0.03, p.y * S),
+      new THREE.Vector3(p.x * S, landY(p.x, p.y) + 0.03 + h2 * 0.03, p.y * S), // 隣と重なる所で、ちらつかないよう高さを少しずつ変える
       q,
-      new THREE.Vector3(0.78 + h1 * 0.4, 1, 0.82 + h2 * 0.32),
+      // 隣の田と少し重ねて、田の間に地面の暗いすき間（升目の枠に見える）を作らない。境は畦の色で見せる
+      new THREE.Vector3(1.02 + h1 * 0.22, 1, 1.04 + h2 * 0.2),
     );
     paddyI.setMatrixAt(i, M);
   });
@@ -44,7 +58,7 @@ paddyM.onBeforeCompile = (sh) => {
     .replace("#include <common>", "#include <common>\nvarying float vWet;varying vec2 vWp;\n" + GLSL_NOISE)
     .replace(
       "#include <map_fragment>",
-      "#include <map_fragment>\nif(vWet>.01){float cl=nzF4(vWp*.0045+vec2(3.1,1.7));float rp=nzN(vWp*.9);diffuseColor.rgb*=mix(1.,.78+.45*cl+.06*rp,vWet);}",
+      "#include <map_fragment>\nif(vWet>.01){float cl=nzF4(vWp*.0045+vec2(3.1,1.7));float rp=nzN(vWp*.9);diffuseColor.rgb*=mix(1.,.88+.24*cl+.05*rp,vWet);}",
     );
 };
 paddyM.customProgramCacheKey = () => "paddy-wet";
@@ -78,7 +92,7 @@ function paddySeason(m, sky) {
   const states = PADDY[m].map(([col, share]) => {
       const c = new THREE.Color(col),
         wet = c.b > c.g && c.b > c.r;
-      if (wet) c.lerp(sky, 0.5);
+      if (wet) c.lerp(sky, 0.3).lerp(new THREE.Color(0x8c8664), 0.5); // 空を映しつつ、泥水の黄土色を混ぜる（青灰色の板に見えないよう）
       return [c, share, wet];
     }),
     fc = new THREE.Color(SEASON.field[m]),
@@ -99,7 +113,10 @@ function paddySeason(m, sky) {
     }
     paddyWet[i] = wet;
     // 水を張った田は、田ごとの明るさの差を小さく（空を映すので、隣どうしの色はそろう。むらは雲の映り込みで出す）
-    paddyI.setColorAt(i, c.multiplyScalar(wet ? 0.95 + k * 0.1 : 0.85 + k * 0.3));
+    // 田ごとに明るさと色味を少しずつ変える（水を張った田も、泥の濃さや水の深さで違う。そろいすぎると板が並んで見える）
+    const h3 = (((Math.sin(p.x * 0.0291 - p.y * 0.0173) * 24634.6345) % 1) + 1) % 1;
+    if (wet) c.offsetHSL((h3 - 0.5) * 0.03, (h3 - 0.5) * 0.12, 0);
+    paddyI.setColorAt(i, c.multiplyScalar(wet ? 0.86 + k * 0.26 : 0.85 + k * 0.3));
   }
   paddyI.instanceColor.needsUpdate = true;
   paddyI.geometry.attributes.aWet.needsUpdate = true;
