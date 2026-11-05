@@ -700,11 +700,12 @@
 - 使う：
   - 00-head.js：`G`、`mergeStatic`、`onFrame`、`placeLog`
   - 01-settings.js：`LAKE`、`RM`、`S`
+  - 03-coords.js：`ll`
   - 04-clock.js：`DAY`、`clock`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inLake`、`inMain`、`inRiver`
   - 07-depth.js：`depth`、`distShore`、`shoreSnap`
-  - 10-start.js：`rndFor`
+  - 10-start.js：`rnd`、`rndFor`
   - 12-renderer.js：`camera`、`scene`
   - 14-water.js：`water`、`waterU`
   - 18-buildings.js：`inReeds`

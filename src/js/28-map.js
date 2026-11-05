@@ -275,7 +275,7 @@ function drawFar(boats = [], wxNow = null, W = null) {
     fx.fill();
     fx.restore();
   }
-  // 湖に浮かぶ建築（44c-floating-halls.js）：形で見分ける小さな印。図書館は八角、映画館は横長の幕、音楽堂は半円の殻、花屋は星形、茶屋は丸、郵便局はひし形。
+  // 湖に浮かぶ建築（44c-floating-halls.js）：形で見分ける小さな印。図書館は八角、映画館は横長の幕、音楽堂は半円の殻、花屋は星形、茶屋は丸、郵便局はひし形、ギャラリーは雲の形。
   // 岸に着いて使われている間は塗りつぶし、漂っている間は輪郭だけ（文字は出さない）
   if (G.hallMarks) {
     fx.save();
@@ -286,6 +286,7 @@ function drawFar(boats = [], wxNow = null, W = null) {
       fx.beginPath();
       if (m.k === "lib") for (let i = 0; i < 8; i++) fx[i ? "lineTo" : "moveTo"](hx + Math.cos((i / 8) * 6.283 + 0.39) * k, hy + Math.sin((i / 8) * 6.283 + 0.39) * k);
       else if (m.k === "cin") fx.rect(hx - k * 1.3, hy - k * 0.55, k * 2.6, k * 1.1);
+      else if (m.k === "gal") (fx.arc(hx - k * 0.55, hy + k * 0.1, k * 0.5, Math.PI * 0.5, Math.PI * 1.5), fx.arc(hx, hy - k * 0.25, k * 0.62, Math.PI, 0), fx.arc(hx + k * 0.6, hy + k * 0.1, k * 0.48, Math.PI * 1.5, Math.PI * 0.5)); // ギャラリーは雲の形
       else if (m.k === "tea") fx.arc(hx, hy, k * 0.85, 0, 6.283); // 茶屋は丸（茶碗）
       else if (m.k === "post") (fx.moveTo(hx, hy - k * 1.05), fx.lineTo(hx + k * 1.05, hy), fx.lineTo(hx, hy + k * 1.05), fx.lineTo(hx - k * 1.05, hy)); // 郵便局はひし形
       else if (m.k === "flo") for (let i = 0; i < 10; i++) fx[i ? "lineTo" : "moveTo"](hx + Math.cos((i / 10) * 6.283 - 1.571) * k * (i % 2 ? 0.5 : 1.1), hy + Math.sin((i / 10) * 6.283 - 1.571) * k * (i % 2 ? 0.5 : 1.1)); // 花屋は星形（花）
