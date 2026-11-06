@@ -65,8 +65,9 @@
   - 04-clock.js：`DAY`
 
 ## 09-wind.js
-- 作る：`GYRE`、`WIND`、`flow`、`gyres`、`outlet`、`reedFree0`、`wind`
+- 作る：`GYRE`、`WIND`、`flow`、`gyres`、`hushOf`、`outlet`、`reedFree0`、`wind`
 - 使う：
+  - 02-season.js：`LOOK`
   - 03-coords.js：`ll`
   - 04-clock.js：`DAY`
   - 06-inner-lakes.js：`bridgeY`
@@ -290,6 +291,7 @@
 - 使う：
   - 00-head.js：`G`、`onFrame`、`placeLog`
   - 01-settings.js：`RAIL`、`S`
+  - 02-season.js：`LOOK`
   - 03-coords.js：`ll`
   - 05-lake.js：`outer`
   - 06-inner-lakes.js：`inInner`、`inLake`、`inRiver`、`innerPolys`
@@ -385,6 +387,7 @@
   - 01-settings.js：`CFG`、`S`
   - 02-season.js：`SEASON`
   - 07-depth.js：`distShore`
+  - 09-wind.js：`hushOf`
   - 11-state.js：`B`
   - 12-renderer.js：`camera`
   - 19-boats.js：`PORT_SITES`、`boatMeshes`
@@ -705,6 +708,20 @@
   - 18-buildings.js：`house`
   - 20-villages-layout.js：`landY`
   - 29-controls.js：`isFar`
+
+## 43g-prayer.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`、`onFrame`
+  - 01-settings.js：`S`
+  - 02-season.js：`LOOK`
+  - 03-coords.js：`ll`
+  - 06-inner-lakes.js：`inLake`
+  - 11-state.js：`B`
+  - 12-renderer.js：`camera`
+  - 18-buildings.js：`house`
+  - 29-controls.js：`isFar`
+  - 30-audio.js：`SND`、`panV`
 
 ## 44-life.js
 - 作る：（なし）
@@ -1028,6 +1045,7 @@
 - `G.afterRain`：49-frame-sky-light.js
 - `G.ambience`：42-ambience.js
 - `G.bass`：44b-bass.js
+- `G.bellQ`：43g-prayer.js
 - `G.birdman`：38b-birdman.js
 - `G.birds`：43b-birds.js
 - `G.biwako`：24-shore-landmarks.js
@@ -1077,6 +1095,7 @@
 - `G.kosei`：24-shore-landmarks.js
 - `G.lastDrag`：29-controls.js
 - `G.lastInput`：42-ambience.js
+- `G.lastT`：43g-prayer.js
 - `G.life`：44-life.js
 - `G.lock`：53-frame.js
 - `G.lodC`：53-frame.js
@@ -1103,6 +1122,7 @@
 - `G.resetSky`：49-frame-sky-light.js
 - `G.resetTrail`：50-frame-float.js
 - `G.rf`：52-frame-render.js
+- `G.ringBell`：43g-prayer.js
 - `G.riverCount`：26b-rivers.js
 - `G.rocks`：40-shore-rocks.js
 - `G.roofTex`：20-villages-layout.js
@@ -1129,8 +1149,10 @@
 - `G.trT`：50-frame-float.js
 - `G.trainNear`：24b-trains.js
 - `G.trains`：24b-trains.js
+- `G.ukimido`：24-shore-landmarks.js
 - `G.wake`：19-boats.js
 - `G.wakeMesh`：19-boats.js
 - `G.watch`：31-ui.js
 - `G.waterU`：44c-halls-8-frame.js
+- `G.wideRing`：43e-reed-near.js
 - `G.wxNow`：49-frame-sky-light.js

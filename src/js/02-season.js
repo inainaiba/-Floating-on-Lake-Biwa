@@ -93,6 +93,9 @@ const LOOK = {
     okishima: true, // 沖島の集落
     floatingLeaves: true, // 水に浮かぶ花びら・落ち葉
     fireflies: true, // 蛍
+    eveningBell: true, // 日暮れの鐘（三井の晩鐘。43g-prayer.js）
+    hush: true, // ときどき訪れる静けさ：風が止み、音が引き、湖面が凪ぐ（09-wind.js の hushOf）
+    ukimidoLight: true, // 夜の浮御堂の小さな灯り
   },
   months: {
     petals: 3, // 水に浮かぶ花びら（4月）
