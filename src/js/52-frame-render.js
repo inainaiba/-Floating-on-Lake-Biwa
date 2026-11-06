@@ -106,6 +106,9 @@ c=mix(c,vec3(.86,.9,.88),uMorn*.45*smoothstep(.55,.95,vU.y));
     c=mix(c,shC*(ls*1.5+.05),sh*.035);
     c*=mix(vec3(1.),mix(vec3(1.04,1.01,.95),vec3(1.08,.98,.86),uWarm),smoothstep(.5,1.,ls)*.07);
     c=max(c,shC*.01);}
+    // 夜は暗い所を深い藍に沈める（灯りの暖かさは明るい所に残る）。月のない夜は控えめに
+    {float ln=dot(c,vec3(.299,.587,.114)),dn=ngt*(1.-smoothstep(.04,.45,ln))*(.4+.6*uMoonL);
+    c=mix(c,c*vec3(.84,.9,1.12),dn*${glf(LOOK.nightIndigo)});}
     // 雲が日をかすめる：画面全体がわずかに沈んで青み、また明るむ（光の色の小さな揺らぎ）
     c*=mix(vec3(1.),vec3(.93,.95,.99),uVeil);
     // 夜更け：全体をわずかに暗く、静かに
@@ -130,16 +133,20 @@ c+=gr*(.022-.01*l);
     G.blQ = new THREE.Mesh(
       new THREE.PlaneGeometry(2, 2),
       new THREE.ShaderMaterial({
-        uniforms: { tD: { value: null } },
+        uniforms: { tD: { value: null }, uNt: { value: 0 } },
         depthTest: false,
         depthWrite: false,
         vertexShader: `varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy,0.,1.);}`,
-        fragmentShader: `uniform sampler2D tD;varying vec2 vU;
+        fragmentShader: `uniform sampler2D tD;uniform float uNt;varying vec2 vU;
 vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}
 void main(){vec3 bl=vec3(0.);
 for(int i=0;i<16;i++){float a=float(i)*2.399,r=.003+.0032*float(i);
 vec3 s=aces(texture2D(tD,vU+vec2(cos(a),sin(a))*r*vec2(1.,1.6)).rgb*1.15);
 bl+=max(s-.55,0.)*(1.-float(i)/20.);}
+// 夜の灯りの尾：強い光だけを、下へ長く・上へ短く、縦に薄く引きのばす（長く開けた写真のにじみ。ほんの少し）
+if(uNt>0.){vec3 st=vec3(0.);for(int j=1;j<9;j++){float o=float(j)*.0022,k=1.-float(j)/9.;
+st+=(max(aces(texture2D(tD,vU+vec2(0.,o)).rgb*1.15)-.7,0.)+max(aces(texture2D(tD,vU-vec2(0.,o*.5)).rgb*1.15)-.7,0.)*.6)*k;}
+bl+=st*uNt*${glf(LOOK.nightStreak)};}
 gl_FragColor=vec4(bl,1.);}`,
       }),
     );
@@ -309,6 +316,7 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
       h = Math.max(1, renderer.domElement.height >> 1);
     if (G.blRT.width !== w || G.blRT.height !== h) G.blRT.setSize(w, h);
     G.blQ.material.uniforms.tD.value = G.rt.texture;
+    G.blQ.material.uniforms.uNt.value = 1 - Math.max(Math.min(1, day * 2.5) * (1 - wxNow.dark), Math.max(0, 1 - Math.abs(Math.sin(sunAngle)) * 2.2)); // 夜の深さ（仕上げの ngt と同じ）
     const tm = renderer.toneMapping;
     renderer.toneMapping = THREE.NoToneMapping;
     renderer.setRenderTarget(G.blRT);
