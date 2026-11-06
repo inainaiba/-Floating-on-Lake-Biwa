@@ -1,7 +1,7 @@
 /* ---------- 朝の霧：風のない朝、湖面すれすれに薄い霧がたまり、ゆっくり流れて日が高くなると消える（2026年11月） ----------
    ・4時半〜8時半ごろ、凪の朝ほど濃い。夏は薄く、春・秋・冬に濃い。雨の日は出さない
    ・カメラのまわり（実寸約400m〜3km）の水の上に、大きくやわらかい粒を低く置く。粒は風下へ流れ、遠ざかると手前に置き直す
-   ・谷や山すそにたまる霞の濃さ（16-terrain.js の MIST_U）もここで決める
+   ・谷や山すそにたまる霞の濃さ（16-terrain-2-mesh.js の MIST_U）もここで決める
    粒の明るさは空の色に合わせ、霧が景色の形を消しすぎないよう薄くする */
 {
   const NP = 150,
@@ -59,7 +59,7 @@ void main(){float a=texture2D(uMap,gl_PointCoord).a*vA;if(a<.003)discard;gl_Frag
       calm = Math.max(0, 1 - f.W.s / 3),
       season = c.month >= 5 && c.month <= 7 ? 0.45 : 1,
       a = m0 * m0 * (3 - 2 * m0) * calm * season * (rain > 0.3 ? 0 : 1);
-    MIST_U.value = a; // 谷の霞（16-terrain.js）
+    MIST_U.value = a; // 谷の霞（16-terrain-2-mesh.js）
     mist.visible = a > 0.01 && !isFar;
     if (!mist.visible) return;
     const cx = camera.position.x,

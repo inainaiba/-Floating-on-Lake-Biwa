@@ -5,7 +5,7 @@
 - 周囲の地形（data/dem.json）は200m間隔。岸から陸へ約2kmの帯だけ、30m間隔の細かい高さを足す
 - 地理院タイル「標高タイル（dem_png）」のズーム14（約10m）を5×5の画素でならしてから拾い、200mの地形との差を持つ
 - 差は4ビット：0の近くは細かく、大きな差は粗く刻む16段（LEVELS。-48〜+64m）。帯を960m四方の区画（32×32マス）に分け、帯にかかる区画だけを書き出す
-- 作品の中では、カメラのまわりの地形だけをこの細かさで描き、家や木もこの高さに置く（16-terrain.js）
+- 作品の中では、カメラのまわりの地形だけをこの細かさで描き、家や木もこの高さに置く（16-terrain-0-ground.js）
 """
 import base64, json, math, struct, sys
 from pathlib import Path
@@ -18,11 +18,11 @@ import dem as D
 
 r = Path(__file__).resolve().parent.parent
 STEP, BS, BAND, Z = 30, 32, 2200, 14
-LEVELS = np.array([-48, -32, -21, -13, -8, -4, -2, 0, 2, 4, 8, 13, 21, 32, 48, 64])  # 16-terrain.js の NEAR_LV と同じ
+LEVELS = np.array([-48, -32, -21, -13, -8, -4, -2, 0, 2, 4, 8, 13, 21, 32, 48, 64])  # 16-terrain-0-ground.js の NEAR_LV と同じ
 
 
 def coarse(dm, x, y):
-    """data/dem.json の高さ（16-terrain.js の landH と同じ補間）"""
+    """data/dem.json の高さ（16-terrain-0-ground.js の landH と同じ補間）"""
     u = np.clip((x - dm['x0']) / dm['step'], 0, dm['w'] - 1.001)
     v = np.clip((y - dm['y0']) / dm['step'], 0, dm['h'] - 1.001)
     i, j = np.floor(u).astype(int), np.floor(v).astype(int)

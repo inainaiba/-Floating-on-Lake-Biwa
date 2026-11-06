@@ -166,7 +166,7 @@ function cardTreeMat(kind, v, near, far) {
     sh.uniforms.uT = reedU.uT;
     sh.uniforms.uW = reedU.uW;
     sh.uniforms.uSunD = reedU.uSunD;
-    sh.uniforms.uNear = NEAR_U; // 細かい地形の網目の範囲（16-terrain.js）
+    sh.uniforms.uNear = NEAR_U; // 細かい地形の網目の範囲（16-terrain-2-mesh.js）
     // 木の板の明暗：日の向きに向いた板ほど明るく（vCL）、樹冠の上は明るく下は暗く（下の map の縦の位置で）
     sh.vertexShader = sh.vertexShader
       .replace("#include <common>", "#include <common>\nuniform float uT;uniform vec2 uW;uniform vec3 uSunD;uniform vec4 uNear;attribute float aGdy;varying float vCL;")
