@@ -27,10 +27,11 @@
 - 部品 `src/js/NN-*.js` は名前の順につながって1つのモジュールになる。部品をまたぐ値は `G`（00-head.js）に。`G.xxx` を2つの部品で書き換えるとビルドが止まる
 - 読み込みの間の乱数は決まった種から出る（00-head.js）。部品の順番や乱数を使う順番を変えると、配置が変わる
 - 見た目の調整値・要素の入切は、まず `src/js/02-season.js` の `LOOK`・`PALETTE` で
+- 地形は `16-terrain-0-ground`（高さ）・`-1-colors`（山肌の色）・`-2-mesh`（網目）・`-3-isles`（島）・`-4-reeds`（ヨシ）
 - 水上建築は `44c-halls-0-common.js`（共通の道具 `HALL`）・`44c-halls-1〜7`（建物ごと）・`44c-halls-8-frame.js`（毎コマの更新・音）
 
 ## トークンを節約する読み方
-- 大きな部品（16-terrain.js・18-buildings.js・44c-halls-0-common.js など）は全部を読まない。まず `grep -n` で見出し（`// ----------`・`function`・`const`）を探し、要る行だけ読む
+- 大きな部品（18-buildings.js・43b-birds.js・40b-meisho.js・14-water.js など）は全部を読まない。まず `grep -n` で見出し（`// ----------`・`function`・`const`）を探し、要る行だけ読む
 - src/DEPENDENCIES.md は、要る部品の見出しだけを検索して読む
 - `docs/` の出力（c-*.js・d-*.json・index.html）、`data/*.json`、`check/base/*.png` は読まない（要るときは件数・大きさ・一部だけ）
 - 1つの部品が 30KB を超えそうなら、意味のまとまりで分ける

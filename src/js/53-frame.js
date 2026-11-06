@@ -107,7 +107,7 @@ function frame(now) {
   }
   const pH = performance.now();
   updateCamera(dt, t, hx, hz);
-  if (G.nearPatch) G.nearPatch.update(camera.position.x / S, camera.position.z / S); // カメラのまわりの細かい地形（16-terrain.js）
+  if (G.nearPatch) G.nearPatch.update(camera.position.x / S, camera.position.z / S); // カメラのまわりの細かい地形（16-terrain-2-mesh.js）
   const pN = performance.now();
   // 木が縮んで消える距離（cardForest の far）より遠い森の区画は、はじめから描かない
   {
