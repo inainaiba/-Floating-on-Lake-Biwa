@@ -928,6 +928,7 @@
 - `G.camera`：53-frame.js
 - `G.cards`：17-trees.js
 - `G.chunks`：00-head.js
+- `G.cinCheck`：44c-floating-halls.js
 - `G.cinParts`：44c-floating-halls.js
 - `G.cinRig`：44c-floating-halls.js
 - `G.city`：47-city.js
