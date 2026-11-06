@@ -88,7 +88,7 @@ const waterU = {
   uT2: { value: 0 },
   uHouse: { value: new THREE.Vector3(0, 0, 8) },
   uHV: { value: new THREE.Vector3(1, 0, 0) }, // 建物の進む向き x, z と速さ（0〜1）。八の字の航跡に使う
-  uHW: { value: new THREE.Vector4(0, 0, 8, 0) }, // 漂う水上建築（カメラに近い1つ）：位置 x, z・大きさ・航跡の強さ（44c-floating-halls.js）
+  uHW: { value: new THREE.Vector4(0, 0, 8, 0) }, // 漂う水上建築（カメラに近い1つ）：位置 x, z・大きさ・航跡の強さ（44c-halls-*.js）
   uHD: { value: new THREE.Vector2(1, 0) }, // その進む向き
   uWd: { value: new THREE.Vector2(1, 0) },
   uRefl: { value: null },

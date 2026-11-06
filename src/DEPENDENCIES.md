@@ -696,23 +696,98 @@
   - 14-water.js：`water`、`waveH`
   - 29-controls.js：`isFar`
 
-## 44c-floating-halls.js
+## 44c-halls-0-common.js
+- 作る：`HALL`
+- 使う：
+  - 00-head.js：`G`、`mergeStatic`、`placeLog`
+  - 01-settings.js：`LAKE`、`S`
+  - 04-clock.js：`DAY`
+  - 05-lake.js：`outer`
+  - 06-inner-lakes.js：`inLake`、`inMain`
+  - 07-depth.js：`depth`、`distShore`、`shoreSnap`
+  - 10-start.js：`rndFor`
+  - 12-renderer.js：`scene`
+  - 18-buildings.js：`inReeds`
+  - 20-villages-layout.js：`cvTex`
+
+## 44c-halls-1-library.js
 - 作る：（なし）
 - 使う：
-  - 00-head.js：`G`、`mergeStatic`、`onFrame`、`placeLog`
-  - 01-settings.js：`LAKE`、`RM`、`S`
+  - 18-buildings.js：`box`
+  - 20-villages-layout.js：`cvTex`
+  - 44c-halls-0-common.js：`HALL`
+
+## 44c-halls-2-cinema.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`、`mergeStatic`、`placeLog`
+  - 01-settings.js：`S`
+  - 06-inner-lakes.js：`inLake`
+  - 12-renderer.js：`scene`
+  - 18-buildings.js：`box`、`inReeds`
+  - 20-villages-layout.js：`landY`
+  - 44c-halls-0-common.js：`HALL`
+
+## 44c-halls-3-music.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`、`mergeStatic`、`placeLog`
+  - 01-settings.js：`S`
+  - 06-inner-lakes.js：`inLake`、`inRiver`
+  - 12-renderer.js：`scene`
+  - 18-buildings.js：`box`
+  - 20-villages-layout.js：`houseNear`、`landY`
+  - 44c-halls-0-common.js：`HALL`
+
+## 44c-halls-4-flowers.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`
+  - 01-settings.js：`S`
+  - 12-renderer.js：`scene`
+  - 14-water.js：`water`
+  - 18-buildings.js：`box`
+  - 20-villages-layout.js：`cvTex`
+  - 29-controls.js：`isFar`
+  - 44c-halls-0-common.js：`HALL`
+
+## 44c-halls-5-tea.js
+- 作る：（なし）
+- 使う：
+  - 18-buildings.js：`box`
+  - 20-villages-layout.js：`cvTex`
+  - 44c-halls-0-common.js：`HALL`
+
+## 44c-halls-6-post.js
+- 作る：（なし）
+- 使う：
+  - 18-buildings.js：`box`
+  - 20-villages-layout.js：`cvTex`
+  - 44c-halls-0-common.js：`HALL`
+
+## 44c-halls-7-gallery.js
+- 作る：（なし）
+- 使う：
   - 03-coords.js：`ll`
+  - 06-inner-lakes.js：`inLake`、`inMain`
+  - 07-depth.js：`distShore`
+  - 10-start.js：`rnd`
+  - 18-buildings.js：`box`
+  - 20-villages-layout.js：`cvTex`
+  - 44c-halls-0-common.js：`HALL`
+
+## 44c-halls-8-frame.js
+- 作る：（なし）
+- 使う：
+  - 00-head.js：`G`、`onFrame`
+  - 01-settings.js：`RM`、`S`
   - 04-clock.js：`DAY`、`clock`
-  - 05-lake.js：`outer`
-  - 06-inner-lakes.js：`inLake`、`inMain`、`inRiver`
-  - 07-depth.js：`depth`、`distShore`、`shoreSnap`
-  - 10-start.js：`rnd`、`rndFor`
   - 12-renderer.js：`camera`、`scene`
   - 14-water.js：`water`、`waterU`
-  - 18-buildings.js：`inReeds`
-  - 20-villages-layout.js：`cvTex`、`houseNear`、`landY`
+  - 18-buildings.js：`box`
   - 29-controls.js：`isFar`
   - 30-audio.js：`SND`、`nburst`、`panV`
+  - 44c-halls-0-common.js：`HALL`
 
 ## 45-boats.js
 - 作る：（なし）
@@ -928,9 +1003,9 @@
 - `G.camera`：53-frame.js
 - `G.cards`：17-trees.js
 - `G.chunks`：00-head.js
-- `G.cinCheck`：44c-floating-halls.js
-- `G.cinParts`：44c-floating-halls.js
-- `G.cinRig`：44c-floating-halls.js
+- `G.cinCheck`：44c-halls-2-cinema.js
+- `G.cinParts`：44c-halls-2-cinema.js
+- `G.cinRig`：44c-halls-2-cinema.js
 - `G.city`：47-city.js
 - `G.dbg`：53-frame.js
 - `G.deepNight`：49-frame-sky-light.js
@@ -950,11 +1025,11 @@
 - `G.grass`：21-villages-walls-roofs.js
 - `G.groundH`：53-frame.js
 - `G.gs`：52-frame-render.js
-- `G.hallMarks`：44c-floating-halls.js
-- `G.hallSpot`：44c-floating-halls.js
-- `G.halls`：44c-floating-halls.js
+- `G.hallMarks`：44c-halls-8-frame.js
+- `G.hallSpot`：44c-halls-0-common.js
+- `G.halls`：44c-halls-8-frame.js
 - `G.harb`：25-harbors.js
-- `G.humor`：44c-floating-halls.js
+- `G.humor`：44c-halls-8-frame.js
 - `G.innerMeshes`：16-terrain.js
 - `G.isl`：41-islands.js
 - `G.kaizu`：39-kaizu.js
@@ -969,7 +1044,7 @@
 - `G.moments`：43-moments.js
 - `G.moonLit`：49-frame-sky-light.js
 - `G.morning`：49-frame-sky-light.js
-- `G.musSeats`：44c-floating-halls.js
+- `G.musSeats`：44c-halls-3-music.js
 - `G.nearPatch`：16-terrain.js
 - `G.noRefl`：52-frame-render.js
 - `G.noRender`：53-frame.js
@@ -1016,5 +1091,5 @@
 - `G.wake`：19-boats.js
 - `G.wakeMesh`：19-boats.js
 - `G.watch`：31-ui.js
-- `G.waterU`：44c-floating-halls.js
+- `G.waterU`：44c-halls-8-frame.js
 - `G.wxNow`：49-frame-sky-light.js
