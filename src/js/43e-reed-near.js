@@ -78,6 +78,11 @@
     const r = rs.find((q) => q.a < 0);
     if (r) (r.x = x), (r.z = z), (r.a = 0.25);
   };
+  // 大きくゆっくり広がる一つの輪（日暮れの鐘の余韻：43g-prayer.js から）
+  G.wideRing = (x, z) => {
+    const r = rs.find((q) => q.a < 0);
+    if (r) (r.x = x), (r.z = z), (r.a = 0), (r.k = 3.2), (r.sp = 11);
+  };
   let at = null,
     kindNow = "",
     near = [],
@@ -142,15 +147,16 @@
     let n = 0;
     for (const r of rs) {
       if (r.a < 0) continue;
-      r.a += f.dt / 3.6; // 波紋はゆっくり広がって消える
+      r.a += f.dt / (r.sp || 3.6); // 波紋はゆっくり広がって消える
       if (r.a >= 1) {
         r.a = -1;
+        r.k = r.sp = 0;
         continue;
       }
-      const s = 0.25 + r.a * 1.6;
+      const s = (0.25 + r.a * 1.6) * (r.k || 1);
       M.compose(V.set(r.x, water.position.y + 0.06, r.z), Q.identity(), Sc.set(s, 1, s));
       rings.setMatrixAt(n, M);
-      rings.setColorAt(n++, c.setScalar((1 - r.a) * (0.25 + 0.75 * Math.min(1, f.day * 2.5))));
+      rings.setColorAt(n++, c.setScalar((1 - r.a) * (r.k ? 0.55 * Math.sin(Math.PI * Math.min(1, r.a * 4)) ** 0.5 : 1) * (0.25 + 0.75 * Math.min(1, f.day * 2.5))));
     }
     rings.count = n;
     rings.instanceMatrix.needsUpdate = true;

@@ -14,6 +14,17 @@ const WIND = [
   [315, 4.5],
 ];
 const GYRE = [0.35, 0.3, 0.4, 0.6, 0.9, 1, 1, 1, 0.9, 0.7, 0.5, 0.4];
+// 静けさ（黙祷のような間）：ときどき（平均で約30分に一度。時計から決めるので、見る人みな同じ時刻に）、
+// 20秒あまり風が止み、湖面が鏡のように凪ぎ、音が引いていく（30-audio.js）。また少しずつ世界が戻ってくる。雨の日は起きない
+function hushOf(t) {
+  if (!LOOK.show.hush) return 0;
+  const P = 1100,
+    n = Math.floor(t / P),
+    h = (k) => (((Math.sin(n * 78.233 + k * 12.9898) * 43758.5453) % 1) + 1) % 1;
+  if (h(0) > 0.6) return 0;
+  const u = t - n * P - 60 - h(1) * (P - 150);
+  return u < 0 || u > 24 ? 0 : Math.min(1, u / 5, (24 - u) / 8);
+}
 function wind(c) {
   const wxNow = weather(c);
   // 凪の時間：朝と夕方は風が落ち、湖面が鏡のようになって山が映る（約2時間。日によって深さが違う）。
@@ -30,7 +41,7 @@ function wind(c) {
   const [d0, s1] = WIND[c.month],
     d = d0 * (1 - hiraHakko) + 300 * hiraHakko,
     s0 = s1 * (1 + 1.7 * hiraHakko),
-    s = s0 * wxNow.wind * (1 - calmT),
+    s = s0 * wxNow.wind * (1 - calmT) * (1 - 0.92 * hushOf(c.t) * (1 - Math.min(1, wxNow.rain || 0))),
     g = 1 + 0.35 * Math.sin(c.t / 37) + 0.2 * Math.sin(c.t / 11.3),
     a = ((d + 15 * Math.sin(c.t / 53)) * Math.PI) / 180;
   return {

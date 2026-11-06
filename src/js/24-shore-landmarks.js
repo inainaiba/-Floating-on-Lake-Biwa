@@ -383,8 +383,30 @@ G.biwako = railLine(RAIL.biwako, RAIL.biwakoTunnels, RAIL.biwakoStations, { lift
   off += 30;
   g.position.set((x + Math.cos(ang) * off) * S, 0, (y + Math.sin(ang) * off) * S);
   placeLog("浮御堂", "water", [[x + Math.cos(ang) * off, y + Math.sin(ang) * off]]);
+  G.ukimido = [x + Math.cos(ang) * off, y + Math.sin(ang) * off, ang]; // 確認用（実寸の位置と、沖への向き）
   g.rotation.y = -ang - Math.PI / 2;
   scene.add(g);
+  // 夜の灯り：湖に向いた戸口から、ろうそくのような小さな暖かい光がもれる（人は描かない。灯りだけ）
+  if (LOOK.show.ukimidoLight) {
+    const OFF = new THREE.Color(0x2c2620),
+      ON = new THREE.Color(1.0, 0.55, 0.24).multiplyScalar(0.85),
+      dm = new THREE.MeshBasicMaterial({ color: OFF }),
+      door = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.3).rotateY(Math.PI), dm);
+    door.position.set(0, 3.3, -2.27);
+    g.add(door);
+    const hm = new THREE.SpriteMaterial({ map: G.dotTex, color: 0xffb070, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 }),
+      halo = new THREE.Sprite(hm);
+    halo.scale.setScalar(3.5);
+    halo.position.set(0, 3.5, -2.6);
+    g.add(halo);
+    onFrame(140, (f) => {
+      const nt = Math.max(0, Math.min(1, (0.16 - f.day) / 0.1)), // 日が暮れてから灯る
+        fl = 1 + LOOK.flicker[0] * 2 * Math.sin(f.t * 1.7) + LOOK.flicker[1] * 3 * Math.sin(f.t * 9.3 + Math.sin(f.t * 3.1)); // ろうそくの小さな揺らぎ
+      dm.color.lerpColors(OFF, ON, nt * fl);
+      hm.opacity = 0.2 * nt * fl;
+      halo.visible = nt > 0;
+    });
+  }
 }
 
 // 細長い桟橋（港から沖へ）と、集落に混じる大きめの建物（集合住宅・工場）

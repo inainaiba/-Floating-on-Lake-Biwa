@@ -440,7 +440,9 @@ function audioUpdate(dt, c, W, boats, nearReed) {
   const ac = SND.ctx,
     now = ac.currentTime,
     k = 0.25;
-  SND.master.gain.setTargetAtTime(SND.on ? 0.9 * CFG.vol : 0, now, 0.4); // 音量は設定の画面から（31b-settings.js）
+  // 音量は設定の画面から（31b-settings.js）。静けさの間（09-wind.js の hushOf）は、ほとんど聞こえないところまで引く
+  const hu = hushOf(c.t) * (1 - Math.min(1, W.wx.rain || 0));
+  SND.master.gain.setTargetAtTime(SND.on ? 0.9 * CFG.vol * (1 - 0.85 * hu) : 0, now, hu > 0 ? 1.6 : 0.4);
   if (!SND.on) return;
   const ws = Math.min(1, W.s / 8);
   // 音の余白：数分おきに、40秒〜1分半ほど、風・鳥・暮らしの音が引いて、波の音だけの静けさになる（ゆっくり出入りする）
@@ -456,7 +458,7 @@ function audioUpdate(dt, c, W, boats, nearReed) {
     const gust =
       0.5 + 0.5 * Math.sin(now * 0.13) * Math.sin(now * 0.071 + 1) + 0.25 * Math.sin(now * 0.29 + 2);
     SND.windG.gain.setTargetAtTime(
-      ((isFar ? 0.03 : 0.012) + ws * ws * (isFar ? 0.08 : 0.05)) * (0.35 + 0.65 * Math.max(0, gust)) * (1 - 0.6 * SND.quiet),
+      ((isFar ? 0.03 : 0.012) + ws * ws * (isFar ? 0.08 : 0.05)) * (0.35 + 0.65 * Math.max(0, gust)) * (1 - 0.6 * SND.quiet) * (1 - 0.5 * (G.bellQ || 0)), // 鐘の余韻の間は風が少し引く（43g-prayer.js）
       now,
       3,
     );
