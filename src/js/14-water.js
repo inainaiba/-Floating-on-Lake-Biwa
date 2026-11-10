@@ -393,10 +393,40 @@ float fd=length(cameraPosition-vP);
 c=mix(c,uFogC,smoothstep(uFog.x*.6,uFog.y,fd));
 c=mix(c,c*1.05+.03,clamp(WKE,0.,1.)*.6*(1.-smoothstep(.0,-.15,uSun.y)*.7));
 gl_FragColor=vec4(c,1.);`;
+// 水面の網目：波で上下するのはカメラから500までなので（下の att）、まん中（±約1000。カメラは建築から最大420離れる）だけを
+// これまでと同じ細かさ・同じ位置の網目にし、その外の平らな所は外へ行くほど粗くする。見た目は同じで、三角形は約5分の1
+function waterGeom() {
+  const q = 5000 / QUALITY.waterGrid,
+    K = Math.ceil(1000 / q),
+    xs = [];
+  for (let k = -K; k <= K; k++) xs.push(k * q);
+  for (let x = K * q, st = q; x < 2500 - 1e-6; ) {
+    st *= 1.4;
+    x = 2500 - (x + st) < st * 0.5 ? 2500 : x + st;
+    xs.push(x);
+    xs.unshift(-x);
+  }
+  const n = xs.length,
+    pos = new Float32Array(n * n * 3),
+    idx = new Uint32Array((n - 1) * (n - 1) * 6);
+  let o = 0;
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) (pos[o++] = xs[i]), (pos[o++] = 0), (pos[o++] = xs[j]);
+  o = 0;
+  for (let j = 0; j < n - 1; j++)
+    for (let i = 0; i < n - 1; i++) {
+      const a = i + n * j,
+        b = i + n * (j + 1),
+        c = i + 1 + n * (j + 1),
+        d = i + 1 + n * j;
+      (idx[o++] = a), (idx[o++] = b), (idx[o++] = d), (idx[o++] = b), (idx[o++] = c), (idx[o++] = d);
+    }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  g.setIndex(new THREE.BufferAttribute(idx, 1));
+  return g;
+}
 const water = new THREE.Mesh(
-  new THREE.PlaneGeometry(5000, 5000, QUALITY.waterGrid, QUALITY.waterGrid).rotateX(
-    -Math.PI / 2,
-  ),
+  waterGeom(),
   new THREE.ShaderMaterial({
     uniforms: waterU,
     vertexShader: `uniform float uT;

@@ -11,7 +11,8 @@ if(nrm.y<0.)nrm=-nrm;
 vec3 wn=normalize(vWN); // 頂点の間でなめらかにつないだ向き（三角形ごとの向きを使うと、筋が三角形の境で途切れる）
 float rocc=0.,rmt=smoothstep(20.,80.,vH)*smoothstep(.12,.45,length(wn.xz)); // 傾きが約7°〜27°（高さの強調込み）で効き始める
 if(rmt>0.){float fw=length(fwidth(vXZ));vec2 dn=normalize(wn.xz+1e-4),pp=vec2(-dn.y,dn.x);
- for(int o=0;o<3;o++){float sc=o==0?.0071:o==1?.0167:.036,w=o==0?.5:o==1?.32:.22; // 作品の1単位は実寸5m
+ for(int o=0;o<3;o++){if(o>0&&uRf>.5)break; // 映り込みでは、いちばん大きな沢だけ
+  float sc=o==0?.0071:o==1?.0167:.036,w=o==0?.5:o==1?.32:.22; // 作品の1単位は実寸5m
   float fd=1.-smoothstep(.12,.4,fw*sc);
   vec2 q=vec2(dot(vXZ,pp)*sc,dot(vXZ,dn)*sc*.3)+float(o)*17.3+nzN(vXZ*sc*.5)*.8;
   rocc+=(1.-smoothstep(0.,.45,abs(nzN(q)*2.-1.)))*w*fd*smoothstep(.25,.75,nzN(q*vec2(.45,.6)+5.3));} // 沢ごとに深さを変えて、櫛の目のような並びを崩す
@@ -85,7 +86,7 @@ diffuseColor.rgb*=1.+.25*wood*(dot(nrmE,normalize(vec3(.55,.6,.4)))-.45);
 {vec2 sl=normalize(uSunT.xz+vec2(1e-4));
 float fw=length(fwidth(vXZ));
 float tc=0.;
-for(int o=0;o<3;o++){float sc=o==0?.16:o==1?.055:.02;vec2 q=vXZ*sc,qi=floor(q),qf=fract(q);
+if(uRf<.5)for(int o=0;o<3;o++){float sc=o==0?.16:o==1?.055:.02;vec2 q=vXZ*sc,qi=floor(q),qf=fract(q);
  vec2 jt=vec2(fract(sin(dot(qi,vec2(7.7,3.1)))*91.),fract(sin(dot(qi,vec2(2.3,8.9)))*91.))*.5+.25;
  vec2 dd=qf-jt;float r=length(dd);
  float bump=1.-smoothstep(.12,.5,r);

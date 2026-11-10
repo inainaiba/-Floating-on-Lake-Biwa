@@ -249,7 +249,9 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
     renderer.clippingPlanes = G._clip;
     renderer.setRenderTarget(G.rf);
     renderer.clear();
+    TERR_RF.value = 1; // 映り込みの山肌は、細かい模様を省く（16-terrain-1-colors.js）
     renderer.render(scene, rc);
+    TERR_RF.value = 0;
     renderer.clippingPlanes = G._noClip || (G._noClip = []);
     renderer.setRenderTarget(null);
     renderer.setClearColor(cc, ca);

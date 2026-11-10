@@ -102,7 +102,7 @@
   - 12-renderer.js：`QUALITY`、`scene`
 
 ## 14-water.js
-- 作る：`NW`、`W_FS_COLOR`、`W_FS_FINISH`、`W_FS_FOAM`、`W_FS_HEAD`、`W_FS_HOUSE`、`W_FS_LIGHT`、`W_FS_MIRROR`、`W_FS_NORMAL`、`W_FS_REFLECT`、`depthTex`、`dtex`、`setWaves`、`water`、`waterU`、`waveH`、`waveTop`、`waves`
+- 作る：`NW`、`W_FS_COLOR`、`W_FS_FINISH`、`W_FS_FOAM`、`W_FS_HEAD`、`W_FS_HOUSE`、`W_FS_LIGHT`、`W_FS_MIRROR`、`W_FS_NORMAL`、`W_FS_REFLECT`、`depthTex`、`dtex`、`setWaves`、`water`、`waterGeom`、`waterU`、`waveH`、`waveTop`、`waves`
 - 使う：
   - 01-settings.js：`RM`、`S`
   - 02-season.js：`PALETTE`
@@ -131,7 +131,7 @@
 - 作る：`TERR_FS_AUTUMN`、`TERR_FS_FOREST`、`TERR_FS_HAZE`、`TERR_FS_NIGHT`、`TERR_FS_ROCK`、`TERR_FS_SEASON`、`TERR_FS_SHORE`、`TERR_FS_SLOPE`、`TERR_FS_WINTER`
 
 ## 16-terrain-2-mesh.js
-- 作る：`FOREST_TINT`、`MIST_U`、`NEAR_U`、`SNOW`、`TERR_CELL`、`landContours`、`terr`、`terrMat`
+- 作る：`FOREST_TINT`、`MIST_U`、`NEAR_U`、`SNOW`、`TERR_CELL`、`TERR_RF`、`landContours`、`terr`、`terrMat`
 - 使う：
   - 00-head.js：`G`、`GLSL_NOISE`
   - 01-settings.js：`S`
@@ -972,6 +972,7 @@
   - 12-renderer.js：`QUALITY`、`camera`、`renderer`、`scene`
   - 13-sky-dome.js：`skyDome`、`skyU`、`sun`
   - 14-water.js：`water`、`waterU`
+  - 16-terrain-2-mesh.js：`TERR_RF`
   - 18-buildings.js：`house`
 
 ## 53-frame.js
