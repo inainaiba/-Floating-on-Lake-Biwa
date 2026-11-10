@@ -1,5 +1,6 @@
 // ---------- 地形の材質と網目：遠い山の粗い網目、カメラのまわりの細かい網目（G.nearPatch）、遠景の等高線
 const NEAR_U = { value: new THREE.Vector4(0, 0, 0, 0) }; // 細かい網目の中心 x, z・半分の幅（作品の単位）・使うか
+const TERR_RF = { value: 0 }; // 水面の映り込みを描いている間だけ 1（52-frame-render.js）。波でにじんで見分けられない細かい模様（細い沢の筋・樹冠のふくらみ）の計算を省く
 const MIST_U = { value: 0 }; // 朝の霧の濃さ（42b-mist.js が毎フレーム決める）。谷にたまる霞に使う
 const terrMat = new THREE.MeshLambertMaterial({ vertexColors: true });
 terrMat.onBeforeCompile = (sh) => {
@@ -18,6 +19,7 @@ terrMat.onBeforeCompile = (sh) => {
   sh.uniforms.uMist = MIST_U;
   sh.uniforms.uMoonL = { value: 0 };
   sh.uniforms.uNt = { value: 0 };
+  sh.uniforms.uRf = TERR_RF; // 映り込みを描いている間は 1（細かい模様を省く）
   sh.uniforms.uSL = { value: 0 };
   sh.uniforms.uWin = { value: 0 };
   sh.uniforms.uAut = { value: 0 };
@@ -36,7 +38,7 @@ terrMat.onBeforeCompile = (sh) => {
   sh.fragmentShader = sh.fragmentShader
     .replace(
       "#include <common>",
-      "#include <common>\n" + GLSL_NOISE + "\nvarying float vH;varying vec2 vXZ;varying float vCv;varying vec3 vWN;varying float vNear;uniform vec4 uNear;uniform float uMist;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform vec3 uSea;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;uniform vec3 uMoonT;uniform float uMoonL;uniform float uNt;",
+      "#include <common>\n" + GLSL_NOISE + "\nuniform float uRf;varying float vH;varying vec2 vXZ;varying float vCv;varying vec3 vWN;varying float vNear;uniform vec4 uNear;uniform float uMist;uniform float uSnow;uniform float uSL;uniform float uSpr;uniform vec3 uSea;uniform float uCT;uniform float uCSh;uniform vec3 uSunT;uniform float uWin;uniform float uAut;uniform vec3 uHaze;uniform float uLow;uniform vec3 uMoonT;uniform float uMoonL;uniform float uNt;",
     )
     .replace(
       "#include <color_fragment>",
@@ -152,9 +154,38 @@ terr.position.set((tx0 + ((TW - 1) * tdx) / 2) * S, 0, (ty0 + ((TH - 1) * tdy) /
   pos.needsUpdate = true;
   terrGeo.setIndex(sub);
   terrGeo.computeBoundingSphere();
-  const outer_ = new THREE.Mesh(og, terrMat);
-  outer_.receiveShadow = true;
-  terr.add(outer_); // 遠い山の粗い網目（位置は terr に合わせる）
+  // 区画に分ける：地形を1枚で描くと、背中側の山も毎コマ（本描画と映り込みの両方で）描くことになる。
+  // 頂点はそのまま共有して、三角形だけを区画（実寸で細かい網目は約18km、遠い山は約40km四方）ごとの子に分け、
+  // 画面に入っている区画だけを描く（見た目は同じ）。terr 自身は親として残し、何も描かない
+  const tiles = (geo, index, size) => {
+    const P = geo.attributes.position,
+      by = new Map();
+    for (let t = 0; t < index.length; t += 3) {
+      const v = index[t],
+        k = Math.floor(P.getX(v) / (size * S)) * 4096 + Math.floor(P.getZ(v) / (size * S));
+      if (!by.has(k)) by.set(k, []);
+      by.get(k).push(index[t], index[t + 1], index[t + 2]);
+    }
+    for (const ix of by.values()) {
+      const g = new THREE.BufferGeometry();
+      for (const [k, a] of Object.entries(geo.attributes)) g.setAttribute(k, a);
+      g.setIndex(ix);
+      // 区画の範囲（その区画の三角形の頂点だけから。高さは沈めた分も含める）
+      const bb = new THREE.Box3(),
+        v3 = new THREE.Vector3();
+      for (const v of ix) bb.expandByPoint(v3.fromBufferAttribute(P, v));
+      bb.min.y -= 80;
+      g.boundingBox = bb;
+      g.boundingSphere = bb.getBoundingSphere(new THREE.Sphere());
+      const m = new THREE.Mesh(g, terrMat);
+      m.receiveShadow = true;
+      terr.add(m);
+    }
+  };
+  tiles(terrGeo, sub, 18000); // 湖のまわりの細かい網目
+  tiles(og, oi, 40000); // 遠い山の粗い網目（位置は terr に合わせる）
+  terrGeo.setIndex([]);
+  terr.material = new THREE.MeshBasicMaterial({ visible: false }); // 親は描かない（子の区画だけを描く）
 }
 scene.add(terr);
 // カメラのまわりの細かい網目：岸近くの細かい地形（NEAR）を30m間隔で描く。カメラが約240m動いたら作り直す。
