@@ -251,6 +251,12 @@ if (Q.has("debug")) {
     });
   // 撮影の間、描画を止める（画面には最後に描いた絵が残る）
   window.__pause = (p) => (G.paused = p);
+  // カメラの向き・見上げ・距離だけを決める（紹介動画を1コマずつ描くとき、毎コマ呼んでゆっくり動かす。tools/video.py）。
+  // 建築の進む向きへ回り込む動きは止める（G.camFix → 51-frame-camera.js）。建築の位置や漂いには触れない
+  window.__cam = (yw, pt, ds) => {
+    yaw = yawT = yw; pitch = pt; dist = distT = ds;
+    G.camFix = true;
+  };
   window.__set = (lo, la, dx, dy, yw, pt, ds) => {
     G.lock = null;
     const [x, y] = ll(lo, la);

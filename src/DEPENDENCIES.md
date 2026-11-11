@@ -1010,6 +1010,7 @@
 
 ## 共有の値（window.__xxx）
 
+- `__cam`：53-frame.js
 - `__fail`：12-renderer.js
 - `__failed`：12-renderer.js
 - `__floating`：00-head.js、10-start.js
@@ -1060,6 +1061,7 @@
 - `G.boatMeshes`：19-boats.js
 - `G.boats`：45-boats.js
 - `G.buoys`：37-buoys.js
+- `G.camFix`：53-frame.js
 - `G.camera`：53-frame.js
 - `G.cards`：17-trees.js
 - `G.chunks`：00-head.js
