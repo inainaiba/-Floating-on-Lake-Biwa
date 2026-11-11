@@ -112,7 +112,7 @@ onFrame(50, (f) => G.ambience.update(f.dt, f.t, f.c, f.day)); // 毎フレーム
 // 空を仰いだり、少し離れて遠くの山を眺めたりする。決まった順番はなく、数分かけてうつろう。触れたら、その視線のまま手に戻す
 const IDLE = { k: 0, p0: null, d0: null };
 function idleLook(dt) {
-  if (STATE !== "lake" || isFar || G.watch || G.camFix) return; // 紹介動画の撮影中（53-frame.js の __cam）は、気ままな視線を止める
+  if (STATE !== "lake" || isFar || G.watch || G.camFix || G.tFix != null) return; // 確認用に時計を止めているとき・紹介動画の撮影中（53-frame.js の __cam）は、気ままな視線を止める（実時間で動くので、撮るたびに画角がぶれる）
   const idle = (performance.now() - (G.lastInput || 0)) / 1000;
   if (idle < 40) {
     IDLE.k = 0;
