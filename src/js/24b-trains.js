@@ -54,7 +54,7 @@ G.trains = (() => {
     return -1;
   }
   // 道のり s（実寸m）の所の位置・向き・桁の高さ・トンネルの中か。答えは同じ入れ物（AT）を使い回す（毎コマ・車両ごとに新しく作らない）
-  const AT = [0, 0, 0, 0, false];
+  const AT = [0, 0, 0, 0, false, 0];
   function at(K, LEN, s) {
     const cum = K.cum,
       P = K.pts;
@@ -78,11 +78,34 @@ G.trains = (() => {
     AT[2] = h;
     AT[3] = Math.atan2(b[1] - a[1], b[0] - a[0]);
     AT[4] = hidden;
+    AT[5] = edge ? 0 : Math.atan2(K.ht[hi] - K.ht[lo], (cum[hi] - cum[lo]) * S || 1); // 線路の傾き（坂では車両も傾ける）
     return AT;
   }
   const body = new THREE.InstancedMesh(new THREE.BoxGeometry(CAR - 0.6, 3.1, 2.9), new THREE.MeshLambertMaterial({ color: 0xd8d4c8 }), N),
     winM = new THREE.MeshBasicMaterial({ color: 0x2a3036 }),
-    win = new THREE.InstancedMesh(new THREE.BoxGeometry(CAR - 2.2, 0.9, 2.96), winM, N);
+    // 窓：1両に7つ並べる（横長の1枚だと、夜に光の帯に見えてしまう）
+    winG = (() => {
+      const n = 7,
+        span = CAR - 2.2,
+        one = new THREE.BoxGeometry((span / n) * 0.72, 0.9, 2.96),
+        g = new THREE.BufferGeometry(),
+        pos = [],
+        nor = [],
+        idx = [],
+        P = one.attributes.position,
+        Nn = one.attributes.normal;
+      for (let k = 0; k < n; k++) {
+        const dx = ((k + 0.5) / n - 0.5) * span,
+          base = pos.length / 3;
+        for (let i = 0; i < P.count; i++) pos.push(P.getX(i) + dx, P.getY(i), P.getZ(i)), nor.push(Nn.getX(i), Nn.getY(i), Nn.getZ(i));
+        for (let i = 0; i < one.index.count; i++) idx.push(one.index.getX(i) + base);
+      }
+      g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+      g.setIndex(idx);
+      return g;
+    })(),
+    win = new THREE.InstancedMesh(winG, winM, N);
   // 湖面に映る窓の灯りの筋：遠い小さな灯りは水面の映り込み（14-water.js）では筋にならないので、
   // 車両ごとに、鏡に映った窓の見える水面の所へ、こちらへ伸びる縦長の光を置く
   const glowM = new THREE.MeshBasicMaterial({
@@ -124,6 +147,8 @@ G.trains = (() => {
   }
   const M = new THREE.Matrix4(),
     Qn = new THREE.Quaternion(),
+    Qp = new THREE.Quaternion(),
+    Z = new THREE.Vector3(0, 0, 1),
     Y = new THREE.Vector3(0, 1, 0),
     V3 = new THREE.Vector3(),
     W3 = new THREE.Vector3(),
@@ -158,10 +183,11 @@ G.trains = (() => {
               for (let j = 0; j < CARS; j++) {
                 const s = s0 - dir * (j * CAR / S + CAR / S / 2);
                 if (s < 0 || s > LEN) continue;
-                const [x, y, h, a, inTunnel] = at(K, LEN, s);
+                const [x, y, h, a, inTunnel, tilt] = at(K, LEN, s);
                 if (inTunnel) continue; // トンネルの中は見えない
                 const off = dir * 1.0; // 上下線で横にずらす（桁の幅は4）
                 Qn.setFromAxisAngle(Y, -a);
+                if (tilt) Qn.multiply(Qp.setFromAxisAngle(Z, tilt)); // 坂では線路に沿って傾ける（水平のままだと、車両が段々に見える）
                 V3.set(x * S - Math.sin(a) * off, h + 0.45 + 1.75, y * S + Math.cos(a) * off);
                 {
                   const dd = Math.hypot(V3.x - cp.x, V3.z - cp.z);
