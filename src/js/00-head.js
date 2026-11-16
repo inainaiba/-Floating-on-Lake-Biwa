@@ -163,6 +163,29 @@ function mergeStatic(root) {
 const CHUNK = 6000;
 const chunkOf = (x, y) => Math.floor(x / CHUNK) * 4096 + Math.floor(y / CHUNK);
 G.chunks = [];
+// ふだん動かない物の位置（行列）の計算を、動かされたときと、親が動いたとき（force）だけにする。
+// three.js は毎コマすべての物の位置を計算し直すので、区画の数（千数百）だけ無駄になっていた。子も動かない物にだけ使う
+function lazyMatrix(o) {
+  const up = o.updateMatrixWorld,
+    k = new Float64Array(10).fill(NaN);
+  o.updateMatrixWorld = function (force) {
+    const p = this.position,
+      q = this.quaternion,
+      s = this.scale;
+    if (!force && !this.matrixWorldNeedsUpdate && k[0] === p.x && k[1] === p.y && k[2] === p.z && k[3] === q.x && k[4] === q.y && k[5] === q.z && k[6] === q.w && k[7] === s.x && k[8] === s.y && k[9] === s.z) return;
+    k[0] = p.x;
+    k[1] = p.y;
+    k[2] = p.z;
+    k[3] = q.x;
+    k[4] = q.y;
+    k[5] = q.z;
+    k[6] = q.w;
+    k[7] = s.x;
+    k[8] = s.y;
+    k[9] = s.z;
+    up.call(this, true);
+  };
+}
 // 動かない InstancedMesh を区画ごとの子に分ける。元の物は親として残し（見え隠れ・位置・材質の切り替えはそのまま効く）、
 // 自分では何も描かない。実行中に1本ずつ位置や色を変える物（userData.noChunk）には使わない
 function chunkify(mesh) {
@@ -217,6 +240,24 @@ function chunkify(mesh) {
   }
   mesh.count = 0;
   mesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, -1e7, 0), 0); // 親は描かない（いつも画面の外とみなす）
+  // 親の置き場所・色の表は、子に写し終えたので手放す（同じ表を二重に持つと、湖全体で十数MBになる）
+  mesh.instanceMatrix = new THREE.InstancedBufferAttribute(new Float32Array(16), 16);
+  if (mesh.instanceColor) mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(3), 3);
+  lazyMatrix(mesh);
+}
+// 区画の中心（世界の座標）。区画は動かないので、毎コマ計算し直さずに覚えておく（親が動かされたときだけ計算し直す）。
+// 遠近の入れ替え（53-frame.js）と、映り込みで遠い区画を省く判定（52-frame-render.js）で使う
+function chunkCenter(c) {
+  const e = c.matrixWorld.elements,
+    u = c.userData;
+  if (!u.wc) (u.wc = new THREE.Vector3()), (u.wk = [NaN, 0, 0]);
+  if (u.wk[0] !== e[12] || u.wk[1] !== e[13] || u.wk[2] !== e[14]) {
+    u.wk[0] = e[12];
+    u.wk[1] = e[13];
+    u.wk[2] = e[14];
+    u.wc.copy(c.boundingSphere.center).applyMatrix4(c.matrixWorld);
+  }
+  return u.wc;
 }
 // 置き場所の記録（点検用）：景物ごとに位置（実寸の x, y）と、守るべき決まりを残す。
 // 決まり：water＝湖の上、land＝陸か島の上、shore＝岸の近く（約250m以内）。tools/audit.py が数を調べる

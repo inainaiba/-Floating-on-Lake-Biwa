@@ -53,7 +53,8 @@ G.trains = (() => {
     }
     return -1;
   }
-  // 道のり s（実寸m）の所の位置・向き・桁の高さ・トンネルの中か
+  // 道のり s（実寸m）の所の位置・向き・桁の高さ・トンネルの中か。答えは同じ入れ物（AT）を使い回す（毎コマ・車両ごとに新しく作らない）
+  const AT = [0, 0, 0, 0, false];
   function at(K, LEN, s) {
     const cum = K.cum,
       P = K.pts;
@@ -72,7 +73,12 @@ G.trains = (() => {
     const edge = K.tun[lo] !== K.tun[hi],
       h = edge ? K.ht[K.tun[lo] ? hi : lo] : K.ht[lo] + (K.ht[hi] - K.ht[lo]) * u,
       hidden = (K.tun[lo] && K.tun[hi]) || (edge && (K.tun[hi] ? u : 1 - u) > 0.5);
-    return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, h, Math.atan2(b[1] - a[1], b[0] - a[0]), hidden];
+    AT[0] = a[0] + (b[0] - a[0]) * u;
+    AT[1] = a[1] + (b[1] - a[1]) * u;
+    AT[2] = h;
+    AT[3] = Math.atan2(b[1] - a[1], b[0] - a[0]);
+    AT[4] = hidden;
+    return AT;
   }
   const body = new THREE.InstancedMesh(new THREE.BoxGeometry(CAR - 0.6, 3.1, 2.9), new THREE.MeshLambertMaterial({ color: 0xd8d4c8 }), N),
     winM = new THREE.MeshBasicMaterial({ color: 0x2a3036 }),

@@ -114,9 +114,9 @@ function frame(now) {
     const cp = camera.position,
       v3 = G._v3 || (G._v3 = new THREE.Vector3());
     for (const I of G.forest || []) {
-      v3.copy(I.boundingSphere.center).applyMatrix4(I.matrixWorld);
-      const r = I.userData.far + I.boundingSphere.radius;
-      I.visible = (v3.x - cp.x) ** 2 + (v3.z - cp.z) ** 2 < r * r;
+      const w = chunkCenter(I),
+        r = I.userData.far + I.boundingSphere.radius;
+      I.visible = (w.x - cp.x) ** 2 + (w.z - cp.z) ** 2 < r * r;
     }
     // 小さな物の区画（石・柵・生け垣・小物など）は、画面で約1.5点より小さくなる距離から先は描かない（見た目は変わらない）。
     // 距離は、区画の中の物ひとつの大きさ（形の大きさ × 置いた大きさ）の約650倍。家のような大きな物は遠くまで描く
@@ -141,9 +141,9 @@ function frame(now) {
       }
     }
     for (const [c, far] of G.lodC) {
-      v3.copy(c.boundingSphere.center).applyMatrix4(c.matrixWorld);
-      const r = far + c.boundingSphere.radius;
-      c.visible = (v3.x - cp.x) ** 2 + (v3.z - cp.z) ** 2 < r * r;
+      const w = chunkCenter(c),
+        r = far + c.boundingSphere.radius;
+      c.visible = (w.x - cp.x) ** 2 + (w.z - cp.z) ** 2 < r * r;
     }
   }
   const pC = performance.now();
@@ -276,8 +276,9 @@ if (G.wakeMesh) G.wakeMesh.userData.noChunk = true; // 航跡は毎フレーム�
   });
   for (const o of list) chunkify(o);
 }
-// 見た目の計算（シェーダー）の準備を、読み込み中の幕の後ろで済ませる。途中で初めて出てくる物（季節の景物・花火など）や、
-// 映り込み（水面で切る面がある）の分もまとめて準備し、湖に出た直後や季節・天気が変わったときに一瞬止まらないようにする
+// 見た目の計算（シェーダー）の準備を、読み込み中の幕の後ろで済ませる。途中で初めて出てくる物（季節の景物・花火など）の分も
+// まとめて準備し、湖に出た直後や季節・天気が変わったときに一瞬止まらないようにする
+//（映り込みは本描画と同じシェーダーで描く。水面より下は投影で切る → 52-frame-render.js）
 {
   const hidden = [];
   scene.traverse((o) => {
@@ -291,13 +292,9 @@ if (G.wakeMesh) G.wakeMesh.userData.noChunk = true; // 航跡は毎フレーム�
   try {
     renderer.setRenderTarget(rt);
     await renderer.compileAsync(scene, camera);
-    renderer.setRenderTarget(rt);
-    renderer.clippingPlanes = [new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)];
-    await renderer.compileAsync(scene, camera);
   } catch (e) {
     console.warn(e);
   }
-  renderer.clippingPlanes = [];
   renderer.setRenderTarget(null);
   rt.dispose();
   // 画像（テクスチャ）も、ここでまとめて GPU へ送っておく（初めて画面に出た物の画像を、そのコマで送って一瞬止まるのを防ぐ）

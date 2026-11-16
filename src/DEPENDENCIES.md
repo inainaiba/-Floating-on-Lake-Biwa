@@ -5,7 +5,7 @@
 部品は番号順に1つのモジュールとしてつながる。後ろの部品で作る名前は、前の部品の「読み込み時に動く処理」からは使えない（関数の中や毎フレームの処理からは使える）。
 
 ## 00-head.js
-- 作る：`CHUNK`、`FRAME_HOOKS`、`G`、`GLSL_NOISE`、`LEAFTX`、`NEAR_TREE_MAT`、`PLACE_LOG`、`TRUE_RANDOM`、`chunkOf`、`chunkify`、`mergeStatic`、`mkLeaf`、`onFrame`、`placeLog`
+- 作る：`CHUNK`、`FRAME_HOOKS`、`G`、`GLSL_NOISE`、`LEAFTX`、`NEAR_TREE_MAT`、`PLACE_LOG`、`TRUE_RANDOM`、`chunkCenter`、`chunkOf`、`chunkify`、`lazyMatrix`、`mergeStatic`、`mkLeaf`、`onFrame`、`placeLog`
 - 使う：
   - 01-settings.js（後ろの部品・要注意）：`S`
   - 20-villages-layout.js（後ろの部品・関数なので可）：`cvTex`
@@ -168,7 +168,7 @@
 ## 17-trees.js
 - 作る：`TREE_TEX`、`cardForest`、`cardTreeGeom`、`cardTreeMat`、`paintTree`、`treeTex`
 - 使う：
-  - 00-head.js：`G`、`chunkOf`、`placeLog`
+  - 00-head.js：`G`、`chunkOf`、`lazyMatrix`、`placeLog`
   - 01-settings.js：`S`
   - 03b-meisho-sites.js：`meishoClear`
   - 06-inner-lakes.js：`inRiver`
@@ -966,7 +966,7 @@
 ## 52-frame-render.js
 - 作る：`INST`、`hideEmpty`、`renderFrame`
 - 使う：
-  - 00-head.js：`G`
+  - 00-head.js：`G`、`chunkCenter`
   - 01-settings.js：`S`
   - 11-state.js：`B`、`camX`、`camZ`
   - 12-renderer.js：`QUALITY`、`camera`、`renderer`、`scene`
@@ -978,7 +978,7 @@
 ## 53-frame.js
 - 作る：`PACE`、`SLOW`、`frame`、`slowLog`
 - 使う：
-  - 00-head.js：`FRAME_HOOKS`、`G`、`PLACE_LOG`、`TRUE_RANDOM`、`chunkify`
+  - 00-head.js：`FRAME_HOOKS`、`G`、`PLACE_LOG`、`TRUE_RANDOM`、`chunkCenter`、`chunkify`
   - 01-settings.js：`Q`、`S`
   - 03-coords.js：`ll`
   - 04-clock.js：`MO`、`PH`、`clock`
@@ -1034,12 +1034,14 @@
 - `G.W`：49-frame-sky-light.js
 - `G._cc`：52-frame-render.js
 - `G._cc2`：52-frame-render.js
-- `G._clip`：52-frame-render.js
+- `G._clipP`：52-frame-render.js
+- `G._clipQ`：52-frame-render.js
+- `G._clipV`：52-frame-render.js
 - `G._dir`：52-frame-render.js
 - `G._farHid`：52-frame-render.js
 - `G._hid`：52-frame-render.js
-- `G._noClip`：52-frame-render.js
 - `G._nrVis`：52-frame-render.js
+- `G._rfL`：52-frame-render.js
 - `G._shL`：52-frame-render.js
 - `G._sp`：52-frame-render.js
 - `G._v3`：53-frame.js
