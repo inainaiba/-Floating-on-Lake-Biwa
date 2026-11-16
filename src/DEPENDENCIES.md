@@ -992,7 +992,7 @@
   - 14-water.js：`water`
   - 16-terrain-2-mesh.js：`terr`
   - 16-terrain-3-isles.js：`isleH`
-  - 18-buildings.js：`CUST`、`buildHouse`、`reedMask`
+  - 18-buildings.js：`CUST`、`buildHouse`、`house`、`reedMask`
   - 19-boats.js：`boatState`、`updateBoats`
   - 20-villages-layout.js：`groundH`、`houses`、`landY`、`terrainAt`
   - 28-map.js：`drawFar`
@@ -1104,6 +1104,7 @@
 - `G.life`：44-life.js
 - `G.lock`：53-frame.js
 - `G.lodC`：53-frame.js
+- `G.lodP`：53-frame.js
 - `G.lt`：49-frame-sky-light.js
 - `G.meisho`：40b-meisho.js
 - `G.moments`：43-moments.js

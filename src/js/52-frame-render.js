@@ -328,7 +328,7 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
     L[5] = q.z;
     L[6] = q.w;
     const still = mv < 0.02 && Math.hypot(B.vx || 0, B.vy || 0) < 0.02,
-      every = sunAngle < -0.08 ? 6 : still ? 4 : 2; // 偶数だけ（映り込みを描く奇数のコマと重ねない）
+      every = G.tFix != null ? 1 : sunAngle < -0.08 ? 6 : still ? 4 : 2; // 偶数だけ（映り込みを描く奇数のコマと重ねない）。確認用に時計を止めているときは毎コマ（撮る瞬間で影が変わらないように）
     G.shTick = (G.shTick || 0) + 1;
     if (G.shTick % every === 0) renderer.shadowMap.needsUpdate = true;
   }
