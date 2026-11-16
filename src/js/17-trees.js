@@ -237,6 +237,7 @@ function cardForest(kind, list, hgt, wid, near, far, shadow, tint) {
     I.userData.noChunk = true; // すでに区画ごと
     I.userData.far = far; // これより遠い区画は描かない（53-frame.js。木は far までに縮んで消えている）
     I.computeBoundingSphere();
+    lazyMatrix(I); // 森の区画は動かない（00-head.js）
     scene.add(I);
     G.chunks.push(I);
     (G.forest = G.forest || []).push(I);

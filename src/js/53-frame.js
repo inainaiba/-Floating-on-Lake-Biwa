@@ -114,9 +114,9 @@ function frame(now) {
     const cp = camera.position,
       v3 = G._v3 || (G._v3 = new THREE.Vector3());
     for (const I of G.forest || []) {
-      v3.copy(I.boundingSphere.center).applyMatrix4(I.matrixWorld);
-      const r = I.userData.far + I.boundingSphere.radius;
-      I.visible = (v3.x - cp.x) ** 2 + (v3.z - cp.z) ** 2 < r * r;
+      const w = chunkCenter(I),
+        r = I.userData.far + I.boundingSphere.radius;
+      I.visible = (w.x - cp.x) ** 2 + (w.z - cp.z) ** 2 < r * r;
     }
     // 小さな物の区画（石・柵・生け垣・小物など）は、画面で約1.5点より小さくなる距離から先は描かない（見た目は変わらない）。
     // 距離は、区画の中の物ひとつの大きさ（形の大きさ × 置いた大きさ）の約650倍。家のような大きな物は遠くまで描く
@@ -141,9 +141,52 @@ function frame(now) {
       }
     }
     for (const [c, far] of G.lodC) {
-      v3.copy(c.boundingSphere.center).applyMatrix4(c.matrixWorld);
-      const r = far + c.boundingSphere.radius;
-      c.visible = (v3.x - cp.x) ** 2 + (v3.z - cp.z) ** 2 < r * r;
+      const w = chunkCenter(c),
+        r = far + c.boundingSphere.radius;
+      c.visible = (w.x - cp.x) ** 2 + (w.z - cp.z) ** 2 < r * r;
+    }
+    // 名所・水上建築・港などを組み立てている1つずつの部品にも、同じ決まりを使う（画面で約1.5点より小さくなる距離から先は描かない）。
+    // 湖の真ん中では、3kmより遠い部品の半分あまりがこの大きさで、描く回数だけを増やしていた。
+    //  ・細かい部品（まとまりの大きさの2割より小さい物：手すり・柱・飾りなど）は、その部品が約1.5点より小さくなったら
+    //  ・まとまりの主な形（屋根・壁など）は、まとまり全体が約1.5点より小さくなるまで描く（名所の姿が欠けないように）
+    //  ・光る物・透ける物（灯り・窓明かり・水しぶきなど）は、小さくても遠くから見えるので対象にしない
+    // 見え隠れ（visible）は季節や時刻の切り替えに使われているので触らず、描く層（layers）で切り替える
+    if (!G.lodP) {
+      G.lodP = [];
+      scene.updateMatrixWorld();
+      const box = new THREE.Box3(),
+        sph = new THREE.Sphere(),
+        groupR = new Map(),
+        rOf = (g) => {
+          if (!groupR.has(g)) groupR.set(g, g === scene ? Infinity : box.setFromObject(g).isEmpty() ? 0 : box.getBoundingSphere(sph).radius);
+          return groupR.get(g);
+        },
+        plain = (m) => (m.isMeshLambertMaterial || m.isMeshStandardMaterial) && !m.transparent && m.blending === THREE.NormalBlending && !(m.emissive && m.emissive.getHex()) && !m.emissiveMap;
+      scene.traverse((o) => {
+        if (!o.isMesh || o.isInstancedMesh || o.userData.chunkOf || !o.parent || o.children.length || ![].concat(o.material).every(plain)) return;
+        for (let p = o; p; p = p.parent) if (p === house || p.isInstancedMesh) return; // 放った建築と、区画に分けた物は対象外
+        const g = o.geometry;
+        if (!g.boundingSphere) g.computeBoundingSphere();
+        const e = o.matrixWorld.elements,
+          r = g.boundingSphere.radius * Math.max(Math.hypot(e[0], e[1], e[2]), Math.hypot(e[4], e[5], e[6]), Math.hypot(e[8], e[9], e[10]));
+        let R = rOf(o.parent);
+        if (!(R < 400)) R = r; // 親が湖じゅうの物を束ねているだけのとき（半径2km以上）は、その部品ひとつで考える
+        const far = 650 * (r < R * 0.2 ? r : Math.max(r, R));
+        if (far < 9000) G.lodP.push([o, far, r]);
+      });
+    }
+    for (const [o, far, rr] of G.lodP) {
+      const e = o.matrixWorld.elements,
+        u = o.userData;
+      if (!u.wc) (u.wc = new THREE.Vector3()), (u.wk = [NaN, 0, 0]);
+      if (u.wk[0] !== e[12] || u.wk[1] !== e[13] || u.wk[2] !== e[14]) {
+        u.wk[0] = e[12];
+        u.wk[1] = e[13];
+        u.wk[2] = e[14];
+        u.wc.copy(o.geometry.boundingSphere.center).applyMatrix4(o.matrixWorld);
+      }
+      const r = far + rr;
+      o.layers.mask = (u.wc.x - cp.x) ** 2 + (u.wc.z - cp.z) ** 2 < r * r ? 1 : 0;
     }
   }
   const pC = performance.now();
@@ -251,6 +294,12 @@ if (Q.has("debug")) {
     });
   // 撮影の間、描画を止める（画面には最後に描いた絵が残る）
   window.__pause = (p) => (G.paused = p);
+  // カメラの向き・見上げ・距離だけを決める（紹介動画を1コマずつ描くとき、毎コマ呼んでゆっくり動かす。tools/video.py）。
+  // 建築の進む向きへ回り込む動きは止める（G.camFix → 51-frame-camera.js）。建築の位置や漂いには触れない
+  window.__cam = (yw, pt, ds) => {
+    yaw = yawT = yw; pitch = pt; dist = distT = ds;
+    G.camFix = true;
+  };
   window.__set = (lo, la, dx, dy, yw, pt, ds) => {
     G.lock = null;
     const [x, y] = ll(lo, la);
@@ -270,8 +319,9 @@ if (G.wakeMesh) G.wakeMesh.userData.noChunk = true; // 航跡は毎フレーム�
   });
   for (const o of list) chunkify(o);
 }
-// 見た目の計算（シェーダー）の準備を、読み込み中の幕の後ろで済ませる。途中で初めて出てくる物（季節の景物・花火など）や、
-// 映り込み（水面で切る面がある）の分もまとめて準備し、湖に出た直後や季節・天気が変わったときに一瞬止まらないようにする
+// 見た目の計算（シェーダー）の準備を、読み込み中の幕の後ろで済ませる。途中で初めて出てくる物（季節の景物・花火など）の分も
+// まとめて準備し、湖に出た直後や季節・天気が変わったときに一瞬止まらないようにする
+//（映り込みは本描画と同じシェーダーで描く。水面より下は投影で切る → 52-frame-render.js）
 {
   const hidden = [];
   scene.traverse((o) => {
@@ -285,13 +335,9 @@ if (G.wakeMesh) G.wakeMesh.userData.noChunk = true; // 航跡は毎フレーム�
   try {
     renderer.setRenderTarget(rt);
     await renderer.compileAsync(scene, camera);
-    renderer.setRenderTarget(rt);
-    renderer.clippingPlanes = [new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)];
-    await renderer.compileAsync(scene, camera);
   } catch (e) {
     console.warn(e);
   }
-  renderer.clippingPlanes = [];
   renderer.setRenderTarget(null);
   rt.dispose();
   // 画像（テクスチャ）も、ここでまとめて GPU へ送っておく（初めて画面に出た物の画像を、そのコマで送って一瞬止まるのを防ぐ）

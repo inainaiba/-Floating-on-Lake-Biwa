@@ -17,7 +17,15 @@ function hideEmpty() {
     }
   return hid;
 }
+// 物の位置（行列）の計算は、1コマに1回だけ。three.js は描くたび（映り込み・本描画）に、動かない物も含めて
+// すべての物の位置を計算し直すので、自動の計算は止めて（12-renderer.js の scene.matrixWorldAutoUpdate）、
+// そのコマで最初に景色を描く直前にここで済ませる
 function renderFrame(c, W, wxNow, day, sunAngle) {
+  let updDone = false;
+  const upd = () => {
+    if (!updDone) scene.updateMatrixWorld();
+    updDone = true;
+  };
   {
     const q = 5000 / (QUALITY.waterGrid);
     water.position.x = Math.round(camX / q) * q;
@@ -179,7 +187,7 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
   }
   {
     if (!G.rf) {
-      G.rf = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType }); // 映り込みは波でにじむので、画面の6割ほどの解像度で描く（画質の表の reflection）
+      G.rf = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType }); // 映り込みは波でにじむので、画面の6〜7割ほどの解像度で描く（画質の表の reflection。1コマおきに描くようにして浮いた分、以前より少し細かくした）
       G.rc = new THREE.PerspectiveCamera();
     }
     const w = renderer.domElement.width,
@@ -189,12 +197,33 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
     const rc = G.rc;
     const wy = water.position.y;
     camera.updateMatrixWorld();
+    // 映り込みは1コマおきに描く。漂いはゆっくりなので、前のコマの絵を「描いたときの視点」（uTM）のまま水面に貼れば、
+    // 景色は同じ場所に留まる。視点が大きく動いたコマ（振り向く・寄る）は、待たずに描き直す。
+    // 影の描き直し（下）は偶数のコマなので、奇数のコマに描いて、1コマの重さをならす。
+    // 確認用に時計を止めているとき（G.tFix）は毎コマ描く（撮るたびに同じ絵になるように）
+    const RL = G._rfL || (G._rfL = { p: new THREE.Vector3(), d: new THREE.Vector3(), fov: 0, w: 0 }),
+      rdir = G._dir || (G._dir = new THREE.Vector3());
+    camera.getWorldDirection(rdir);
+    const lazyRf = G.tFix == null || G.rfSkipTest; // rfSkipTest：確認用（時計を止めたまま、1コマおきの描き方を確かめる）
+    const doRefl =
+      !lazyRf ||
+      (G.shTick || 0) % 2 === 0 || // この後で1つ進むので、ここで偶数なら「奇数のコマ」
+      RL.w !== G.rf.width ||
+      RL.fov !== camera.fov ||
+      RL.p.distanceToSquared(camera.position) > 0.25 ||
+      RL.d.dot(rdir) < 0.99978; // 約1.2度
+    if (doRefl) {
+    RL.p.copy(camera.position);
+    RL.d.copy(rdir);
+    RL.fov = camera.fov;
+    RL.w = G.rf.width;
     const dir = G._dir || (G._dir = new THREE.Vector3()); // 毎コマ新しく作らない
     camera.getWorldDirection(dir);
     rc.position.set(camera.position.x, 2 * wy - camera.position.y, camera.position.z);
     rc.up.set(0, 1, 0);
     rc.lookAt(rc.position.x + dir.x, rc.position.y - dir.y, rc.position.z + dir.z);
-    rc.fov = camera.fov;
+    // 前のコマの絵を使い回す間に視点が少し動いても端が欠けないよう、ひとまわり広く描く
+    rc.fov = !lazyRf ? camera.fov : 2 * THREE.MathUtils.RAD2DEG * Math.atan(Math.tan((camera.fov * THREE.MathUtils.DEG2RAD) / 2) * 1.06);
     rc.aspect = camera.aspect;
     rc.near = camera.near;
     rc.far = camera.far;
@@ -233,8 +262,8 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
     farHid.length = 0;
     for (const c of G.chunks) {
       if (!c.visible) continue;
-      v3.copy(c.boundingSphere.center).applyMatrix4(c.matrixWorld);
-      const d2 = (v3.x - cp.x) ** 2 + (v3.z - cp.z) ** 2,
+      const w = chunkCenter(c),
+        d2 = (w.x - cp.x) ** 2 + (w.z - cp.z) ** 2,
         lf = c.userData.lodFar ? (c.userData.lodFar * 0.28 + c.boundingSphere.radius) ** 2 : Infinity; // 小さな物は、映り込みではもっと近くまで（波でにじむ。本描画の3割ほどの距離まで）
       if (d2 > far2 || d2 > lf) {
         c.visible = false;
@@ -244,15 +273,32 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
     const cc = renderer.getClearColor(G._cc || (G._cc = new THREE.Color())),
       ca = renderer.getClearAlpha();
     renderer.setClearColor(0, 0);
-    if (!G._clip) G._clip = [new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)];
-    G._clip[0].constant = -wy + 0.05;
-    renderer.clippingPlanes = G._clip;
+    // 水面より下を切り取る：カメラの手前の面（near）を水面に重ねる（斜めの投影）。
+    // 以前は renderer.clippingPlanes で切っていたが、切る面の有無が映り込みと本描画で入れ替わるたびに、
+    // three.js が全部の材質の描き方を確かめ直し（毎コマ2回）、毎コマの計算の3割ほどを使っていた
+    {
+      const pl = G._clipP || (G._clipP = new THREE.Plane()),
+        cv = G._clipV || (G._clipV = new THREE.Vector4()),
+        qv = G._clipQ || (G._clipQ = new THREE.Vector4()),
+        e = rc.projectionMatrix.elements;
+      pl.normal.set(0, 1, 0);
+      pl.constant = -wy + 0.05;
+      pl.applyMatrix4(rc.matrixWorldInverse);
+      cv.set(pl.normal.x, pl.normal.y, pl.normal.z, pl.constant);
+      qv.set((Math.sign(cv.x) + e[8]) / e[0], (Math.sign(cv.y) + e[9]) / e[5], -1, (1 + e[10]) / e[14]);
+      cv.multiplyScalar(2 / cv.dot(qv));
+      e[2] = cv.x;
+      e[6] = cv.y;
+      e[10] = cv.z + 1;
+      e[14] = cv.w;
+      rc.projectionMatrixInverse.copy(rc.projectionMatrix).invert();
+    }
     renderer.setRenderTarget(G.rf);
     renderer.clear();
     TERR_RF.value = 1; // 映り込みの山肌は、細かい模様を省く（16-terrain-1-colors.js）
+    upd(); // 物の位置の計算は、1コマに1回だけ（下）
     renderer.render(scene, rc);
     TERR_RF.value = 0;
-    renderer.clippingPlanes = G._noClip || (G._noClip = []);
     renderer.setRenderTarget(null);
     renderer.setClearColor(cc, ca);
     water.visible = vis[0];
@@ -260,6 +306,7 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
     (G.innerMeshes || []).forEach((m, i) => (m.visible = inner[i]));
     G.noRefl.forEach((o, i) => (o.visible = nrVis[i]));
     for (const c of farHid) c.visible = true;
+    } // doRefl
     waterU.uRefl.value = G.rf.texture;
     waterU.uWy.value = wy;
     waterU.uRes.value.set(w, h);
@@ -267,7 +314,7 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
   }
   // 影：家や木は動かず、太陽はゆっくり動くので、2フレームに1回で足りる。映り込みの描画では描き直さない
   //（以前は映り込みと本描画の2回、毎フレーム描いていた）
-  //   さらに、カメラも建物もほとんど動いていない間は3コマに1回、日が沈んでいる間（影がほとんど見えない）は6コマに1回にする
+  //   さらに、カメラも建物もほとんど動いていない間は4コマに1回、日が沈んでいる間（影がほとんど見えない）は6コマに1回にする
   {
     const cp = camera.position,
       q = camera.quaternion,
@@ -281,7 +328,7 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
     L[5] = q.z;
     L[6] = q.w;
     const still = mv < 0.02 && Math.hypot(B.vx || 0, B.vy || 0) < 0.02,
-      every = sunAngle < -0.08 ? 6 : still ? 3 : 2;
+      every = G.tFix != null ? 1 : sunAngle < -0.08 ? 6 : still ? 4 : 2; // 偶数だけ（映り込みを描く奇数のコマと重ねない）。確認用に時計を止めているときは毎コマ（撮る瞬間で影が変わらないように）
     G.shTick = (G.shTick || 0) + 1;
     if (G.shTick % every === 0) renderer.shadowMap.needsUpdate = true;
   }
@@ -310,6 +357,7 @@ gl_FragColor=vec4(b/w*1.6,1.);}`,
     }
   }
   renderer.setRenderTarget(G.rt);
+  upd();
   renderer.render(scene, camera);
   renderer.setRenderTarget(null);
   G.gq.material.uniforms.tD.value = G.rt.texture;

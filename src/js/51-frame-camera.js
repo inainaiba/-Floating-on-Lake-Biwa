@@ -11,6 +11,7 @@ function updateCamera(dt, t, hx, hz) {
   // カメラ：水平を保って建物を追う
   if (
     STATE === "lake" &&
+    !G.camFix && // 紹介動画の撮影中（53-frame.js の __cam）は回り込まない
     performance.now() - (G.lastDrag || 0) > 4000 &&
     Math.hypot(B.vx || 0, B.vy || 0) > 0.03
   ) {
