@@ -42,8 +42,9 @@ const winU = { uHour: { value: 20 }, uDay: { value: 0 }, uSup: { value: 0 } }; /
       k = r < 0.22 ? 0 : 0.55 + Math.random() * 0.45;
     const w = Math.random();
     cl[i * 3] = k;
-    cl[i * 3 + 1] = k * (w < 0.2 ? 0.95 : 0.72 + Math.random() * 0.1);
-    cl[i * 3 + 2] = k * (w < 0.2 ? 0.85 : 0.4 + Math.random() * 0.15);
+    // 色は電球の暖かい橙。2割は少し白い灯り（蛍光灯）だが、真っ白にはしない
+    cl[i * 3 + 1] = k * (w < 0.2 ? 0.86 : 0.7 + Math.random() * 0.1);
+    cl[i * 3 + 2] = k * (w < 0.2 ? 0.66 : 0.38 + Math.random() * 0.14);
   }
   winGeo.setAttribute("color", new THREE.Float32BufferAttribute(cl, 3));
 }
@@ -74,6 +75,12 @@ windows.material.onBeforeCompile = (sh) => {
         "float vSup=uSup*step(.155,aLit.x);vColor*=mix(vec3(1.),vec3(1.1,.86,.62),vSup);",
     )
     .replace("gl_PointSize = size;", "gl_PointSize = size*on*(1.+.3*vSup);");
+  // 形：点の四角いっぱいに光らせると、白く大きな四角に見える（隣の窓と重なって横長の板にもなる）。
+  // 真ん中に小さな窓の明るさを置き、まわりはうすいにじみにする
+  sh.fragmentShader = sh.fragmentShader.replace(
+    "#include <color_fragment>",
+    "#include <color_fragment>\nvec2 q_=abs(gl_PointCoord-.5)*2.;float e_=max(q_.x,q_.y*1.2);diffuseColor.a*=mix(.16*(1.-smoothstep(.4,1.,e_)),1.,1.-smoothstep(.3,.46,e_));",
+  );
 };
 windows.material.customProgramCacheKey = () => "village-windows";
 scene.add(windows);

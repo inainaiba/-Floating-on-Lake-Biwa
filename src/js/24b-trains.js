@@ -109,13 +109,18 @@ G.trains = (() => {
   // 湖面に映る窓の灯りの筋：遠い小さな灯りは水面の映り込み（14-water.js）では筋にならないので、
   // 車両ごとに、鏡に映った窓の見える水面の所へ、こちらへ伸びる縦長の光を置く
   const glowM = new THREE.MeshBasicMaterial({
-      map: cvTex(32, 128, (g, w, h) => {
-        const gr = g.createLinearGradient(0, 0, w, 0);
-        gr.addColorStop(0, "rgba(255,255,255,0)");
-        gr.addColorStop(0.5, "rgba(255,255,255,1)");
-        gr.addColorStop(1, "rgba(255,255,255,0)");
-        g.fillStyle = gr;
-        g.fillRect(0, 0, w, h);
+      map: cvTex(128, 128, (g, w, h) => {
+        // 1両の窓（7つ）の数だけ、細い光の筋を横に並べる（1両に1本の帯だと、板が並んでいるように見える）
+        const n = 7;
+        for (let k = 0; k < n; k++) {
+          const x0 = (k / n) * w,
+            gr = g.createLinearGradient(x0, 0, x0 + w / n, 0);
+          gr.addColorStop(0.1, "rgba(255,255,255,0)");
+          gr.addColorStop(0.5, "rgba(255,255,255,1)");
+          gr.addColorStop(0.9, "rgba(255,255,255,0)");
+          g.fillStyle = gr;
+          g.fillRect(x0, 0, w / n, h);
+        }
         g.globalCompositeOperation = "destination-in";
         const gv = g.createLinearGradient(0, 0, 0, h);
         gv.addColorStop(0, "rgba(0,0,0,0)");
@@ -212,10 +217,12 @@ G.trains = (() => {
                     d = Math.hypot(gx - cp.x, gz - cp.z);
                   if (d > 30 && inLake(gx / S, gz / S)) {
                     Qn.setFromAxisAngle(Y, Math.atan2(cp.x - gx, cp.z - gz));
-                    C3.set(gx + ((cp.x - gx) / d) * d * 0.2, wy + 0.05, gz + ((cp.z - gz) / d) * d * 0.2);
-                    M.compose(C3, Qn, Sg.set(CAR * 0.22 * Math.max(1, d / 700), 1, d * 0.5));
+                    C3.set(gx + ((cp.x - gx) / d) * d * 0.08, wy + 0.05, gz + ((cp.z - gz) / d) * d * 0.08);
+                    // 幅：こちらから見た車両の長さ（斜めから見るほど狭い）。窓の筋が、車両の窓の並びに重なる
+                    const vw = Math.abs(Math.cos(a) * ((cp.z - gz) / d) - Math.sin(a) * ((cp.x - gx) / d));
+                    M.compose(C3, Qn, Sg.set(CAR * 0.9 * Math.max(0.2, vw), 1, d * 0.2));
                     glow.setMatrixAt(ng, M);
-                    glow.setColorAt(ng++, GC.copy(GLOW).multiplyScalar(0.55 * lit * fade * fade));
+                    glow.setColorAt(ng++, GC.copy(GLOW).multiplyScalar(0.3 * lit * fade * fade));
                   }
                 }
               }
