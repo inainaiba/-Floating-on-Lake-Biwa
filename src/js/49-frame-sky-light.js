@@ -340,7 +340,7 @@ function updateSkyLight(dt, t, c, W) {
     G.street.material.opacity = 1 - 0.5 * (G.deepNight || 0); // 夜更けは道の灯りも控えめに
     G.street.material.transparent = true;
   }
-  windows.material.opacity = day < 0.05 ? 0.95 : 0.6;
+  windows.material.opacity = day < 0.05 ? 0.8 : 0.55;
   if (paddySeason._m !== c.month) {
     if (G.grass)
       G.grass.material.color.set(SEASON.grass[c.month]);
